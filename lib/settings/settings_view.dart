@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../login/login_page.dart';
+import '../login/login_view.dart';
 import 'settings_service.dart';
 import 'package:provider/provider.dart';
 
