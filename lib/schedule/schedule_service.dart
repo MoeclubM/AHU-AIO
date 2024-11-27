@@ -41,8 +41,10 @@ class ScheduleService extends ChangeNotifier {
         print('Loaded cached table');
       }
     }
-    _isLoading = false;
-    notifyListeners();
+    if (hasListeners) {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   String formatTime(int time) {
@@ -76,7 +78,7 @@ class ScheduleService extends ChangeNotifier {
         // 合并相同课程相同时段但日期不同的情况
         final existingClass = processedClasses[timeKey]![weekday]!.firstWhere(
           (classItem) => classItem['scheduleGroupId'] == scheduleGroupId,
-          orElse: () => {},
+          orElse: () => <String, dynamic>{},
         );
 
         if (existingClass.isNotEmpty) {

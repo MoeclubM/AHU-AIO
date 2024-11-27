@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
-import 'login/login_view.dart'; // 引入登录页面
+import 'package:provider/provider.dart';
+import 'dark_mode_provider.dart';
+import 'login/login_view.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => DarkModeProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -10,18 +19,26 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'AHU 教务系统',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        brightness: Brightness.light,
-      ),
-      darkTheme: ThemeData(
-        primarySwatch: Colors.blue,
-        brightness: Brightness.dark,
-      ),
-      themeMode: ThemeMode.system, // 根据系统设置切换主题
-      home: const LoginPage(), // 设置登录页面为启动页
+    return Consumer<DarkModeProvider>(
+      builder: (context, darkModeProvider, child) {
+        return MaterialApp(
+          title: 'AHU 教务系统',
+          theme: ThemeData(
+            primarySwatch: Colors.blue,
+            brightness: Brightness.light,
+          ),
+          darkTheme: ThemeData(
+            primarySwatch: Colors.blue,
+            brightness: Brightness.dark,
+          ),
+          themeMode: darkModeProvider.darkMode == 2
+              ? ThemeMode.system
+              : darkModeProvider.darkMode == 1
+                  ? ThemeMode.dark
+                  : ThemeMode.light,
+          home: const LoginPage(),
+        );
+      },
     );
   }
 }

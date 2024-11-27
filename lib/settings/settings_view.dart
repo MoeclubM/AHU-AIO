@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../dark_mode_provider.dart';
 import '../login/login_view.dart';
 import 'settings_service.dart';
 import 'package:provider/provider.dart';
@@ -41,6 +42,8 @@ class SettingsPage extends StatelessWidget {
                 children: [
                   _buildUserInfo(logic.userInfo!),
                   const SizedBox(height: 20),
+                  _buildThemeModeSelector(Provider.of<DarkModeProvider>(context)),
+                  const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: () => _logout(context),
                     child: const Text('登出'),
@@ -70,6 +73,37 @@ class SettingsPage extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+   Widget _buildThemeModeSelector(DarkModeProvider darkModeProvider) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('主题模式', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        DropdownButton<int>(
+          value: darkModeProvider.darkMode,
+          items: const [
+            DropdownMenuItem(
+              value: 2,
+              child: Text('自动切换'),
+            ),
+            DropdownMenuItem(
+              value: 0,
+              child: Text('日间模式'),
+            ),
+            DropdownMenuItem(
+              value: 1,
+              child: Text('夜间模式'),
+            ),
+          ],
+          onChanged: (value) {
+            if (value != null) {
+              darkModeProvider.changeMode(value);
+            }
+          },
+        ),
+      ],
     );
   }
 }

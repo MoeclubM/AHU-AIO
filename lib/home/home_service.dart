@@ -41,8 +41,10 @@ class HomePageLogic extends ChangeNotifier {
         print('Loaded cached tests');
       }
     }
-    _isLoading = false;
-    notifyListeners();
+    if (hasListeners) {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
 
   int getTodayClassesCount() {
@@ -61,14 +63,17 @@ class HomePageLogic extends ChangeNotifier {
       _schedules!.forEach((date, events) {
         final eventDate = DateTime.parse(date);
         if (eventDate.isAfter(now) || (eventDate.year == now.year && eventDate.month == now.month && eventDate.day == now.day)) {
-          count += (events.length as int);
+          count += events.length as int;
         }
       });
     }
     return count;
   }
 
-
+  TextStyle getEventStyle(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    return TextStyle(color: isDarkMode ? Colors.white : Colors.black);
+  }
 
   String formatExamTime(int time) {
     final hours = (time / 100).floor().toString().padLeft(2, '0');
