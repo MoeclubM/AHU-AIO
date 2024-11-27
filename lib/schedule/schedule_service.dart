@@ -59,6 +59,7 @@ class ScheduleService extends ChangeNotifier {
     for (var classItem in _classes!) {
       final courseName = classItem['course']?['nameZh'] ?? '未知课程';
       final schedules = classItem['schedules'];
+      final teacherName = classItem['teacherAssignmentList'] ?? '未知教师';
 
       for (var schedule in schedules) {
         final startTime = formatTime(schedule['startTime']);
@@ -86,6 +87,7 @@ class ScheduleService extends ChangeNotifier {
         } else {
           processedClasses[timeKey]![weekday]!.add({
             'courseName': courseName,
+            'teacherName': teacherName,
             'roomName': schedule['room']?['nameZh'] ?? '未知教室',
             'scheduleGroupId': scheduleGroupId,
             'details': [schedule],
