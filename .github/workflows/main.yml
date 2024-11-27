@@ -1,0 +1,30 @@
+name: Android CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:  # Telling what jobs we need to happen
+  build:      # Specify the building name and machine
+    name: Build
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+    - name: Set Up Java
+      uses: actions/setup-java@v3.12.0
+      with:
+        distribution: 'oracle'
+        java-version: '17'
+    - name: Set Up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.22.2'
+        channel: 'stable'
+    - name: Install Dependencies
+      run: flutter pub get
+    - name: Build APK
+      run: flutter build apk
