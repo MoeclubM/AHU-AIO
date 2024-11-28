@@ -6,7 +6,7 @@ class FuncPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Center(
-      child: Text('这是功能页面！'),
+      child: Text('开发中！'),
     );
   }
 }
