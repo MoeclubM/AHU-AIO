@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../home/home_view.dart';
 import '../schedule/schedule_view.dart';
 import '../settings/settings_view.dart';
-import './mainpage_service.dart';
+import 'mainpage_service.dart';
 import '../funcs/func_view.dart';
 
 class MainPage extends StatefulWidget {

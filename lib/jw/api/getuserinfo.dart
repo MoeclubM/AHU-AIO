@@ -1,9 +1,9 @@
 import 'dart:convert';
-import './sendrequest.dart';
+import 'sendrequest.dart';
 
-Future<List<dynamic>?> getTests(String token) async {
+Future<Map<String, dynamic>?> getUserInfo(String token) async {
   final response = await sendRequest(
-    'https://jwapp.ahu.edu.cn/eams-micro-server/api/v1/exam/student/exam',
+    'https://jwapp.ahu.edu.cn/eams-door/api/v1/portal/home/user-info',
     token,
   );
 

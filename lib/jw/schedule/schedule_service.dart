@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api/getclass.dart';
 import '../api/gettable.dart';
-import '../globals.dart' as globals;
+import '../../globals.dart' as globals;
 
 class ScheduleService extends ChangeNotifier {
   List<dynamic>? _classes;

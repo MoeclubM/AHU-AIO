@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api/getschdules.dart';
 import '../api/gettests.dart';
-import '../globals.dart' as globals;
+import '../../globals.dart' as globals;
 
 class HomePageLogic extends ChangeNotifier {
   Map<String, dynamic>? _schedules;

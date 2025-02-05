@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dark_mode_provider.dart';
-import 'login/login_view.dart';
+import 'jw/login/login_view.dart';
 
 void main() {
   runApp(

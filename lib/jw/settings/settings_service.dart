@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api/getuserinfo.dart';
-import '../globals.dart' as globals;
+import '../../globals.dart' as globals;
 
 class SettingsService extends ChangeNotifier {
   Map<String, dynamic>? _userInfo;

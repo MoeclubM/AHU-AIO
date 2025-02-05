@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:ui';
 import 'login_service.dart';
 import '../mainpage/mainpage_view.dart';
-import '../globals.dart' as globals;
+import '../../globals.dart' as globals;
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
