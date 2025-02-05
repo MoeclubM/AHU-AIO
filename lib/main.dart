@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
     return Consumer<DarkModeProvider>(
       builder: (context, darkModeProvider, child) {
         return MaterialApp(
-          title: 'AHU 教务系统',
+          title: 'AHU All In One',
           theme: ThemeData(
             primarySwatch: Colors.blue,
             brightness: Brightness.light,
@@ -36,9 +36,47 @@ class MyApp extends StatelessWidget {
               : darkModeProvider.darkMode == 1
                   ? ThemeMode.dark
                   : ThemeMode.light,
-          home: const LoginPage(),
+          home: const HomePage(),
         );
       },
+    );
+  }
+}
+
+class HomePage extends StatelessWidget {
+  const HomePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('AHU All In One'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const JWLoginPage()),
+                );
+              },
+              child: const Text('教务系统'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('缴费系统功能正在开发中...')),
+                );
+              },
+              child: const Text('缴费系统'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

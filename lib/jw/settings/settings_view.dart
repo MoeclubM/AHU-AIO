@@ -13,7 +13,7 @@ class SettingsPage extends StatelessWidget {
     await prefs.remove('idToken');
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const LoginPage()),
+      MaterialPageRoute(builder: (context) => const JWLoginPage()),
     );
   }
 

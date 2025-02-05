@@ -6,14 +6,14 @@ import 'login_service.dart';
 import '../mainpage/mainpage_view.dart';
 import '../../globals.dart' as globals;
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class JWLoginPage extends StatefulWidget {
+  const JWLoginPage({super.key});
 
   @override
-  _LoginPageState createState() => _LoginPageState();
+  _JWLoginPageState createState() => _JWLoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _JWLoginPageState extends State<JWLoginPage> {
   // 定义控制器和状态变量
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
