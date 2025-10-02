@@ -33,6 +33,7 @@ dependencies:
   http: ^1.2.2
   encrypt: ^5.0.0
   flutter_svg: ^2.0.16
+  get: ^4.6.6
   
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
