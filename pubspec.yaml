@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   http: ^1.2.2
   encrypt: ^5.0.0
   flutter_svg: ^2.0.16

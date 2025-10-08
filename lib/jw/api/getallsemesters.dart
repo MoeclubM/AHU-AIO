@@ -1,5 +1,5 @@
-import 'dart:convert';
 import 'sendrequest.dart';
+import 'api_response_handler.dart';
 
 /// 学期信息数据模型
 class SemesterInfo {
@@ -49,18 +49,9 @@ Future<List<SemesterInfo>?> getAllSemestersApi(String token) async {
     token,
   );
 
-  if (response == null) {
-    throw Exception('网络请求超时');
-  }
-
-  if (response.statusCode == 200) {
-    final data = jsonDecode(response.body);
-    if (data['result'] == 0) {
-      final List<dynamic> semesterList = data['data'];
-      return semesterList.map((json) => SemesterInfo.fromJson(json)).toList();
-    }
-  } else if (response.statusCode == 401) {
-    throw Exception('Unauthorized');
+  final data = ApiResponseHandler.handleStandardResponse(response);
+  if (data is List) {
+    return data.map((json) => SemesterInfo.fromJson(json)).toList();
   }
   return null;
 }

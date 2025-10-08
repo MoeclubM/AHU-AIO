@@ -12,7 +12,6 @@ class SemesterConfig {
       try {
         _currentSemester = await getCurrentSemester(globals.idToken ?? '');
       } catch (e) {
-        print('获取当前学期信息失败: $e');
         return null;
       }
     }
@@ -31,19 +30,12 @@ class SemesterConfig {
     return semester?.nameZh ?? '未知学期';
   }
 
-  /// 清除缓存
-  static void clearCache() {
-    _currentSemester = null;
-    _allSemesters = null;
-  }
-
   /// 获取所有学期信息
   static Future<List<SemesterInfo>?> getAllSemesters() async {
     if (_allSemesters == null) {
       try {
         _allSemesters = await getAllSemestersApi(globals.idToken ?? '');
       } catch (e) {
-        print('获取所有学期信息失败: $e');
         return null;
       }
     }

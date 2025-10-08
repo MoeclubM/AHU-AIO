@@ -48,12 +48,10 @@ class SettingsService extends ChangeNotifier {
     await prefs.setString('themeMode', _themeModeToString(themeMode));
   }
 
-  void setThemeMode(ThemeMode? themeMode) {
-    if (themeMode != null) {
-      _themeMode = themeMode;
-      _saveThemeMode(themeMode);
-      notifyListeners();
-    }
+  void setThemeMode(ThemeMode themeMode) {
+    _themeMode = themeMode;
+    _saveThemeMode(themeMode);
+    notifyListeners();
   }
 
   ThemeMode _themeModeFromString(String themeModeString) {
@@ -75,7 +73,6 @@ class SettingsService extends ChangeNotifier {
       case ThemeMode.dark:
         return 'dark';
       case ThemeMode.system:
-      default:
         return 'system';
     }
   }

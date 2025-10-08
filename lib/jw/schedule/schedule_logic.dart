@@ -61,7 +61,7 @@ class ScheduleLogic extends GetxController {
         }
       }
     } catch (e) {
-      print('加载学期数据失败: $e');
+      errorMessage.value = e.toString();
     }
   }
   
@@ -86,7 +86,6 @@ class ScheduleLogic extends GetxController {
       };
     } catch (e) {
       errorMessage.value = e.toString();
-      print('加载课程数据失败: $e');
     } finally {
       isLoading.value = false;
     }
@@ -133,9 +132,23 @@ class ScheduleLogic extends GetxController {
     return _scheduleService.formatTime(time);
   }
   
-  // 处理课程数据
-  Map<String, Map<String, List<Map<String, dynamic>>>> processClasses(List<dynamic> classes) {
-    return _scheduleService.processClasses();
+  /// 处理课程数据，根据选择的周数过滤课程
+  Map<String, Map<String, List<Map<String, dynamic>>>> processClasses() {
+    final currentWeek = currentSemesterInfo.value != null 
+        ? _getCurrentWeek(currentSemesterInfo.value!) 
+        : null;
+    return _scheduleService.processClasses(
+      selectedWeek: selectedWeek.value,
+      currentWeek: currentWeek,
+    );
+  }
+
+  /// 处理课程数据，支持显示所有学期课程并标记非当前周课程
+  Map<String, Map<String, List<Map<String, dynamic>>>> processAllClasses() {
+    final currentWeek = currentSemesterInfo.value != null 
+        ? _getCurrentWeek(currentSemesterInfo.value!) 
+        : null;
+    return _scheduleService.processAllClasses(currentWeek: currentWeek);
   }
   
   // 刷新数据

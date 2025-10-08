@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'dark_mode_provider.dart';
 import 'jw/login/login_view.dart';
@@ -23,6 +24,15 @@ class MyApp extends StatelessWidget {
       builder: (context, darkModeProvider, child) {
         return MaterialApp(
           title: 'AHU All In One',
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: const [
+            Locale('zh', 'CN'),
+            Locale('en', 'US'),
+          ],
           theme: ThemeData(
             primarySwatch: Colors.blue,
             brightness: Brightness.light,

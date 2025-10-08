@@ -1,5 +1,5 @@
-import 'dart:convert';
 import 'sendrequest.dart';
+import 'api_response_handler.dart';
 
 /// 当前学期信息数据模型
 class CurrentSemesterInfo {
@@ -47,17 +47,9 @@ Future<CurrentSemesterInfo?> getCurrentSemester(String token) async {
     token,
   );
 
-  if (response == null) {
-    throw Exception('网络请求超时');
-  }
-
-  if (response.statusCode == 200) {
-    final data = jsonDecode(response.body);
-    if (data['result'] == 0) {
-      return CurrentSemesterInfo.fromJson(data['data']);
-    }
-  } else if (response.statusCode == 401) {
-    throw Exception('Unauthorized');
+  final data = ApiResponseHandler.handleStandardResponse(response);
+  if (data is Map<String, dynamic>) {
+    return CurrentSemesterInfo.fromJson(data);
   }
   return null;
 }

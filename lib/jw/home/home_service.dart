@@ -29,18 +29,15 @@ class HomePageLogic extends ChangeNotifier {
       _tests = tests;
       await prefs.setString('cachedSchedules', jsonEncode(schedules));
       await prefs.setString('cachedTests', jsonEncode(tests));
-      print('Schedules and tests fetched successfully for $currentDate');
     } catch (e) {
-      print('Error fetching data: $e');
       final cachedSchedules = prefs.getString('cachedSchedules');
       final cachedTests = prefs.getString('cachedTests');
+      
       if (cachedSchedules != null) {
-        _schedules = jsonDecode(cachedSchedules);
-        print('Loaded cached schedules');
+        _schedules = Map<String, dynamic>.from(jsonDecode(cachedSchedules));
       }
       if (cachedTests != null) {
-        _tests = jsonDecode(cachedTests);
-        print('Loaded cached tests');
+        _tests = List<dynamic>.from(jsonDecode(cachedTests));
       }
     }
     if (hasListeners) {
@@ -57,7 +54,9 @@ class HomePageLogic extends ChangeNotifier {
   Future<void> refreshDataForDate(String date) async {
     _isLoading = true;
     notifyListeners();
-    await _fetchData(date);
+    // 将完整日期格式（2024-01-15）转换为年月格式（2024-01）
+    final yearMonth = date.substring(0, 7);
+    await _fetchData(yearMonth);
   }
 
   Future<void> refreshData([String? date]) async {

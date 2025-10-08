@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'schedule_logic.dart';
-import 'schedule_service.dart';
-import 'semester_config.dart';
 
 class SchedulePage extends StatefulWidget {
   const SchedulePage({super.key});
@@ -12,8 +10,7 @@ class SchedulePage extends StatefulWidget {
 }
 
 class _SchedulePageState extends State<SchedulePage> {
-  String? _selectedSemester;
-  String? _selectedMonth;
+  final ScheduleLogic logic = Get.put(ScheduleLogic());
   bool _isInitialized = false;
 
   @override
@@ -237,8 +234,7 @@ class _SchedulePageState extends State<SchedulePage> {
 
   Widget _buildScheduleTable(ScheduleLogic logic) {
     // 从scheduleData中获取课程数据
-    final classes = logic.scheduleData['classes'] as List<dynamic>? ?? [];
-    final processedClasses = logic.processClasses(classes);
+    final processedClasses = logic.processClasses();
     
     // 如果没有课程数据，显示空状态
     if (processedClasses.isEmpty) {
@@ -255,199 +251,226 @@ class _SchedulePageState extends State<SchedulePage> {
 
     final timeKeys = processedClasses.keys.toList()..sort();
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isMobile = constraints.maxWidth < 600;
-
-        return Container(
-          margin: const EdgeInsets.all(16.0),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
+    return Container(
+      margin: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.vertical,
-              child: SingleChildScrollView(
-                scrollDirection: isMobile ? Axis.horizontal : Axis.vertical,
-                child: Table(
-                  border: TableBorder.all(
-                    color: Colors.grey.shade200,
-                    width: 1,
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.vertical,
+          child: Column(
+            children: [
+              // 表头
+              Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.blue.shade500, Colors.blue.shade600],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
                   ),
-                  columnWidths: isMobile 
-                      ? {
-                          0: const FixedColumnWidth(80.0), // 时间段列稍窄
-                          1: const FlexColumnWidth(1.0),   // 周一
-                          2: const FlexColumnWidth(1.0),   // 周二
-                          3: const FlexColumnWidth(1.0),   // 周三
-                          4: const FlexColumnWidth(1.0),   // 周四
-                          5: const FlexColumnWidth(1.0),   // 周五
-                          6: const FlexColumnWidth(1.0),   // 周六
-                          7: const FlexColumnWidth(1.0),   // 周日
-                        }
-                      : {
-                          0: const FixedColumnWidth(100.0), // 时间段列
-                          1: const FlexColumnWidth(1.0),    // 周一
-                          2: const FlexColumnWidth(1.0),    // 周二
-                          3: const FlexColumnWidth(1.0),    // 周三
-                          4: const FlexColumnWidth(1.0),    // 周四
-                          5: const FlexColumnWidth(1.0),    // 周五
-                          6: const FlexColumnWidth(1.0),    // 周六
-                          7: const FlexColumnWidth(1.0),    // 周日
-                        },
+                ),
+                child: Row(
                   children: [
-                    // 表头
-                    TableRow(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [Colors.blue.shade500, Colors.blue.shade600],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
-                      children: [
-                        _buildHeaderCell('时间段'),
-                        _buildHeaderCell('周一'),
-                        _buildHeaderCell('周二'),
-                        _buildHeaderCell('周三'),
-                        _buildHeaderCell('周四'),
-                        _buildHeaderCell('周五'),
-                        _buildHeaderCell('周六'),
-                        _buildHeaderCell('周日'),
-                      ],
+                    SizedBox(
+                      width: 70.0,
+                      child: _buildHeaderCell('时间段'),
                     ),
-                    // 课程行
-                    ...timeKeys.map((timeKey) {
-                      final weekdays = processedClasses[timeKey]!;
-                      return TableRow(
-                        children: [
-                          _buildTimeCell(timeKey),
-                          ...List.generate(7, (index) {
-                            final weekday = '周${index + 1}';
-                            final classes = weekdays[weekday] ?? [];
-                            return _buildClassCell(classes, logic, context);
-                          }),
-                        ],
-                      );
-                    }),
+                    Expanded(child: _buildHeaderCell('周一')),
+                    Expanded(child: _buildHeaderCell('周二')),
+                    Expanded(child: _buildHeaderCell('周三')),
+                    Expanded(child: _buildHeaderCell('周四')),
+                    Expanded(child: _buildHeaderCell('周五')),
+                    Expanded(child: _buildHeaderCell('周六')),
+                    Expanded(child: _buildHeaderCell('周日')),
                   ],
                 ),
               ),
-            ),
+              // 课程行
+              ...timeKeys.map((timeKey) {
+                final weekdays = processedClasses[timeKey]!;
+                return Container(
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: Colors.grey.shade200,
+                        width: 1,
+                      ),
+                    ),
+                  ),
+                  child: IntrinsicHeight( // 关键：让所有子组件使用相同的高度，但允许自适应
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Container(
+                          width: 70.0,
+                          decoration: BoxDecoration(
+                            border: Border(
+                              right: BorderSide(
+                                color: Colors.grey.shade200,
+                                width: 1,
+                              ),
+                            ),
+                          ),
+                          child: _buildTimeCell(timeKey),
+                        ),
+                        ...List.generate(7, (index) {
+                          final weekday = '周${index + 1}';
+                          final classes = weekdays[weekday] ?? [];
+                          return Expanded(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  right: index < 6 ? BorderSide(
+                                    color: Colors.grey.shade200,
+                                    width: 1,
+                                  ) : BorderSide.none,
+                                ),
+                              ),
+                              child: _buildClassCell(classes, logic, context),
+                            ),
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
   Widget _buildHeaderCell(String text) {
-    return TableCell(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        child: Center(
-          child: Text(
-            text,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      child: Center(
+        child: Text(
+          text,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
           ),
+          textAlign: TextAlign.center,
         ),
       ),
     );
   }
 
   Widget _buildTimeCell(String timeSlot) {
-    return TableCell(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-        decoration: BoxDecoration(
-          color: Colors.grey.shade50,
-        ),
-        child: Center(
-          child: Text(
-            timeSlot,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey.shade700,
-            ),
-            textAlign: TextAlign.center,
+    return Container(
+      constraints: const BoxConstraints(minHeight: 80),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+      ),
+      child: Center(
+        child: Text(
+          timeSlot,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey.shade700,
           ),
+          textAlign: TextAlign.center,
         ),
       ),
     );
   }
 
   Widget _buildClassCell(List<Map<String, dynamic>> classes, ScheduleLogic logic, BuildContext context) {
-    return TableCell(
-      child: Container(
-        height: 80,
-        padding: const EdgeInsets.all(4),
-        child: classes.isEmpty
-            ? Container()
-            : Column(
-                children: classes.take(2).map((classItem) {
-                  return Expanded(
-                    child: GestureDetector(
-                      onTap: () => _showClassDetails(context, classItem, logic),
-                      child: Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.symmetric(vertical: 1),
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                            color: Colors.blue.shade200,
-                            width: 1,
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              classItem['courseName'] ?? '',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.blue.shade800,
-                              ),
-                              textAlign: TextAlign.center,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            if (classItem['roomName'] != null) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                classItem['roomName'],
-                                style: TextStyle(
-                                  fontSize: 8,
-                                  color: Colors.grey.shade600,
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
+    return Container(
+      constraints: const BoxConstraints(minHeight: 80), // 最小高度，允许自动扩展
+      padding: const EdgeInsets.all(4),
+      child: classes.isEmpty
+          ? Container()
+          : Column(
+              mainAxisSize: MainAxisSize.min, // 允许列自适应内容高度
+              children: classes.take(2).map((classItem) {
+                // 检查是否为当前周课程
+                final isCurrentWeek = classItem['isCurrentWeek'] ?? true;
+                
+                return Container( // 移除Flexible，直接使用Container
+                  width: double.infinity,
+                  margin: const EdgeInsets.symmetric(vertical: 1),
+                  padding: const EdgeInsets.all(6), // 增加内边距
+                  decoration: BoxDecoration(
+                    color: isCurrentWeek 
+                        ? Colors.blue.shade50 
+                        : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: isCurrentWeek 
+                          ? Colors.blue.shade200 
+                          : Colors.grey.shade300,
+                      width: 1,
                     ),
-                  );
-                }).toList(),
-              ),
-      ),
+                  ),
+                  child: GestureDetector(
+                    onTap: () => _showClassDetails(context, classItem, logic),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min, // 允许列自适应内容高度
+                      children: [
+                        Text(
+                          classItem['courseName'] ?? '',
+                          style: TextStyle(
+                            fontSize: 11, // 稍微增大字体
+                            fontWeight: FontWeight.w600,
+                            color: isCurrentWeek 
+                                ? Colors.blue.shade800 
+                                : Colors.grey.shade600,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines: 3, // 允许三行显示
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (classItem['roomName'] != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            classItem['roomName'],
+                            style: TextStyle(
+                              fontSize: 8,
+                              color: isCurrentWeek 
+                                  ? Colors.grey.shade600 
+                                  : Colors.grey.shade500,
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                        // 如果不是当前周，显示提示
+                        if (!isCurrentWeek) ...[
+                          const SizedBox(height: 1),
+                          Text(
+                            '非本周',
+                            style: TextStyle(
+                              fontSize: 7,
+                              color: Colors.grey.shade500,
+                              fontStyle: FontStyle.italic,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
     );
   }
 
