@@ -27,15 +27,17 @@ class CurrentSemesterInfo {
 
   factory CurrentSemesterInfo.fromJson(Map<String, dynamic> json) {
     return CurrentSemesterInfo(
-      id: json['id'],
-      code: json['code'],
-      nameZh: json['nameZh'],
-      nameEn: json['nameEn'],
-      schoolYear: json['schoolYear'],
-      startDate: json['startDate'],
-      endDate: json['endDate'],
-      season: json['season'],
-      weekIndices: List<int>.from(json['weekIndices']),
+      id: json['id'] ?? json['semesterId'] ?? 0,
+      code: json['code'] ?? json['semesterCode'] ?? '',
+      nameZh: json['nameZh'] ?? json['semesterName'] ?? json['name'] ?? '未知学期',
+      nameEn: json['nameEn'] ?? json['englishName'] ?? '',
+      schoolYear: json['schoolYear'] ?? json['academicYear'] ?? '',
+      startDate: json['startDate'] ?? json['beginDate'] ?? '',
+      endDate: json['endDate'] ?? json['finishDate'] ?? '',
+      season: json['season'] ?? '',
+      weekIndices: json['weekIndices'] != null
+          ? List<int>.from(json['weekIndices'])
+          : (json['weeks'] != null ? List<int>.from(json['weeks']) : []),
     );
   }
 }

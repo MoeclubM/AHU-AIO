@@ -27,7 +27,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    
+
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
@@ -35,7 +35,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       parent: _fadeController,
       curve: Curves.easeInOut,
     ));
-    
+
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
@@ -43,10 +43,12 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       parent: _slideController,
       curve: Curves.easeOutBack,
     ));
-    
+
     // 启动动画
     _fadeController.forward();
     _slideController.forward();
+
+    // 检查即将开始的课程将在Consumer内部调用
   }
 
   @override
@@ -58,56 +60,64 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return ChangeNotifierProvider(
       create: (_) => HomePageLogic(),
       child: DefaultTabController(
         length: 2,
         child: Scaffold(
-          backgroundColor: Colors.grey[50],
+          backgroundColor: isDark ? Colors.grey.shade900 : Colors.grey.shade50,
           appBar: AppBar(
             title: const Text(
               '首页',
               style: TextStyle(
                 fontWeight: FontWeight.w600,
                 fontSize: 20,
+                color: Colors.white,
               ),
             ),
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.black87,
+            backgroundColor: Colors.transparent,
             elevation: 0,
-            shadowColor: Colors.transparent,
-            bottom: PreferredSize(
-              preferredSize: const Size.fromHeight(48),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: const TabBar(
-                  labelColor: Colors.blue,
-                  unselectedLabelColor: Colors.grey,
-                  indicatorColor: Colors.blue,
-                  indicatorWeight: 3,
-                  labelStyle: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                  ),
-                  unselectedLabelStyle: TextStyle(
-                    fontWeight: FontWeight.w400,
-                    fontSize: 16,
-                  ),
-                  tabs: [
-                    Tab(text: '日程'),
-                    Tab(text: '考试'),
-                  ],
+            flexibleSpace: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isDark
+                      ? [
+                          Colors.blue.shade800,
+                          Colors.blue.shade600,
+                          Colors.indigo.shade700,
+                        ]
+                      : [
+                          Colors.blue.shade600,
+                          Colors.blue.shade700,
+                          Colors.indigo.shade600,
+                        ],
                 ),
               ),
+            ),
+            bottom: TabBar(
+              dividerColor: Colors.transparent,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white70,
+              indicatorColor: Colors.white,
+              indicatorWeight: 3,
+              indicatorSize: TabBarIndicatorSize.tab,
+              labelStyle: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+              ),
+              unselectedLabelStyle: const TextStyle(
+                fontWeight: FontWeight.w400,
+                fontSize: 15,
+              ),
+              tabs: const [
+                Tab(icon: Icon(Icons.schedule_outlined), text: '日程'),
+                Tab(icon: Icon(Icons.quiz_outlined), text: '考试'),
+              ],
             ),
           ),
           body: FadeTransition(
@@ -116,23 +126,34 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               position: _slideAnimation,
               child: Consumer<HomePageLogic>(
                 builder: (context, logic, child) {
+
                   if (logic.isLoading) {
                     return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          CircularProgressIndicator(
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
+                      child: Card.filled(
+                        color: isDark ? Colors.grey.shade800 : Colors.white,
+                        elevation: 0,
+                        child: Padding(
+                          padding: const EdgeInsets.all(32.0),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  isDark ? Colors.blue.shade400 : Colors.blue.shade600,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                '正在加载数据...',
+                                style: TextStyle(
+                                  color: isDark ? Colors.grey.shade300 : Colors.grey.shade600,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 16),
-                          Text(
-                            '正在加载数据...',
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
+                        ),
                       ),
                     );
                   }
@@ -167,111 +188,70 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Widget _buildDateSelector(HomePageLogic logic) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
-      margin: const EdgeInsets.all(16.0),
-      padding: const EdgeInsets.all(20.0),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.white, Colors.grey.shade50],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-        border: Border.all(
-          color: Colors.grey.withOpacity(0.1),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Colors.blue.shade400, Colors.blue.shade600],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.blue.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 3),
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.calendar_today,
-              color: Colors.white,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+      child: Card.filled(
+        color: isDark ? Colors.grey.shade800 : Colors.blue.shade50,
+        elevation: 0,
+        child: InkWell(
+          onTap: () => _selectDate(context, logic),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
               children: [
-                Text(
-                  '选择查看日期',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.5,
+                CircleAvatar(
+                  backgroundColor: isDark ? Colors.blue.shade600 : Colors.blue.shade500,
+                  radius: 20,
+                  child: const Icon(
+                    Icons.calendar_month_outlined,
+                    color: Colors.white,
+                    size: 20,
                   ),
                 ),
-                const SizedBox(height: 6),
-                GestureDetector(
-                  onTap: () => _selectDate(context, logic),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: Colors.grey.withOpacity(0.2),
-                        width: 1,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '选择日期',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isDark ? Colors.grey.shade400 : Colors.blue.shade700,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          _formatSelectedDate(),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _formatSelectedDate(),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? Colors.white : Colors.blue.shade900,
+                              ),
+                            ),
                           ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(6),
+                          Icon(
+                            Icons.date_range,
+                            color: isDark ? Colors.blue.shade400 : Colors.blue.shade600,
+                            size: 20,
                           ),
-                          child: Icon(
-                            Icons.keyboard_arrow_down,
-                            color: Colors.blue,
-                            size: 18,
-                          ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -284,6 +264,9 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   Future<void> _selectDate(BuildContext context, HomePageLogic logic) async {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate ?? DateTime.now(),
@@ -293,13 +276,20 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: Colors.blue,
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black87,
-            ),
-            dialogBackgroundColor: Colors.white,
+            colorScheme: isDark
+                ? ColorScheme.dark(
+                    primary: Colors.blue.shade300,
+                    onPrimary: Colors.white,
+                    surface: Colors.grey.shade800,
+                    onSurface: Colors.white,
+                  )
+                : ColorScheme.light(
+                    primary: Colors.blue,
+                    onPrimary: Colors.white,
+                    surface: Colors.white,
+                    onSurface: Colors.black87,
+                  ),
+            dialogBackgroundColor: isDark ? Colors.grey.shade800 : Colors.white,
           ),
           child: child!,
         );
@@ -316,23 +306,26 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     }
   }
 
-  Widget _buildSchedules(Map<String, dynamic>? schedules, HomePageLogic logic, BuildContext context) {
-    if (schedules == null) {
+  Widget _buildSchedules(dynamic schedules, HomePageLogic logic, BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    if (logic.isLoading) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.grey[400],
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(
+                isDark ? Colors.blue.shade300 : Colors.blue,
+              ),
             ),
             const SizedBox(height: 16),
             Text(
-              '无法获取日程安排',
+              '正在加载课表数据...',
               style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey[600],
+                color: isDark ? Colors.grey.shade300 : Colors.grey.shade600,
+                fontSize: 16,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -341,11 +334,49 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       );
     }
 
-    final todayClassesCount = logic.getTodayClassesCount();
+    if (logic.currentError != null) {
+      return Center(
+        child: Card(
+          margin: const EdgeInsets.all(16),
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: isDark ? Colors.red.shade400 : Colors.red.shade600,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '加载失败',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: isDark ? Colors.grey.shade300 : Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  logic.currentError!,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final remainingClassesCount = logic.getRemainingClassesCount();
-    
+
     // 获取选定日期的课程，如果没有选择日期则显示今天的课程
-    final selectedDateString = _selectedDate != null 
+    final selectedDateString = _selectedDate != null
         ? '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}'
         : DateTime.now().toString().substring(0, 10);
     final groupedSchedules = logic.getGroupedSchedulesForDate(selectedDateString);
@@ -355,48 +386,126 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       children: [
         // 统计信息卡片
         Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          padding: const EdgeInsets.all(20.0),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.blue.shade400, Colors.blue.shade600],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.blue.withOpacity(0.3),
-                blurRadius: 12,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
+          margin: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 12.0),
           child: Row(
             children: [
               Expanded(
-                child: _buildStatCard(
-                  icon: Icons.today,
-                  title: _selectedDate != null && 
-                         _selectedDate!.day != DateTime.now().day 
-                         ? '选定日期' 
-                         : '今日课程',
-                  count: groupedSchedules.values.fold(0, (sum, courses) => sum + courses.length),
-                  color: Colors.white,
+                child: Card(
+                  elevation: 2,
+                  shadowColor: Colors.blue.withValues(alpha: 0.3),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: Colors.blue.withValues(alpha: 0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () {},
+                    child: Container(
+                      padding: const EdgeInsets.all(16.0),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.blue.shade400,
+                            Colors.blue.shade600,
+                          ],
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.today_outlined,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            groupedSchedules.values.fold(0, (sum, courses) => sum + courses.length).toString(),
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _selectedDate != null && _selectedDate!.day != DateTime.now().day
+                                ? '选定日期'
+                                : '今日课程',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white.withValues(alpha: 0.9),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              Container(
-                width: 1,
-                height: 40,
-                color: Colors.white.withOpacity(0.3),
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-              ),
+              const SizedBox(width: 12),
               Expanded(
-                child: _buildStatCard(
-                  icon: Icons.schedule,
-                  title: '本周剩余',
-                  count: remainingClassesCount,
-                  color: Colors.white,
+                child: Card(
+                  elevation: 2,
+                  shadowColor: Colors.indigo.withValues(alpha: 0.3),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    side: BorderSide(
+                      color: Colors.indigo.withValues(alpha: 0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () {},
+                    child: Container(
+                      padding: const EdgeInsets.all(16.0),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Colors.indigo.shade400,
+                            Colors.indigo.shade600,
+                          ],
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.schedule_outlined,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            remainingClassesCount.toString(),
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '本周剩余',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.white.withValues(alpha: 0.9),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -405,34 +514,51 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         Expanded(
           child: groupedSchedules.isEmpty
               ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.calendar_today_outlined,
-                        size: 64,
-                        color: Colors.grey[400],
+                  child: Card.filled(
+                    color: isDark ? Colors.grey.shade800 : Colors.blue.shade50,
+                    elevation: 0,
+                    margin: const EdgeInsets.all(32),
+                    child: Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? Colors.blue.shade900.withValues(alpha: 0.3)
+                                  : Colors.blue.shade100,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Icon(
+                              Icons.calendar_today_outlined,
+                              size: 48,
+                              color: isDark ? Colors.blue.shade300 : Colors.blue.shade600,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                          Text(
+                            _selectedDate != null
+                                ? '选定日期暂无课程安排'
+                                : '今日暂无课程安排',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: isDark ? Colors.grey.shade200 : Colors.blue.shade900,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '请选择其他日期查看课程',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isDark ? Colors.grey.shade400 : Colors.blue.shade700,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _selectedDate != null 
-                            ? '选定日期暂无课程安排'
-                            : '今日暂无课程安排',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.grey[600],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '请选择其他月份查看',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[500],
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 )
               : ListView.builder(
@@ -441,157 +567,136 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   itemBuilder: (context, index) {
                     final timeSlot = groupedSchedules.keys.elementAt(index);
                     final courses = groupedSchedules[timeSlot]!;
-                    
-                    return AnimatedContainer(
-                      duration: Duration(milliseconds: 300 + (index * 100)),
-                      curve: Curves.easeOutBack,
-                      margin: const EdgeInsets.only(bottom: 16.0),
-                      child: Card(
+
+                    return Container(
+                      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+                      child: Card.filled(
+                        color: isDark ? Colors.grey.shade800 : Colors.white,
                         elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          side: BorderSide(
-                            color: _getTimeSlotColor(timeSlot).withOpacity(0.2),
-                            width: 1,
+                        child: Theme(
+                          data: Theme.of(context).copyWith(
+                            dividerColor: Colors.transparent,
+                            listTileTheme: ListTileThemeData(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                              tileColor: Colors.transparent,
+                            ),
                           ),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
                           child: ExpansionTile(
-                            tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                            childrenPadding: const EdgeInsets.only(bottom: 16),
+                            tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                            initiallyExpanded: true,
                             leading: Container(
-                              width: 48,
-                              height: 48,
+                              padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: _getTimeSlotColor(timeSlot).withOpacity(0.1),
+                                color: _getTimeSlotColor(timeSlot).withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Icon(
                                 _getTimeSlotIcon(timeSlot),
                                 color: _getTimeSlotColor(timeSlot),
-                                size: 24,
+                                size: 20,
                               ),
                             ),
                             title: Text(
                               timeSlot,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.black87,
+                                color: isDark ? Colors.white : Colors.black87,
                               ),
                             ),
-                            subtitle: Text(
-                              '${courses.length} 节课',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500,
+                            subtitle: Container(
+                              margin: const EdgeInsets.only(top: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: _getTimeSlotColor(timeSlot).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${courses.length} 节课',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: _getTimeSlotColor(timeSlot),
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ),
                             children: courses.map((course) {
                               return Container(
-                                margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                                padding: const EdgeInsets.all(16),
+                                margin: const EdgeInsets.symmetric(vertical: 2),
                                 decoration: BoxDecoration(
-                                  color: Colors.grey[50],
+                                  color: isDark ? Colors.grey.shade700 : Colors.grey.shade50,
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border(
-                                    left: BorderSide(
-                                      color: _getTimeSlotColor(timeSlot),
-                                      width: 4,
+                                ),
+                                child: ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  leading: CircleAvatar(
+                                    radius: 18,
+                                    backgroundColor: _getTimeSlotColor(timeSlot),
+                                    child: Text(
+                                      _getWeekdayText(course['whatDay']),
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 13,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    CircleAvatar(
-                                      radius: 20,
-                                      backgroundColor: _getTimeSlotColor(timeSlot),
-                                      child: Text(
-                                        course['whatDay'].toString().substring(1, 2),
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                        ),
-                                      ),
+                                  title: Text(
+                                    course['context'] ?? '未知课程',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark ? Colors.white : Colors.black87,
                                     ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const SizedBox(height: 4),
+                                      Row(
                                         children: [
+                                          Icon(
+                                            Icons.access_time_rounded,
+                                            size: 14,
+                                            color: _getTimeSlotColor(timeSlot),
+                                          ),
+                                          const SizedBox(width: 4),
                                           Text(
-                                            course['context'] ?? '未知课程',
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.black87,
+                                            '${course['startTime']} - ${course['endTime']}',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+                                              fontWeight: FontWeight.w500,
                                             ),
                                           ),
-                                          const SizedBox(height: 4),
-                                          Row(
-                                            children: [
-                                              Icon(
-                                                Icons.access_time,
-                                                size: 14,
-                                                color: Colors.grey[600],
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                '${course['startTime']} - ${course['endTime']}',
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.grey[600],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Row(
-                                            children: [
-                                              Icon(
-                                                Icons.calendar_today,
-                                                size: 14,
-                                                color: Colors.grey[600],
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                '${course['date']} ${course['whatDay']}',
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.grey[600],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          if (course['place'] != null) ...[
-                                            const SizedBox(height: 2),
-                                            Row(
-                                              children: [
-                                                Icon(
-                                                  Icons.location_on,
-                                                  size: 14,
-                                                  color: Colors.grey[600],
-                                                ),
-                                                const SizedBox(width: 4),
-                                                Expanded(
-                                                  child: Text(
-                                                    course['place'],
-                                                    style: TextStyle(
-                                                      fontSize: 14,
-                                                      color: Colors.grey[600],
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
                                         ],
                                       ),
-                                    ),
-                                  ],
+                                      if (course['place'] != null) ...[
+                                        const SizedBox(height: 2),
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.location_on_rounded,
+                                              size: 14,
+                                              color: _getTimeSlotColor(timeSlot),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Expanded(
+                                              child: Text(
+                                                course['place'],
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ],
+                                  ),
                                 ),
                               );
                             }).toList(),
@@ -606,41 +711,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildStatCard({
-    required IconData icon,
-    required String title,
-    required int count,
-    required Color color,
-  }) {
-    return Column(
-      children: [
-        Icon(
-          icon,
-          color: color,
-          size: 28,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          count.toString(),
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          title,
-          style: TextStyle(
-            fontSize: 14,
-            color: color.withOpacity(0.9),
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-
+  
   IconData _getTimeSlotIcon(String timeSlot) {
     if (timeSlot.contains('早晨')) return Icons.wb_sunny_outlined;
     if (timeSlot.contains('上午')) return Icons.wb_sunny;
@@ -659,59 +730,144 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
     return Colors.grey;
   }
 
+  /// 将各种格式的星期数据转换为单字符显示
+  ///
+  /// 支持多种输入格式：
+  /// - 数字：1-7 → "一"到"日"
+  /// - 字符串："周一"到"周日" → "一"到"日"
+  /// - 字符串数字："1"到"7" → "一"到"日"
+  /// - 其他格式：提取首字符或返回"?"
+  ///
+  /// 返回单字符星期标识，用于界面简洁显示
+  String _getWeekdayText(dynamic whatDay) {
+    String weekdayStr;
+
+    if (whatDay is int) {
+      // 处理数字格式（1-7对应周一到周日）
+      final weekdays = ['', '一', '二', '三', '四', '五', '六', '日'];
+      weekdayStr = whatDay > 0 && whatDay <= 7 ? weekdays[whatDay] : '?';
+    } else if (whatDay is String) {
+      if (whatDay.startsWith('周')) {
+        // 处理"周X"格式，提取星期字符
+        weekdayStr = whatDay.length > 1 ? whatDay.substring(1, 2) : '?';
+      } else {
+        // 尝试解析字符串中的数字
+        final dayNum = int.tryParse(whatDay);
+        if (dayNum != null) {
+          final weekdays = ['', '一', '二', '三', '四', '五', '六', '日'];
+          weekdayStr = dayNum > 0 && dayNum <= 7 ? weekdays[dayNum] : '?';
+        } else {
+          // 其他格式，提取首字符作为备选
+          weekdayStr = whatDay.length >= 1 ? whatDay.substring(0, 1) : '?';
+        }
+      }
+    } else {
+      weekdayStr = '?';
+    }
+
+    return weekdayStr;
+  }
+
+  Widget _buildExamDetailRow(IconData icon, String text, bool isDark) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 16,
+          color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+        ),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: TextStyle(
+            fontSize: 13,
+            color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildExams(List<dynamic>? exams, HomePageLogic logic, BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     if (exams == null) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.grey[400],
+        child: Card(
+          margin: const EdgeInsets.all(16),
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.error_outline,
+                  size: 64,
+                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '无法获取考试信息',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: isDark ? Colors.grey.shade300 : Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            Text(
-              '无法获取考试信息',
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
+          ),
         ),
       );
     }
 
     if (exams.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.quiz_outlined,
-              size: 64,
-              color: Colors.grey[400],
+        child: Card.filled(
+          color: isDark ? Colors.grey.shade800 : Colors.red.shade50,
+          elevation: 0,
+          margin: const EdgeInsets.all(32),
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.red.shade900.withValues(alpha: 0.3)
+                        : Colors.red.shade100,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Icon(
+                    Icons.quiz_outlined,
+                    size: 48,
+                    color: isDark ? Colors.red.shade300 : Colors.red.shade600,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  '暂无考试安排',
+                  style: TextStyle(
+                    fontSize: 18,
+                    color: isDark ? Colors.grey.shade200 : Colors.red.shade900,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '请选择其他月份查看',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? Colors.grey.shade400 : Colors.red.shade700,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-            Text(
-              '本月暂无考试安排',
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '请选择其他月份查看',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[500],
-              ),
-            ),
-          ],
+          ),
         ),
       );
     }
@@ -723,121 +879,60 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
         final exam = exams[index];
         final startTime = logic.formatExamTime(exam['startTime']);
         final endTime = logic.formatExamTime(exam['endTime']);
-        
-        return AnimatedContainer(
-          duration: Duration(milliseconds: 300 + (index * 100)),
-          curve: Curves.easeOutBack,
-          margin: const EdgeInsets.only(bottom: 16.0),
-          child: Card(
+
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+          child: Card.filled(
+            color: isDark ? Colors.grey.shade800 : Colors.white,
             elevation: 0,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-              side: BorderSide(
-                color: Colors.red.withOpacity(0.2),
-                width: 1,
-              ),
-            ),
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: LinearGradient(
-                  colors: [Colors.white, Colors.red.shade50],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+            child: ListTile(
+              contentPadding: const EdgeInsets.all(16.0),
+              leading: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  Icons.quiz_outlined,
+                  color: Colors.red,
+                  size: 24,
                 ),
               ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
+              title: Text(
+                exam['courseNameZh'] ?? '未知考试',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : Colors.black87,
+                ),
+              ),
+              subtitle: Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildExamDetailRow(
+                      Icons.event_rounded,
+                      exam['examDate'] ?? '未知日期',
+                      isDark,
                     ),
-                    child: const Icon(
-                      Icons.quiz,
-                      color: Colors.red,
-                      size: 28,
+                    const SizedBox(height: 4),
+                    _buildExamDetailRow(
+                      Icons.access_time_rounded,
+                      '$startTime - $endTime',
+                      isDark,
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          exam['courseNameZh'] ?? '未知考试',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.calendar_today,
-                              size: 16,
-                              color: Colors.grey[600],
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              exam['examDate'] ?? '未知日期',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.access_time,
-                              size: 16,
-                              color: Colors.grey[600],
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              '$startTime - $endTime',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.location_on,
-                              size: 16,
-                              color: Colors.grey[600],
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                exam['place'] ?? '未知地点',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[600],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                    if (exam['place'] != null) ...[
+                      const SizedBox(height: 4),
+                      _buildExamDetailRow(
+                        Icons.location_on_rounded,
+                        exam['place'] ?? '未知地点',
+                        isDark,
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -845,4 +940,5 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       },
     );
   }
-}
+
+  }

@@ -6,13 +6,17 @@ Future<http.Response?> sendRequest(String url, String token) async {
       Uri.parse(url),
       headers: {
         'accept': 'application/json',
-        'authorization': 'JWTToken $token',
-        'content-type': 'application/json',
+        'authorization': token, // 直接使用token，不带JWTToken前缀
+        'content-type': 'application/json;charset=UTF-8',
         'referer': 'https://jwapp.ahu.edu.cn/uniapp/',
-        'cookie': 'userToken=$token;',
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+        'sec-ch-ua': '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
+        'usertoken': token,
         'x-id-token': token,
       },
-    ).timeout(const Duration(seconds: 5)); // 设置超时时间为10秒
+    ).timeout(const Duration(seconds: 10));
     return response;
   } catch (e) {
     return null; // 请求超时或其他错误

@@ -15,10 +15,6 @@ MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCFY5N+9UX+0BF+xz1svFguI4CIDvmQTfINkOZ1HOO3
   static Future<String?> login({
     required String username,
     required String password,
-    required String appId,
-    required String deviceId,
-    required String osType,
-    required String geo,
   }) async {
     try {
       final String encryptedPassword =
@@ -30,35 +26,37 @@ MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCFY5N+9UX+0BF+xz1svFguI4CIDvmQTfINkOZ1HOO3
               .replace(queryParameters: {
         'username': username,
         'password': encryptedPassword,
-        'appId': appId,
-        'deviceId': deviceId,
-        'osType': osType,
-        'geo': geo,
+        'appId': 'DEVICE_ID',
+        'deviceId': 'DEVICE_ID',
+        'osType': 'web',
+        'geo': '',
       });
 
       final Map<String, String> headers = {
         'accept': 'application/json',
-        'accept-language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7,zh-CN;q=0.6',
+        'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8',
         'cache-control': 'no-cache',
         'content-type': 'application/x-www-form-urlencoded',
-        'cookie': 'X-Id-Token=your_token_here; userToken=your_token_here',
         'origin': 'https://jwapp.ahu.edu.cn',
         'referer': 'https://jwapp.ahu.edu.cn/uniapp/',
         'user-agent':
-            'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Mobile Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+        'sec-ch-ua': '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"',
       };
 
       final response = await http.post(
         url,
         headers: headers,
-      );
+      ).timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
         if (responseData['code'] == 0) {
           return responseData['data']['idToken'];
         } else {
-          throw Exception('登录失败，错误代码：${responseData['code']}');
+          throw Exception('登录失败，错误代码：${responseData['code']}，消息：${responseData['msg'] ?? '未知错误'}');
         }
       } else if (response.statusCode == 401) {
         throw Exception('登录失败，错误信息：用户名或密码错误');
