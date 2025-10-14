@@ -54,7 +54,7 @@ class HomePageLogic extends ChangeNotifier {
 
     } catch (e) {
       _currentError = e.toString();
-      print('数据获取失败: $e');
+      debugPrint('数据获取失败: $e');
 
       // 网络请求失败时，尝试使用本地缓存数据
       // 这确保了应用在无网络环境下仍能显示历史数据
@@ -73,7 +73,7 @@ class HomePageLogic extends ChangeNotifier {
           _tests = List<dynamic>.from(jsonDecode(cachedTests));
         }
       } catch (cacheError) {
-        print('缓存数据加载失败: $cacheError');
+        debugPrint('缓存数据加载失败: $cacheError');
         // 缓存也失败时，用户将看到错误状态
       }
     }

@@ -32,18 +32,22 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
-  http: ^1.2.2
+  http: ^1.5.0
   encrypt: ^5.0.0
-  flutter_svg: ^2.0.16
+  flutter_svg: ^2.2.1
   get: ^4.6.6
-  
+  webview_flutter: ^4.13.0
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   pointycastle: ^3.9.1
-  asn1lib: ^1.5.8
-  shared_preferences: ^2.3.3
-  provider: ^6.1.2
+  asn1lib: ^1.6.5
+  shared_preferences: ^2.5.3
+  provider: ^6.1.5
+  flutter_lints: ^6.0.0
+  webview_flutter_android: ^4.10.5
+  webview_flutter_wkwebview: ^3.10.2
 
 dev_dependencies:
   flutter_test:

@@ -517,42 +517,42 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   child: Card.filled(
                     color: isDark ? Colors.grey.shade800 : Colors.blue.shade50,
                     elevation: 0,
-                    margin: const EdgeInsets.all(32),
+                    margin: const EdgeInsets.all(16),
                     child: Padding(
-                      padding: const EdgeInsets.all(32),
+                      padding: const EdgeInsets.all(16),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: isDark
                                   ? Colors.blue.shade900.withValues(alpha: 0.3)
                                   : Colors.blue.shade100,
-                              borderRadius: BorderRadius.circular(20),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                             child: Icon(
                               Icons.calendar_today_outlined,
-                              size: 48,
+                              size: 36,
                               color: isDark ? Colors.blue.shade300 : Colors.blue.shade600,
                             ),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 12),
                           Text(
                             _selectedDate != null
-                                ? '选定日期暂无课程安排'
-                                : '今日暂无课程安排',
+                                ? '选定日期暂无课程'
+                                : '今日暂无课程',
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: 16,
                               color: isDark ? Colors.grey.shade200 : Colors.blue.shade900,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 4),
                           Text(
-                            '请选择其他日期查看课程',
+                            '请选择其他日期查看',
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: 12,
                               color: isDark ? Colors.grey.shade400 : Colors.blue.shade700,
                             ),
                           ),
@@ -758,7 +758,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
           weekdayStr = dayNum > 0 && dayNum <= 7 ? weekdays[dayNum] : '?';
         } else {
           // 其他格式，提取首字符作为备选
-          weekdayStr = whatDay.length >= 1 ? whatDay.substring(0, 1) : '?';
+          weekdayStr = whatDay.isNotEmpty ? whatDay.substring(0, 1) : '?';
         }
       }
     } else {

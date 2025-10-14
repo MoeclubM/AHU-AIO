@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import '../api/sendrequest.dart';
 import '../models/schedule_model.dart';
 import '../../globals.dart' as globals;
@@ -54,7 +55,7 @@ class DataService {
                   schedules.add(schedule);
                 }
               } catch (e) {
-                print('解析课程数据失败: $e');
+                debugPrint('解析课程数据失败: $e');
                 continue; // 跳过解析失败的数据，不影响其他课程显示
               }
             }
@@ -75,7 +76,7 @@ class DataService {
               schedules.add(schedule);
             }
           } catch (e) {
-            print('解析课程数据失败: $e');
+            debugPrint('解析课程数据失败: $e');
             continue;
           }
         }

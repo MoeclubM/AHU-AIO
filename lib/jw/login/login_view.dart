@@ -10,7 +10,7 @@ class JWLoginPage extends StatefulWidget {
   const JWLoginPage({super.key});
 
   @override
-  _JWLoginPageState createState() => _JWLoginPageState();
+  State<JWLoginPage> createState() => _JWLoginPageState();
 }
 
 class _JWLoginPageState extends State<JWLoginPage> {
@@ -33,6 +33,9 @@ class _JWLoginPageState extends State<JWLoginPage> {
     final String? idToken = prefs.getString('idToken');
     if (idToken != null) {
       globals.idToken = idToken;
+
+      if (!context.mounted) return;
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const MainPage()),
@@ -95,6 +98,9 @@ class _JWLoginPageState extends State<JWLoginPage> {
       if (idToken != null) {
         globals.idToken = idToken; // 将 idToken 存储为全局变量
         await _savePasswordToPrefs();
+
+        if (!context.mounted) return;
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const MainPage()),
