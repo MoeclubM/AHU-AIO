@@ -1,4 +1,4 @@
-name: Android CI
+name: Flutter CI
 
 on:
   push:
@@ -6,31 +6,54 @@ on:
   pull_request:
     branches: [ "main" ]
 
-jobs:  # Telling what jobs we need to happen
-  build:      # Specify the building name and machine
-    name: Build
-    runs-on: ubuntu-latest
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: android
+            runner: ubuntu-latest
+            artifact_path: build/app/outputs/flutter-apk/app-release.apk
+            artifact_name: release-apk
+          - platform: ios
+            runner: macos-latest
+            artifact_path: build/ios/ipa
+            artifact_name: release-ipa
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v3
-    - name: Set Up Java
-      uses: actions/setup-java@v3.12.0
-      with:
-        distribution: 'oracle'
-        java-version: '17'
-    - name: Set Up Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: '3.24.5'
-        channel: 'stable'
-    - name: Install Dependencies
-      run: flutter pub get
-    - name: Build APK
-      run: flutter build apk --release
-    - name: Upload APK
-      uses: actions/upload-artifact@v3
-      with:
-        name: release-apk
-        path: build/app/outputs/flutter-apk/app-release.apk
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set Up Java
+        if: matrix.platform == 'android'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set Up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.24.5'
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Android APK
+        if: matrix.platform == 'android'
+        run: flutter build apk --release
+
+      - name: Build iOS IPA (no codesign)
+        if: matrix.platform == 'ios'
+        run: flutter build ipa --release --no-codesign
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_path }}
 
