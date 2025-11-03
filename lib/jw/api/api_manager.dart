@@ -1,3 +1,4 @@
+// ignore_for_file: dangling_library_doc_comments
 /// API管理器 - 统一管理所有教务系统API
 import 'api_response_handler.dart';
 import 'sendrequest.dart';

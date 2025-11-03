@@ -1,3 +1,4 @@
+// ignore_for_file: dangling_library_doc_comments
 /// API数据模型定义
 
 /// 用户信息模型

@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.5.4
+  sdk: '>=3.9.0 <4.0.0'
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -33,9 +33,9 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   http: ^1.5.0
-  encrypt: ^5.0.0
+  encrypt: ^5.0.3
   flutter_svg: ^2.2.1
-  get: ^4.6.6
+  get: ^4.7.2
   webview_flutter: ^4.13.0
 
   # The following adds the Cupertino Icons font to your application.
@@ -44,15 +44,15 @@ dependencies:
   pointycastle: ^3.9.1
   asn1lib: ^1.6.5
   shared_preferences: ^2.5.3
-  provider: ^6.1.5
-  flutter_lints: ^6.0.0
+  provider: ^6.1.5+1
   webview_flutter_android: ^4.10.5
-  webview_flutter_wkwebview: ^3.10.2
+  webview_flutter_wkwebview: ^3.23.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_launcher_icons: ^0.9.2
+  flutter_launcher_icons: ^0.14.4
+  flutter_lints: ^6.0.0
 
 flutter_icons:
   android: true
@@ -64,8 +64,6 @@ flutter_icons:
   # activated in the `analysis_options.yaml` file located at the root of your
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
-  flutter_lints: ^5.0.0
-
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 

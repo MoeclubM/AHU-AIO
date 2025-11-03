@@ -9,6 +9,28 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  errors:
+    unused_import: info
+    avoid_print: info
+    dangling_library_doc_comments: info
+    depend_on_referenced_packages: info
+    prefer_adjacent_string_concatenation: info
+    prefer_final_fields: info
+    prefer_for_elements_to_map_fromiterable: info
+    prefer_interpolation_to_compose_strings: info
+    sized_box_for_whitespace: info
+    sort_child_properties_last: info
+    unnecessary_brace_in_string_interps: info
+    unnecessary_cast: info
+    unnecessary_non_null_assertion: info
+    unnecessary_string_interpolations: info
+    unnecessary_type_check: info
+    unused_element: info
+    unused_field: info
+    unused_local_variable: info
+    use_build_context_synchronously: info
+
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`

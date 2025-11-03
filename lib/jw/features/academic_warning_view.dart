@@ -1,3 +1,4 @@
+// ignore_for_file: sized_box_for_whitespace, unnecessary_brace_in_string_interps, unused_local_variable
 import 'package:flutter/material.dart';
 import '../api/getplan.dart';
 import '../utils/api_debug_helper.dart';
@@ -140,7 +141,11 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
           ),
           const SizedBox(height: 16),
 
-          ...modules.map(_buildModuleCard),
+          ...modules.map(
+            (module) => _buildModuleCard(
+              (module as Map<String, dynamic>?) ?? <String, dynamic>{},
+            ),
+          ),
         ],
       ),
     );
@@ -207,7 +212,7 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
     );
   }
 
-  Widget _buildModuleCard(module) {
+  Widget _buildModuleCard(Map<String, dynamic> module) {
     final name = module['name']?.toString() ?? '';
     final requiredCredits = (module['requiredCredits'] ?? 0).toInt();
     final actualCredits = (module['actualCredits'] ?? 0).toInt();
@@ -260,7 +265,11 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
                     ),
                   ),
                   const SizedBox(height: 8),
-                  ...courses.map((course) => _buildCourseItem(course)),
+                  ...courses.map(
+                    (course) => _buildCourseItem(
+                      (course as Map<String, dynamic>?) ?? <String, dynamic>{},
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -282,7 +291,7 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
     );
   }
 
-  Widget _buildCourseItem(course) {
+  Widget _buildCourseItem(Map<String, dynamic> course) {
     final courseName = course['name']?.toString() ?? course['courseName']?.toString() ?? '未知课程';
     final courseCode = course['code']?.toString() ?? course['courseCode']?.toString() ?? '';
     final credits = (course['credits'] ?? 0).toDouble();
@@ -493,7 +502,11 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
 
           // 计划外课程列表
           if (outOfPlanCourses.isNotEmpty) ...[
-            ...outOfPlanCourses.map((course) => _buildOutOfPlanCourseItem(course)),
+            ...outOfPlanCourses.map(
+              (course) => _buildOutOfPlanCourseItem(
+                (course as Map<String, dynamic>?) ?? <String, dynamic>{},
+              ),
+            ),
           ] else ...[
             Card(
               child: Padding(
@@ -525,7 +538,7 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
     );
   }
 
-  Widget _buildOutOfPlanCourseItem(course) {
+  Widget _buildOutOfPlanCourseItem(Map<String, dynamic> course) {
     final courseName = course['course']?['name']?.toString() ?? course['courseName']?.toString() ?? '未知课程';
     final courseCode = course['course']?['code']?.toString() ?? course['courseCode']?.toString() ?? '';
     final credits = (course['course']?['credits'] ?? 0).toDouble();

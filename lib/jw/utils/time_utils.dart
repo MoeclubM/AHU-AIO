@@ -4,9 +4,16 @@ class TimeUtils {
   ///
   /// 例如：800 -> "08:00", 1330 -> "13:30"
   static String formatTime(int time) {
-    final hours = (time / 100).floor().toString().padLeft(2, '0');
-    final minutes = (time % 100).toString().padLeft(2, '0');
-    return '$hours:$minutes';
+    if (time <= 0) {
+      return '00:00';
+    }
+
+    // 支持两种常见格式：HHmm（例如 830）以及分钟数（例如 480）
+    final asMinutes = time % 100 >= 60 || time >= 2400
+        ? time
+        : (time ~/ 100) * 60 + (time % 100);
+
+    return minutesToTime(asMinutes);
   }
 
   /// 解析时间字符串为分钟数

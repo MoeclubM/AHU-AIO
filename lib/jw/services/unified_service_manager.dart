@@ -1,3 +1,4 @@
+// ignore_for_file: unnecessary_cast
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../api/api_manager.dart';

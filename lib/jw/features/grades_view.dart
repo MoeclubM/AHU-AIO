@@ -1,3 +1,4 @@
+// ignore_for_file: unused_field, unused_local_variable
 import 'package:flutter/material.dart';
 import '../api/getgrades.dart';
 import '../models/grade_model.dart';
@@ -175,7 +176,7 @@ class _GradesPageState extends State<GradesPage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),

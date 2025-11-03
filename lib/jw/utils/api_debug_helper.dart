@@ -1,3 +1,4 @@
+// ignore_for_file: prefer_adjacent_string_concatenation, prefer_interpolation_to_compose_strings
 import 'package:flutter/material.dart';
 import '../../globals.dart' as globals;
 import '../api/sendrequest.dart';

@@ -274,22 +274,27 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
       lastDate: DateTime.now().add(const Duration(days: 365)),
       locale: const Locale('zh', 'CN'),
       builder: (context, child) {
+        final baseTheme = Theme.of(context);
+        final colorScheme = isDark
+            ? ColorScheme.dark(
+                primary: Colors.blue.shade300,
+                onPrimary: Colors.white,
+                surface: Colors.grey.shade800,
+                onSurface: Colors.white,
+              )
+            : ColorScheme.light(
+                primary: Colors.blue,
+                onPrimary: Colors.white,
+                surface: Colors.white,
+                onSurface: Colors.black87,
+              );
+
         return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: isDark
-                ? ColorScheme.dark(
-                    primary: Colors.blue.shade300,
-                    onPrimary: Colors.white,
-                    surface: Colors.grey.shade800,
-                    onSurface: Colors.white,
-                  )
-                : ColorScheme.light(
-                    primary: Colors.blue,
-                    onPrimary: Colors.white,
-                    surface: Colors.white,
-                    onSurface: Colors.black87,
-                  ),
-            dialogBackgroundColor: isDark ? Colors.grey.shade800 : Colors.white,
+          data: baseTheme.copyWith(
+            colorScheme: colorScheme,
+            dialogTheme: baseTheme.dialogTheme.copyWith(
+              backgroundColor: isDark ? Colors.grey.shade800 : Colors.white,
+            ),
           ),
           child: child!,
         );

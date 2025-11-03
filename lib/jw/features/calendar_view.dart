@@ -1,3 +1,4 @@
+// ignore_for_file: sized_box_for_whitespace, unused_local_variable
 import 'package:flutter/material.dart';
 import '../api/getcalendar.dart';
 import '../models/calendar_model.dart';
@@ -222,7 +223,7 @@ class _CalendarPageState extends State<CalendarPage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -441,9 +442,9 @@ class _CalendarPageState extends State<CalendarPage> {
               margin: const EdgeInsets.all(1),
               decoration: BoxDecoration(
                 color: day.isToday
-                    ? Colors.teal.withOpacity(0.3)
+                    ? Colors.teal.withValues(alpha: 0.3)
                     : day.isHoliday
-                        ? Colors.red.withOpacity(0.1)
+                        ? Colors.red.withValues(alpha: 0.1)
                         : Colors.transparent,
                 borderRadius: BorderRadius.circular(4),
                 border: day.isToday
@@ -494,9 +495,9 @@ class _CalendarPageState extends State<CalendarPage> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: event.getEventTypeColor().withOpacity(0.1),
+        color: event.getEventTypeColor().withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: event.getEventTypeColor().withOpacity(0.3)),
+        border: Border.all(color: event.getEventTypeColor().withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [

@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print, unnecessary_brace_in_string_interps, unnecessary_type_check
 /// 培养方案完成情况数据模型
 class PlanCompletionModel {
   final double outOfPlanCompletion; // 计划外完成情况

@@ -1,40 +1,34 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+
 import '../api/getclass.dart';
+import '../utils/time_utils.dart';
 import '../../globals.dart' as globals;
 import 'semester_config.dart';
-import '../utils/time_utils.dart';
 
-// 时间范围辅助类
-class TimeRange {
-  final String start;
-  final String end;
-
-  TimeRange(this.start, this.end);
-}
-
-// 时间段信息类
-class TimeSlotInfo {
-  final String startTime;
-  final String endTime;
-  final String weekday;
-  final String courseName;
-  final String teacherName;
-  final String roomName;
-  final String scheduleGroupId;
-  final List<dynamic> details;
-  final bool isCurrentWeek;
-
-  TimeSlotInfo({
-    required this.startTime,
-    required this.endTime,
+class ScheduleEntry {
+  ScheduleEntry({
     required this.weekday,
     required this.courseName,
     required this.teacherName,
     required this.roomName,
-    required this.scheduleGroupId,
-    required this.details,
+    required this.startTime,
+    required this.endTime,
     required this.isCurrentWeek,
+    required this.isHonorCourse,
+    required this.details,
   });
+
+  final int weekday;
+  final String courseName;
+  final String teacherName;
+  final String roomName;
+  final String startTime;
+  final String endTime;
+  final bool isCurrentWeek;
+  final bool isHonorCourse;
+  final List<dynamic> details;
+
+  int get startMinutes => TimeUtils.timeToMinutes(startTime);
 }
 
 class ScheduleService extends ChangeNotifier {
@@ -44,7 +38,6 @@ class ScheduleService extends ChangeNotifier {
   List<dynamic>? get classes => _classes;
   bool get isLoading => _isLoading;
 
-  /// 获取课表数据，支持传入学期ID
   Future<void> fetchData({String? semesterId}) async {
     _isLoading = true;
     notifyListeners();
@@ -55,7 +48,6 @@ class ScheduleService extends ChangeNotifier {
         throw Exception('未找到登录令牌');
       }
 
-      // 如果没有传入 semesterId，获取当前学期ID
       String? actualSemesterId = semesterId;
       if (actualSemesterId == null) {
         actualSemesterId = await SemesterConfig.getCurrentSemesterId();
@@ -64,415 +56,394 @@ class ScheduleService extends ChangeNotifier {
         }
       }
 
-      // 获取课程数据
       _classes = await getClass(token, semesterId: actualSemesterId);
     } catch (e) {
       _classes = null;
+      rethrow;
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  /// 根据学期名称和月份更新课表数据
   Future<void> updateScheduleData(String semesterName, String month) async {
-    // 直接使用当前学期ID
     final semesterId = await SemesterConfig.getCurrentSemesterId();
-      if (semesterId == null) {
-        return;
-      }
+    if (semesterId == null) {
+      return;
+    }
 
-      await fetchData(semesterId: semesterId);
+    await fetchData(semesterId: semesterId);
+  }
+
+  @visibleForTesting
+  void replaceClassesForTest(List<dynamic>? classes) {
+    _classes = classes;
   }
 
   String formatTime(int time) {
     return TimeUtils.formatTime(time);
   }
 
-  // 获取当前周数
-  Future<int?> getCurrentWeek() async {
-    try {
-      final token = globals.idToken;
-      if (token == null) return null;
+  Map<int, List<ScheduleEntry>> buildWeekSchedule({
+    required int selectedWeek,
+    int? currentWeek,
+    DateTime? semesterStartDate,
+  }) {
+    final Map<int, List<ScheduleEntry>> result = {
+      for (var weekday = 1; weekday <= 7; weekday++) weekday: <ScheduleEntry>[],
+    };
 
-      // 可以通过调用一个API获取当前教学周
-      // 这里暂时返回一个默认值或基于日期计算
-      final now = DateTime.now();
-      // 假设学期第一周是9月1日所在周
-      final semesterStart = DateTime(now.year, 9, 1);
-      final startOfWeek = semesterStart.subtract(Duration(days: semesterStart.weekday - 1));
-      final currentWeek = ((now.difference(startOfWeek).inDays) / 7).floor() + 1;
-      return currentWeek > 0 ? currentWeek : 1;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  Map<String, Map<String, List<Map<String, dynamic>>>> processClasses({int? selectedWeek, int? currentWeek}) {
-    final Map<String, Map<String, List<Map<String, dynamic>>>> processedClasses = {};
-
-    // 检查_classes是否为空
     if (_classes == null || _classes!.isEmpty) {
-      return processedClasses;
+      return result;
     }
 
-    // 收集所有课程时间段，智能计算时间段划分
-    final List<TimeSlotInfo> timeSlotInfos = [];
+    for (final rawClass in _classes!) {
+      if (rawClass is! Map<String, dynamic>) continue;
+      final schedules = rawClass['schedules'];
+      if (schedules is! List) continue;
 
-    // 扫描所有课程，收集时间信息
-    for (var classItem in _classes!) {
-      final schedules = classItem['schedules'];
-      if (schedules == null || schedules.isEmpty) {
-        continue;
-      }
+      final course = rawClass['course'] as Map<String, dynamic>?;
+      final classWeeks = _extractWeekIndices(rawClass['weekIndices']);
+      final isHonorCourse = _isHonorCourse(course) || _isHonorCourse(rawClass);
 
-      for (var schedule in schedules) {
-        // 安全处理时间格式转换
-        final startTimeValue = schedule['startTime'];
-        final endTimeValue = schedule['endTime'];
+      for (final schedule in schedules) {
+        if (schedule is! Map<String, dynamic>) continue;
+        final weekday = _parseWeekday(schedule['weekday']);
+        if (weekday == null) continue;
 
-        String startTime, endTime;
-        if (startTimeValue is int) {
-          startTime = formatTime(startTimeValue);
-        } else {
-          startTime = startTimeValue?.toString() ?? '00:00';
-        }
+        final startTime = _parseTime(schedule['startTime']);
+        final endTime = _parseTime(schedule['endTime']);
 
-        if (endTimeValue is int) {
-          endTime = formatTime(endTimeValue);
-        } else {
-          endTime = endTimeValue?.toString() ?? '00:00';
-        }
-        final weekdayValue = schedule['weekday'];
+        final scheduleWeeks = _extractWeekIndices(schedule['weekIndices']);
+        final effectiveWeeks = scheduleWeeks.isNotEmpty ? scheduleWeeks : classWeeks;
+        final courseDate = _parseDate(schedule['date'] ?? rawClass['date']);
+        final weekFromDate = _calculateWeekNumber(courseDate, semesterStartDate);
 
-        // 安全处理星期数据转换，支持多种数据格式
-        int weekdayNum = 1; // 默认周一
-        if (weekdayValue is int) {
-          weekdayNum = weekdayValue;
-        } else if (weekdayValue is String) {
-          weekdayNum = int.tryParse(weekdayValue) ?? 1;
-        } else {
-          weekdayNum = int.tryParse(weekdayValue.toString()) ?? 1;
-        }
-
-        // 确保星期数在有效范围内(1-7)
-        if (weekdayNum < 1 || weekdayNum > 7) {
-          weekdayNum = 1;
-        }
-
-        final weekday = '周$weekdayNum';
-
-        // 根据课程日期判断是否在本周
-        bool shouldIncludeCourse = true;
-        bool isCurrentWeekCourse = true;
-
-        if (selectedWeek != null) {
-          // 从课程数据中获取课程日期
-          final courseDate = schedule['date'] ?? classItem['date'];
-          if (courseDate != null) {
-            // 解析课程日期
-            DateTime courseDateTime;
-            if (courseDate is String) {
-              try {
-                courseDateTime = DateTime.parse(courseDate);
-              } catch (e) {
-                // 如果解析失败，尝试其他格式
-                courseDateTime = DateTime.now();
-              }
-            } else {
-              courseDateTime = DateTime.now();
-            }
-
-            // 计算当前周的开始和结束日期（周一到周日）
-            final now = DateTime.now();
-            final currentWeekStart = now.subtract(Duration(days: now.weekday - 1));
-            final currentWeekEnd = currentWeekStart.add(const Duration(days: 6));
-
-            // 计算选择周的开始和结束日期
-            final selectedWeekStart = currentWeekStart.add(Duration(days: (selectedWeek - 1) * 7));
-            final selectedWeekEnd = selectedWeekStart.add(const Duration(days: 6));
-
-            // 判断课程是否在选择的周内
-            shouldIncludeCourse = _isDateInWeek(courseDateTime, selectedWeekStart, selectedWeekEnd);
-
-            // 判断课程是否在当前周内
-            isCurrentWeekCourse = _isDateInWeek(courseDateTime, currentWeekStart, currentWeekEnd);
-          } else {
-            // 如果没有日期信息，则使用传统的周数判断方式
-            final courseWeekIndices = classItem['weekIndices'];
-            List<int> courseWeekList = [];
-            if (courseWeekIndices != null && courseWeekIndices is List) {
-              courseWeekList = courseWeekIndices.map((e) {
-                if (e is int) return e;
-                if (e is String) return int.tryParse(e) ?? 0;
-                return int.tryParse(e.toString()) ?? 0;
-              }).where((week) => week > 0).toList();
-            }
-
-            List<int> weekList = courseWeekList;
-            if (weekList.isEmpty) {
-              final scheduleWeekIndices = schedule['weekIndices'];
-              if (scheduleWeekIndices != null && scheduleWeekIndices is List) {
-                weekList = scheduleWeekIndices.map((e) {
-                  if (e is int) return e;
-                  if (e is String) return int.tryParse(e) ?? 0;
-                  return int.tryParse(e.toString()) ?? 0;
-                }).where((week) => week > 0).toList();
-              }
-            }
-
-            if (weekList.isNotEmpty) {
-              shouldIncludeCourse = weekList.contains(selectedWeek);
-              if (currentWeek != null) {
-                isCurrentWeekCourse = weekList.contains(currentWeek);
-              }
-            }
-          }
-        }
-
-        // 检查是否应该包含课程（基于选择的周数）
-        if (!shouldIncludeCourse) {
+        final includeCourse = _shouldIncludeCourse(
+          selectedWeek: selectedWeek,
+          availableWeeks: effectiveWeeks,
+          derivedWeek: weekFromDate,
+        );
+        if (!includeCourse) {
           continue;
         }
 
-        // 保持课程完整性，不拆分课程
-        timeSlotInfos.add(TimeSlotInfo(
-          startTime: startTime,
-          endTime: endTime,
-          weekday: weekday,
-          courseName: classItem['course']?['nameZh']?.toString() ?? '未知课程',
-          teacherName: _getTeacherName(classItem['teacherAssignmentList']),
-          roomName: schedule['room']?['nameZh']?.toString() ?? '未知教室',
-          scheduleGroupId: schedule['scheduleGroupId']?.toString() ?? '',
-          details: [schedule],
-          isCurrentWeek: isCurrentWeekCourse,
-        ));
+        final highlightCurrentWeek = currentWeek != null && _shouldIncludeCourse(
+          selectedWeek: currentWeek,
+          availableWeeks: effectiveWeeks,
+          derivedWeek: weekFromDate,
+        );
+
+        final teacherName = _getTeacherName(rawClass['teacherAssignmentList']);
+        final roomName = _resolveRoomName(schedule);
+
+        result[weekday]!.add(
+          ScheduleEntry(
+            weekday: weekday,
+            courseName: course?['nameZh']?.toString() ?? '未知课程',
+            teacherName: teacherName,
+            roomName: roomName,
+            startTime: startTime,
+            endTime: endTime,
+            isCurrentWeek: highlightCurrentWeek,
+            isHonorCourse: isHonorCourse || _isHonorCourse(schedule),
+            details: [schedule],
+          ),
+        );
       }
     }
 
-    // 智能计算时间段
-    final timeSlots = _calculateStandardTimeSlots(timeSlotInfos);
-
-    // 将课程分配到对应时间段，保持课程完整性
-    final Set<String> usedTimeSlots = {};
-
-    for (var timeSlotInfo in timeSlotInfos) {
-      final spanInfo = _calculateCourseSpan(timeSlotInfo, timeSlots);
-      if (spanInfo != null) {
-        final startSlotIndex = spanInfo['startIndex'] as int;
-        final spanCount = spanInfo['spanCount'] as int;
-        final startSlot = timeSlots[startSlotIndex];
-        final timeKey = '${startSlotIndex + 1}\n${startSlot.startTime}-${startSlot.endTime}';
-
-        // 标记使用的时间段
-        usedTimeSlots.add(timeKey);
-        for (int i = 1; i < spanCount; i++) {
-          if (startSlotIndex + i < timeSlots.length) {
-            final occupiedSlot = timeSlots[startSlotIndex + i];
-            final occupiedKey = '${startSlotIndex + i + 1}\n${occupiedSlot.startTime}-${occupiedSlot.endTime}';
-            usedTimeSlots.add(occupiedKey);
-          }
-        }
-      }
+    for (final entries in result.values) {
+      entries.sort((a, b) => a.startMinutes.compareTo(b.startMinutes));
     }
 
-    // 只初始化有课程的时间段
-    for (String timeKey in usedTimeSlots) {
-      processedClasses[timeKey] = {};
-      for (int j = 1; j <= 7; j++) {
-        processedClasses[timeKey]!['周$j'] = [];
-      }
-    }
-
-    // 重新分配课程到对应时间段
-    for (var timeSlotInfo in timeSlotInfos) {
-      final spanInfo = _calculateCourseSpan(timeSlotInfo, timeSlots);
-      if (spanInfo != null) {
-        final startSlotIndex = spanInfo['startIndex'] as int;
-        final spanCount = spanInfo['spanCount'] as int;
-        final startSlot = timeSlots[startSlotIndex];
-        final timeKey = '${startSlotIndex + 1}\n${startSlot.startTime}-${startSlot.endTime}';
-
-        // 只在起始时间段添加课程信息，但标记跨越数量
-        processedClasses[timeKey]![timeSlotInfo.weekday]!.add({
-          'courseName': timeSlotInfo.courseName,
-          'teacherName': timeSlotInfo.teacherName,
-          'roomName': timeSlotInfo.roomName,
-          'scheduleGroupId': timeSlotInfo.scheduleGroupId,
-          'details': timeSlotInfo.details,
-          'isCurrentWeek': timeSlotInfo.isCurrentWeek,
-          'periodIndex': startSlotIndex + 1,
-          'spanCount': spanCount,
-          'originalStartIndex': startSlotIndex,
-          'courseStartTime': timeSlotInfo.startTime,
-          'courseEndTime': timeSlotInfo.endTime,
-        });
-
-        // 在跨越的其他时间段标记为被占用
-        for (int i = 1; i < spanCount; i++) {
-          if (startSlotIndex + i < timeSlots.length) {
-            final occupiedSlot = timeSlots[startSlotIndex + i];
-            final occupiedKey = '${startSlotIndex + i + 1}\n${occupiedSlot.startTime}-${occupiedSlot.endTime}';
-
-            processedClasses[occupiedKey]![timeSlotInfo.weekday]!.add({
-              'isOccupied': true,
-              'originalStartIndex': startSlotIndex,
-              'occupiedBy': timeSlotInfo.courseName,
-            });
-          }
-        }
-      }
-    }
-
-    return processedClasses;
+    return result;
   }
 
-  
-  // 根据实际课程时间计算标准45分钟时间段列表
-  List<TimeSlotInfo> _calculateStandardTimeSlots(List<TimeSlotInfo> courseInfos) {
-    if (courseInfos.isEmpty) {
-      return [];
+  bool _shouldIncludeCourse({
+    required int selectedWeek,
+    required List<int> availableWeeks,
+    int? derivedWeek,
+  }) {
+    if (availableWeeks.isNotEmpty) {
+      return availableWeeks.contains(selectedWeek);
     }
-
-    // 定义标准的45分钟时间段，排除非课程时间
-    final List<TimeSlotInfo> standardTimeSlots = [];
-
-    // 上午时间段 (8:00-12:00)
-    standardTimeSlots.addAll([
-      TimeSlotInfo(startTime: '08:00', endTime: '08:45', weekday: '', courseName: '', teacherName: '', roomName: '', scheduleGroupId: '', details: [], isCurrentWeek: true),
-      TimeSlotInfo(startTime: '08:50', endTime: '09:35', weekday: '', courseName: '', teacherName: '', roomName: '', scheduleGroupId: '', details: [], isCurrentWeek: true),
-      // 跳过09:35-09:50课间休息
-      TimeSlotInfo(startTime: '09:50', endTime: '10:35', weekday: '', courseName: '', teacherName: '', roomName: '', scheduleGroupId: '', details: [], isCurrentWeek: true),
-      TimeSlotInfo(startTime: '10:50', endTime: '11:35', weekday: '', courseName: '', teacherName: '', roomName: '', scheduleGroupId: '', details: [], isCurrentWeek: true),
-      TimeSlotInfo(startTime: '11:40', endTime: '12:25', weekday: '', courseName: '', teacherName: '', roomName: '', scheduleGroupId: '', details: [], isCurrentWeek: true),
-    ]);
-
-    // 下午时间段 (14:00-18:00) - 跳过12:15-14:00午休
-    standardTimeSlots.addAll([
-      TimeSlotInfo(startTime: '14:00', endTime: '14:45', weekday: '', courseName: '', teacherName: '', roomName: '', scheduleGroupId: '', details: [], isCurrentWeek: true),
-      TimeSlotInfo(startTime: '14:55', endTime: '15:40', weekday: '', courseName: '', teacherName: '', roomName: '', scheduleGroupId: '', details: [], isCurrentWeek: true),
-      // 跳过15:35-15:50课间休息
-      TimeSlotInfo(startTime: '15:50', endTime: '16:35', weekday: '', courseName: '', teacherName: '', roomName: '', scheduleGroupId: '', details: [], isCurrentWeek: true),
-      TimeSlotInfo(startTime: '16:45', endTime: '17:30', weekday: '', courseName: '', teacherName: '', roomName: '', scheduleGroupId: '', details: [], isCurrentWeek: true),
-      TimeSlotInfo(startTime: '17:35', endTime: '18:20', weekday: '', courseName: '', teacherName: '', roomName: '', scheduleGroupId: '', details: [], isCurrentWeek: true),
-    ]);
-
-    // 晚上时间段 (19:00-21:00)
-    standardTimeSlots.addAll([
-      TimeSlotInfo(startTime: '19:00', endTime: '19:45', weekday: '', courseName: '', teacherName: '', roomName: '', scheduleGroupId: '', details: [], isCurrentWeek: true),
-      TimeSlotInfo(startTime: '19:55', endTime: '20:40', weekday: '', courseName: '', teacherName: '', roomName: '', scheduleGroupId: '', details: [], isCurrentWeek: true),
-      TimeSlotInfo(startTime: '20:50', endTime: '21:35', weekday: '', courseName: '', teacherName: '', roomName: '', scheduleGroupId: '', details: [], isCurrentWeek: true),
-    ]);
-
-    // 检查哪些时间段实际有课程，只返回有课程的时间段
-    final List<TimeSlotInfo> usedTimeSlots = [];
-
-    for (var timeSlot in standardTimeSlots) {
-      final slotStart = _timeToMinutes(timeSlot.startTime);
-      final slotEnd = _timeToMinutes(timeSlot.endTime);
-
-      // 检查这个时间段是否有课程
-      bool hasCourse = false;
-      for (var course in courseInfos) {
-        final courseStart = _timeToMinutes(course.startTime);
-        final courseEnd = _timeToMinutes(course.endTime);
-
-        // 如果课程与这个时间段有重叠，则认为这个时间段有课程
-        if (courseStart < slotEnd && courseEnd > slotStart) {
-          hasCourse = true;
-          break;
-        }
-      }
-
-      if (hasCourse) {
-        usedTimeSlots.add(timeSlot);
-      }
+    if (derivedWeek != null) {
+      return derivedWeek == selectedWeek;
     }
-
-    return usedTimeSlots;
+    return true;
   }
 
-  
-  // 计算课程跨越的45分钟时间段信息
-  Map<String, dynamic>? _calculateCourseSpan(TimeSlotInfo courseInfo, List<TimeSlotInfo> timeSlots) {
-    final courseStartMinutes = _timeToMinutes(courseInfo.startTime);
-    final courseEndMinutes = _timeToMinutes(courseInfo.endTime);
-
-    int? startIndex;
-    int spanCount = 0;
-
-    // 查找课程开始的时间段 - 找到第一个与课程时间重叠的时间段
-    for (int i = 0; i < timeSlots.length; i++) {
-      final timeSlot = timeSlots[i];
-      final slotStartMinutes = _timeToMinutes(timeSlot.startTime);
-      final slotEndMinutes = _timeToMinutes(timeSlot.endTime);
-
-      // 如果课程与这个时间段有重叠，则认为是开始时间段
-      if (courseStartMinutes < slotEndMinutes && courseEndMinutes > slotStartMinutes) {
-        startIndex = i;
-        spanCount = 1;
-        break;
-      }
+  List<int> _extractWeekIndices(dynamic value) {
+    if (value == null) {
+      return const [];
     }
 
-    if (startIndex == null) return null;
+    if (value is List) {
+      return value
+          .expand<int>((item) => _extractWeekIndices(item))
+          .toSet()
+          .where((week) => week > 0)
+          .toList()
+        ..sort();
+    }
 
-    // 计算课程跨越多少个时间段
-    for (int i = startIndex + 1; i < timeSlots.length; i++) {
-      final timeSlot = timeSlots[i];
-      final slotStartMinutes = _timeToMinutes(timeSlot.startTime);
-      final slotEndMinutes = _timeToMinutes(timeSlot.endTime);
+    if (value is Map) {
+      final start = _tryParseInt(value['startWeek']);
+      final end = _tryParseInt(value['endWeek']);
+      if (start != null && end != null && start > 0 && end >= start) {
+        return [for (var week = start; week <= end; week++) week];
+      }
+      return const [];
+    }
 
-      // 如果后续时间段与课程时间有重叠，则增加跨越数量
-      if (courseEndMinutes > slotStartMinutes && courseStartMinutes < slotEndMinutes) {
-        spanCount++;
+    if (value is int) {
+      return value > 0 ? <int>[value] : const [];
+    }
+
+    if (value is String) {
+      return _parseWeekIndexString(value);
+    }
+
+    return _extractWeekIndices(value.toString());
+  }
+
+  int? _tryParseInt(dynamic value) {
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value);
+    return int.tryParse(value.toString());
+  }
+
+  List<int> _parseWeekIndexString(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) {
+      return const [];
+    }
+
+    final wantsOdd = trimmed.contains('单');
+    final wantsEven = trimmed.contains('双');
+
+    String normalized = trimmed
+        .replaceAll(RegExp(r'[（）()\[\]]'), '')
+        .replaceAll(RegExp(r'周|星期|节|课|次'), '')
+        .replaceAll(RegExp(r'[~～－—–]'), '-')
+        .replaceAll(RegExp(r'[、，;；]'), ',');
+
+    // 保留数字、逗号和连接符号，其他字符替换为逗号分隔
+    normalized = normalized.replaceAll(RegExp(r'[^0-9,\-]'), ',');
+
+    final segments = normalized
+        .split(RegExp(r'[\s,]+'))
+        .where((segment) => segment.isNotEmpty)
+        .toList();
+
+    bool includeWeek(int week) {
+      if (wantsOdd && !wantsEven) {
+        return week.isOdd;
+      }
+      if (wantsEven && !wantsOdd) {
+        return week.isEven;
+      }
+      return true;
+    }
+
+    final weeks = <int>{};
+    for (final segment in segments) {
+      if (segment.contains('-')) {
+        final parts = segment.split('-').where((part) => part.isNotEmpty).toList();
+        if (parts.length == 2) {
+          final start = int.tryParse(parts[0]);
+          final end = int.tryParse(parts[1]);
+          if (start != null && end != null && start > 0 && end >= start) {
+            for (var week = start; week <= end; week++) {
+              if (includeWeek(week)) {
+                weeks.add(week);
+              }
+            }
+          }
+        }
       } else {
-        break;
+        final week = int.tryParse(segment);
+        if (week != null && week > 0 && includeWeek(week)) {
+          weeks.add(week);
+        }
       }
     }
 
-    return {
-      'startIndex': startIndex,
-      'spanCount': spanCount,
-    };
+    final sortedWeeks = weeks.toList()..sort();
+    return sortedWeeks;
   }
 
-  
-  // 时间转换为分钟
-  int _timeToMinutes(String timeStr) {
-    return TimeUtils.timeToMinutes(timeStr);
+  int? _parseWeekday(dynamic value) {
+    if (value is int) {
+      if (value < 1 || value > 7) return null;
+      return value;
+    }
+
+    if (value is String) {
+      final trimmed = value.trim();
+      if (trimmed.isEmpty) return null;
+      if (trimmed.startsWith('周') || trimmed.startsWith('星期')) {
+        final chineseWeekdays = {
+          '一': 1,
+          '二': 2,
+          '三': 3,
+          '四': 4,
+          '五': 5,
+          '六': 6,
+          '日': 7,
+          '天': 7,
+        };
+        final lastChar = trimmed.substring(trimmed.length - 1);
+        final index = chineseWeekdays[lastChar];
+        if (index != null) {
+          return index;
+        }
+      }
+      final numeric = int.tryParse(trimmed);
+      if (numeric != null && numeric >= 1 && numeric <= 7) {
+        return numeric;
+      }
+    }
+
+    return null;
   }
 
-  // 判断日期是否在指定周内（周一到周日）
-  bool _isDateInWeek(DateTime date, DateTime weekStart, DateTime weekEnd) {
-    // 将日期设置为当天的开始（00:00:00）进行比较
-    final dateOnly = DateTime(date.year, date.month, date.day);
-    final weekStartOnly = DateTime(weekStart.year, weekStart.month, weekStart.day);
-    final weekEndOnly = DateTime(weekEnd.year, weekEnd.month, weekEnd.day);
+  String _parseTime(dynamic value) {
+    if (value is int) {
+      return formatTime(value);
+    }
 
-    return !dateOnly.isBefore(weekStartOnly) && !dateOnly.isAfter(weekEndOnly);
+    if (value is String) {
+      final trimmed = value.trim();
+      if (trimmed.contains(':')) {
+        return trimmed;
+      }
+      final numeric = int.tryParse(trimmed);
+      if (numeric != null) {
+        return formatTime(numeric);
+      }
+    }
+
+    return '00:00';
   }
 
-  // 获取教师姓名
+  DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is int) {
+      if (value > 1000000000) {
+        return DateTime.fromMillisecondsSinceEpoch(value);
+      }
+    }
+    if (value is String && value.isNotEmpty) {
+      try {
+        return DateTime.parse(value);
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
+  }
+
+  int? _calculateWeekNumber(DateTime? courseDate, DateTime? semesterStartDate) {
+    if (courseDate == null || semesterStartDate == null) {
+      return null;
+    }
+
+    final startOfSemesterWeek = semesterStartDate
+        .subtract(Duration(days: semesterStartDate.weekday - DateTime.monday));
+    final difference = courseDate.difference(startOfSemesterWeek).inDays;
+    if (difference < 0) {
+      return null;
+    }
+    return difference ~/ 7 + 1;
+  }
+
+  bool _isHonorCourse(Map<String, dynamic>? data) {
+    if (data == null) {
+      return false;
+    }
+
+    const honorKeys = <String>[
+      'isHonor',
+      'isHonorCourse',
+      'honorCourse',
+      'isHonoursCourse',
+      'honoursCourse',
+    ];
+
+    for (final key in honorKeys) {
+      final value = data[key];
+      if (value is bool && value) return true;
+      if (value is int && value == 1) return true;
+      if (value is String) {
+        final lower = value.toLowerCase();
+        if (lower == 'true' || lower == '1' || lower.contains('honor')) {
+          return true;
+        }
+        if (value.contains('荣誉')) {
+          return true;
+        }
+      }
+    }
+
+    final possibleType = data['courseType'] ?? data['type'] ?? data['level'];
+    if (possibleType is String && possibleType.contains('荣誉')) {
+      return true;
+    }
+
+    final tags = data['tags'];
+    if (tags is List) {
+      for (final tag in tags) {
+        if (tag is String && (tag.contains('荣誉') || tag.toLowerCase().contains('honor'))) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  String _resolveRoomName(Map<String, dynamic> schedule) {
+    final room = schedule['room'];
+    if (room is Map) {
+      return room['nameZh']?.toString() ?? room['name']?.toString() ?? '未知教室';
+    }
+    final roomName = schedule['roomName'];
+    if (roomName is String && roomName.isNotEmpty) {
+      return roomName;
+    }
+    return '未知教室';
+  }
+
   String _getTeacherName(dynamic teacherAssignmentList) {
     if (teacherAssignmentList == null) {
       return '未知教师';
     }
 
     if (teacherAssignmentList is List && teacherAssignmentList.isNotEmpty) {
-      final firstTeacher = teacherAssignmentList[0];
+      final firstTeacher = teacherAssignmentList.first;
       if (firstTeacher is Map) {
-        return firstTeacher['person']?['nameZh'] ?? firstTeacher['nameZh'] ?? '未知教师';
-      } else {
-        return firstTeacher?.toString() ?? '未知教师';
+        return firstTeacher['person']?['nameZh'] ??
+            firstTeacher['nameZh'] ??
+            firstTeacher['name'] ??
+            '未知教师';
       }
-    } else if (teacherAssignmentList is String) {
+      return firstTeacher?.toString() ?? '未知教师';
+    }
+
+    if (teacherAssignmentList is Map) {
+      return teacherAssignmentList['person']?['nameZh'] ??
+          teacherAssignmentList['nameZh'] ??
+          teacherAssignmentList['name'] ??
+          '未知教师';
+    }
+
+    if (teacherAssignmentList is String && teacherAssignmentList.isNotEmpty) {
       return teacherAssignmentList;
-    } else if (teacherAssignmentList is Map) {
-      return teacherAssignmentList['person']?['nameZh'] ?? teacherAssignmentList['nameZh'] ?? '未知教师';
     }
 
     return '未知教师';
   }
-
-  }
+}

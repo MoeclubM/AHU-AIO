@@ -136,10 +136,12 @@ class ScheduleLogic extends GetxController {
   
   // 选择周数
   Future<void> selectWeek(int week) async {
+    if (selectedWeek.value == week) {
+      return;
+    }
+
     selectedWeek.value = week;
-    // 重新加载课程数据
-    await loadScheduleData();
-    // 强制更新UI
+    // 不重新请求后端数据，直接刷新界面即可
     update();
   }
   
@@ -149,13 +151,19 @@ class ScheduleLogic extends GetxController {
   }
   
   /// 处理课程数据，根据选择的周数过滤课程
-  Map<String, Map<String, List<Map<String, dynamic>>>> processClasses() {
-    final currentWeek = currentSemesterInfo.value != null
-        ? _getCurrentWeek(currentSemesterInfo.value!)
-        : null;
-        return _scheduleService.processClasses(
+  Map<int, List<ScheduleEntry>> processClasses() {
+    int? currentWeekNumber;
+    if (currentSemesterInfo.value != null &&
+        selectedSemester.value?.id == currentSemesterInfo.value!.id) {
+      currentWeekNumber = _getCurrentWeek(currentSemesterInfo.value!);
+    }
+
+    final semesterStartDate = _resolveSemesterStartDate();
+
+    return _scheduleService.buildWeekSchedule(
       selectedWeek: selectedWeek.value,
-      currentWeek: currentWeek,
+      currentWeek: currentWeekNumber,
+      semesterStartDate: semesterStartDate,
     );
   }
 
@@ -193,5 +201,19 @@ class ScheduleLogic extends GetxController {
           (currentWeek - a).abs() < (currentWeek - b).abs() ? a : b);
       }
     }
+  }
+
+  DateTime? _resolveSemesterStartDate() {
+    final semester = selectedSemester.value;
+    if (semester != null && semester.startDate.isNotEmpty) {
+      return DateTime.tryParse(semester.startDate);
+    }
+
+    final currentInfo = currentSemesterInfo.value;
+    if (currentInfo != null && currentInfo.startDate.isNotEmpty) {
+      return DateTime.tryParse(currentInfo.startDate);
+    }
+
+    return null;
   }
 }

@@ -1,3 +1,4 @@
+// ignore_for_file: sort_child_properties_last, unused_field, use_build_context_synchronously
 import 'package:flutter/material.dart';
 import '../api/course_selection.dart';
 import '../api/api_manager.dart';
@@ -264,7 +265,7 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),

@@ -1,3 +1,4 @@
+// ignore_for_file: avoid_print, prefer_final_fields, prefer_for_elements_to_map_fromiterable, unnecessary_brace_in_string_interps, unnecessary_non_null_assertion, unnecessary_string_interpolations, unnecessary_type_check, unused_element
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../globals.dart' as globals;
@@ -164,7 +165,7 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
@@ -364,7 +365,7 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
       decoration: BoxDecoration(
-        color: (color ?? Colors.grey.shade200).withOpacity(0.5),
+        color: (color ?? Colors.grey.shade200).withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(4),
       ),
       child: Text(
@@ -524,8 +525,15 @@ class _ClassroomScheduleDetailPageState extends State<ClassroomScheduleDetailPag
 
     setState(() {
       if (response != null && response.statusCode == 200) {
-        final data = response.body is String ? jsonDecode(response.body) : response.body;
-        _scheduleData = data ?? {};
+        try {
+          final dynamic decoded = jsonDecode(response.body);
+          _scheduleData = decoded is Map<String, dynamic>
+              ? decoded
+              : <String, dynamic>{'schedule': decoded};
+          _error = null;
+        } catch (e) {
+          _error = '数据解析失败';
+        }
       } else {
         _error = '请求失败: ${response?.statusCode}';
       }

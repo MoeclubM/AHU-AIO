@@ -237,7 +237,7 @@ class _PlanPageState extends State<PlanPage> {
         const SizedBox(height: 8),
         LinearProgressIndicator(
           value: value,
-          backgroundColor: color.withOpacity(0.2),
+          backgroundColor: color.withValues(alpha: 0.2),
           valueColor: AlwaysStoppedAnimation<Color>(color),
           minHeight: 8,
           borderRadius: BorderRadius.circular(4),
@@ -250,9 +250,9 @@ class _PlanPageState extends State<PlanPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         children: [
@@ -351,7 +351,7 @@ class _PlanPageState extends State<PlanPage> {
             const SizedBox(height: 12),
             LinearProgressIndicator(
               value: completionRate,
-              backgroundColor: isCompleted ? Colors.green.withOpacity(0.2) : Colors.orange.withOpacity(0.2),
+              backgroundColor: isCompleted ? Colors.green.withValues(alpha: 0.2) : Colors.orange.withValues(alpha: 0.2),
               valueColor: AlwaysStoppedAnimation<Color>(
                 isCompleted ? Colors.green : Colors.orange,
               ),
@@ -454,7 +454,7 @@ class _PlanPageState extends State<PlanPage> {
             const SizedBox(height: 12),
             LinearProgressIndicator(
               value: completionRate,
-              backgroundColor: isCompleted ? Colors.green.withOpacity(0.2) : Colors.orange.withOpacity(0.2),
+              backgroundColor: isCompleted ? Colors.green.withValues(alpha: 0.2) : Colors.orange.withValues(alpha: 0.2),
               valueColor: AlwaysStoppedAnimation<Color>(
                 isCompleted ? Colors.green : Colors.orange,
               ),
@@ -535,7 +535,7 @@ class _PlanPageState extends State<PlanPage> {
     return Container(
       margin: const EdgeInsets.only(top: 8, left: 16),
       child: Card.filled(
-        color: Colors.grey.withOpacity(0.1),
+        color: Colors.grey.withValues(alpha: 0.1),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
@@ -660,7 +660,7 @@ class _PlanPageState extends State<PlanPage> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
@@ -678,7 +678,7 @@ class _PlanPageState extends State<PlanPage> {
               label,
               style: TextStyle(
                 fontSize: 12,
-                color: color.withOpacity(0.8),
+                color: color.withValues(alpha: 0.8),
               ),
             ),
           ],
@@ -707,7 +707,7 @@ class _PlanPageState extends State<PlanPage> {
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
         leading: CircleAvatar(
-          backgroundColor: statusColor.withOpacity(0.1),
+          backgroundColor: statusColor.withValues(alpha: 0.1),
           child: Icon(
             statusIcon,
             color: statusColor,
