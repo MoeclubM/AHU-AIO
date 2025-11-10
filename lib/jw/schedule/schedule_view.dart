@@ -71,6 +71,7 @@ class _SchedulePageState extends State<SchedulePage> {
     final weekValue = weeks.contains(selectedWeek) ? selectedWeek : null;
 
     return Card(
+      margin: const EdgeInsets.all(16),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -81,25 +82,28 @@ class _SchedulePageState extends State<SchedulePage> {
               style: theme.textTheme.titleSmall,
             ),
             const SizedBox(height: 8),
-            DropdownButton<SemesterInfo>(
-              value: semesterValue,
-              isExpanded: true,
-              hint: const Text('请选择学期'),
-              onChanged: isLoading
-                  ? null
-                  : (value) {
-                      if (value != null) {
-                        _logic.selectSemester(value);
-                      }
-                    },
-              items: semesters
-                  .map(
-                    (semester) => DropdownMenuItem<SemesterInfo>(
-                      value: semester,
-                      child: Text(semester.nameZh),
-                    ),
-                  )
-                  .toList(),
+            SizedBox(
+              width: double.infinity,
+              child: DropdownButton<SemesterInfo>(
+                value: semesterValue,
+                isExpanded: true,
+                hint: const Text('请选择学期'),
+                onChanged: isLoading
+                    ? null
+                    : (value) {
+                        if (value != null) {
+                          _logic.selectSemester(value);
+                        }
+                      },
+                items: semesters
+                    .map(
+                      (semester) => DropdownMenuItem<SemesterInfo>(
+                        value: semester,
+                        child: Text(semester.nameZh),
+                      ),
+                    )
+                    .toList(),
+              ),
             ),
             const SizedBox(height: 16),
             Text(
@@ -107,25 +111,28 @@ class _SchedulePageState extends State<SchedulePage> {
               style: theme.textTheme.titleSmall,
             ),
             const SizedBox(height: 8),
-            DropdownButton<int>(
-              value: weekValue,
-              isExpanded: true,
-              hint: const Text('请选择周次'),
-              onChanged: isLoading || weeks.isEmpty
-                  ? null
-                  : (value) {
-                      if (value != null) {
-                        _logic.selectWeek(value);
-                      }
-                    },
-              items: weeks
-                  .map(
-                    (week) => DropdownMenuItem<int>(
-                      value: week,
-                      child: Text('第$week周'),
-                    ),
-                  )
-                  .toList(),
+            SizedBox(
+              width: double.infinity,
+              child: DropdownButton<int>(
+                value: weekValue,
+                isExpanded: true,
+                hint: const Text('请选择周次'),
+                onChanged: isLoading || weeks.isEmpty
+                    ? null
+                    : (value) {
+                        if (value != null) {
+                          _logic.selectWeek(value);
+                        }
+                      },
+                items: weeks
+                    .map(
+                      (week) => DropdownMenuItem<int>(
+                        value: week,
+                        child: Text('第$week周'),
+                      ),
+                    )
+                    .toList(),
+              ),
             ),
             const SizedBox(height: 16),
             Align(
