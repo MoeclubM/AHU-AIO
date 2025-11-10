@@ -332,8 +332,12 @@ class ScheduleService extends ChangeNotifier {
     if (value == null) return null;
     if (value is DateTime) return value;
     if (value is int) {
-      if (value > 1000000000) {
+      // Check if it's a millisecond timestamp (13 digits, > 1000000000000)
+      // or a second timestamp (10 digits, > 1000000000)
+      if (value > 1000000000000) {
         return DateTime.fromMillisecondsSinceEpoch(value);
+      } else if (value > 1000000000) {
+        return DateTime.fromMillisecondsSinceEpoch(value * 1000);
       }
     }
     if (value is String && value.isNotEmpty) {
