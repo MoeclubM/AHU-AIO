@@ -14,115 +14,55 @@ class FuncPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return Scaffold(
-      backgroundColor: isDark ? Colors.grey.shade900 : Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text(
-          '更多功能',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 20,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: isDark
-                  ? [
-                      Colors.blue.shade800,
-                      Colors.blue.shade600,
-                      Colors.indigo.shade700,
-                    ]
-                  : [
-                      Colors.blue.shade600,
-                      Colors.blue.shade700,
-                      Colors.indigo.shade600,
-                    ],
-            ),
-          ),
-        ),
+        title: const Text('更多功能'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: GridView.builder(
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            childAspectRatio: 1.2,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 1.5,
           ),
           itemCount: _features.length,
           itemBuilder: (context, index) {
             final feature = _features[index];
-            return _buildFeatureCard(context, feature, isDark);
+            return _buildFeatureCard(context, feature);
           },
         ),
       ),
     );
   }
 
-  Widget _buildFeatureCard(BuildContext context, Feature feature, bool isDark) {
-    return Card.filled(
-      elevation: 4,
-      color: isDark ? Colors.grey.shade800 : Colors.white,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(
-          color: isDark ? Colors.grey.shade700 : Colors.grey.shade200,
-          width: 1,
-        ),
-      ),
+  Widget _buildFeatureCard(BuildContext context, Feature feature) {
+    return Card(
       child: InkWell(
         onTap: () => _handleFeatureTap(context, feature),
-        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(12.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: feature.gradientColors,
-                  ),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  feature.icon,
-                  size: 32,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 12),
               Text(
                 feature.title,
-                style: TextStyle(
-                  fontSize: 16,
+                style: const TextStyle(
+                  fontSize: 15,
                   fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white : Colors.grey.shade800,
                 ),
                 textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 4),
               Text(
                 feature.subtitle,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                ),
+                style: Theme.of(context).textTheme.bodySmall,
                 textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ),
@@ -221,67 +161,49 @@ class FuncPage extends StatelessWidget {
 class Feature {
   final String title;
   final String subtitle;
-  final IconData icon;
-  final List<Color> gradientColors;
   final bool isComingSoon;
 
   const Feature({
     required this.title,
     required this.subtitle,
-    required this.icon,
-    required this.gradientColors,
     this.isComingSoon = true,
   });
 }
 
 final List<Feature> _features = [
-  Feature(
+  const Feature(
     title: '通知公告',
     subtitle: '查看学校通知公告',
-    icon: Icons.notifications_outlined,
-    gradientColors: [Colors.amber.shade400, Colors.amber.shade600],
     isComingSoon: false,
   ),
-  Feature(
+  const Feature(
     title: '培养方案完成情况',
     subtitle: '查看学分完成进度',
-    icon: Icons.school_outlined,
-    gradientColors: [Colors.green.shade400, Colors.green.shade600],
     isComingSoon: false,
   ),
-  Feature(
+  const Feature(
     title: '培养方案查询',
     subtitle: '查看专业培养计划',
-    icon: Icons.menu_book_outlined,
-    gradientColors: [Colors.purple.shade400, Colors.purple.shade600],
     isComingSoon: false,
   ),
-  Feature(
+  const Feature(
     title: '成绩查询',
     subtitle: '查看考试成绩',
-    icon: Icons.grade_outlined,
-    gradientColors: [Colors.orange.shade400, Colors.orange.shade600],
     isComingSoon: false,
   ),
-  Feature(
+  const Feature(
     title: '空闲教室查询',
     subtitle: '查找可用教室',
-    icon: Icons.meeting_room_outlined,
-    gradientColors: [Colors.teal.shade400, Colors.teal.shade600],
     isComingSoon: false,
   ),
-  Feature(
+  const Feature(
     title: '教室课表查询',
     subtitle: '查看教室使用情况',
-    icon: Icons.calendar_today_outlined,
-    gradientColors: [Colors.cyan.shade400, Colors.cyan.shade600],
     isComingSoon: false,
   ),
-  Feature(
+  const Feature(
     title: '选课系统',
     subtitle: '在线选课和退选',
-    icon: Icons.add_task_outlined,
-    gradientColors: [Colors.deepOrange.shade400, Colors.deepOrange.shade600],
     isComingSoon: false,
   ),
 ];

@@ -60,14 +60,8 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ],
                   ),
-                  Column(
-                    children: [
-                      _buildDateSelector(logic),
-                      Expanded(
-                        child: _buildExams(logic.tests, logic, context),
-                      ),
-                    ],
-                  ),
+                  // Exam tab without date selector
+                  _buildExams(logic.tests, logic, context),
                 ],
               );
             },
@@ -81,15 +75,13 @@ class _HomePageState extends State<HomePage> {
     final theme = Theme.of(context);
 
     return Card(
-      margin: const EdgeInsets.all(16.0),
+      margin: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 8.0),
       child: InkWell(
         onTap: () => _selectDate(context, logic),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(12.0),
           child: Row(
             children: [
-              const Icon(Icons.calendar_month_outlined),
-              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -98,15 +90,15 @@ class _HomePageState extends State<HomePage> {
                       '选择日期',
                       style: theme.textTheme.bodySmall,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       _formatSelectedDate(),
-                      style: theme.textTheme.titleMedium,
+                      style: theme.textTheme.titleSmall,
                     ),
                   ],
                 ),
               ),
-              const Icon(Icons.date_range),
+              const Icon(Icons.date_range, size: 20),
             ],
           ),
         ),
@@ -220,20 +212,18 @@ class _HomePageState extends State<HomePage> {
       children: [
         // 统计信息卡片
         Padding(
-          padding: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 12.0),
+          padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 8.0),
           child: Row(
             children: [
               Expanded(
                 child: Card(
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(12.0),
                     child: Column(
                       children: [
-                        const Icon(Icons.today_outlined, size: 24),
-                        const SizedBox(height: 8),
                         Text(
                           groupedSchedules.values.fold(0, (sum, courses) => sum + courses.length).toString(),
-                          style: theme.textTheme.headlineSmall,
+                          style: theme.textTheme.headlineMedium,
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -247,18 +237,16 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Expanded(
                 child: Card(
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
+                    padding: const EdgeInsets.all(12.0),
                     child: Column(
                       children: [
-                        const Icon(Icons.schedule_outlined, size: 24),
-                        const SizedBox(height: 8),
                         Text(
                           remainingClassesCount.toString(),
-                          style: theme.textTheme.headlineSmall,
+                          style: theme.textTheme.headlineMedium,
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -283,8 +271,6 @@ class _HomePageState extends State<HomePage> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.calendar_today_outlined, size: 48),
-                          const SizedBox(height: 12),
                           Text(
                             _selectedDate != null
                                 ? '选定日期暂无课程'
@@ -312,14 +298,10 @@ class _HomePageState extends State<HomePage> {
                       margin: const EdgeInsets.symmetric(vertical: 4.0),
                       child: ExpansionTile(
                         initiallyExpanded: true,
-                        leading: Icon(_getTimeSlotIcon(timeSlot)),
                         title: Text(timeSlot),
                         subtitle: Text('${courses.length} 节课'),
                         children: courses.map((course) {
                           return ListTile(
-                            leading: CircleAvatar(
-                              child: Text(_getWeekdayText(course['whatDay'])),
-                            ),
                             title: Text(course['context'] ?? '未知课程'),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -341,54 +323,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  
-  IconData _getTimeSlotIcon(String timeSlot) {
-    if (timeSlot.contains('早晨')) return Icons.wb_sunny_outlined;
-    if (timeSlot.contains('上午')) return Icons.wb_sunny;
-    if (timeSlot.contains('中午')) return Icons.lunch_dining;
-    if (timeSlot.contains('下午')) return Icons.wb_cloudy;
-    if (timeSlot.contains('晚上')) return Icons.nights_stay;
-    return Icons.schedule;
-  }
-
-  /// 将各种格式的星期数据转换为单字符显示
-  ///
-  /// 支持多种输入格式：
-  /// - 数字：1-7 → "一"到"日"
-  /// - 字符串："周一"到"周日" → "一"到"日"
-  /// - 字符串数字："1"到"7" → "一"到"日"
-  /// - 其他格式：提取首字符或返回"?"
-  ///
-  /// 返回单字符星期标识，用于界面简洁显示
-  String _getWeekdayText(dynamic whatDay) {
-    String weekdayStr;
-
-    if (whatDay is int) {
-      // 处理数字格式（1-7对应周一到周日）
-      final weekdays = ['', '一', '二', '三', '四', '五', '六', '日'];
-      weekdayStr = whatDay > 0 && whatDay <= 7 ? weekdays[whatDay] : '?';
-    } else if (whatDay is String) {
-      if (whatDay.startsWith('周')) {
-        // 处理"周X"格式，提取星期字符
-        weekdayStr = whatDay.length > 1 ? whatDay.substring(1, 2) : '?';
-      } else {
-        // 尝试解析字符串中的数字
-        final dayNum = int.tryParse(whatDay);
-        if (dayNum != null) {
-          final weekdays = ['', '一', '二', '三', '四', '五', '六', '日'];
-          weekdayStr = dayNum > 0 && dayNum <= 7 ? weekdays[dayNum] : '?';
-        } else {
-          // 其他格式，提取首字符作为备选
-          weekdayStr = whatDay.isNotEmpty ? whatDay.substring(0, 1) : '?';
-        }
-      }
-    } else {
-      weekdayStr = '?';
-    }
-
-    return weekdayStr;
-  }
-
   Widget _buildExams(List<dynamic>? exams, HomePageLogic logic, BuildContext context) {
     final theme = Theme.of(context);
 
@@ -401,8 +335,6 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.error_outline, size: 64),
-                const SizedBox(height: 16),
                 Text(
                   '无法获取考试信息',
                   style: theme.textTheme.titleMedium,
@@ -423,8 +355,6 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.quiz_outlined, size: 48),
-                const SizedBox(height: 20),
                 Text(
                   '暂无考试安排',
                   style: theme.textTheme.titleMedium,
@@ -453,7 +383,6 @@ class _HomePageState extends State<HomePage> {
           margin: const EdgeInsets.symmetric(vertical: 4.0),
           child: ListTile(
             contentPadding: const EdgeInsets.all(16.0),
-            leading: const Icon(Icons.quiz_outlined),
             title: Text(exam['courseNameZh'] ?? '未知考试'),
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 8.0),
