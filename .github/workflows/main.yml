@@ -10,6 +10,8 @@ jobs:
   build-android:
     name: Build Android
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
         include:
@@ -50,6 +52,8 @@ jobs:
   build-linux:
     name: Build Linux
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
     - name: Checkout Repository
@@ -88,6 +92,8 @@ jobs:
   build-windows:
     name: Build Windows
     runs-on: windows-latest
+    permissions:
+      contents: read
     strategy:
       matrix:
         include:
@@ -128,6 +134,8 @@ jobs:
   build-macos:
     name: Build macOS
     runs-on: macos-latest
+    permissions:
+      contents: read
 
     steps:
     - name: Checkout Repository
