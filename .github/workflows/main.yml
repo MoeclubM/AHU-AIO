@@ -94,13 +94,6 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: read
-    strategy:
-      matrix:
-        include:
-          - arch: x64
-            flutter-arch: ""
-          - arch: arm64
-            flutter-arch: "--target-platform windows-arm64"
 
     steps:
     - name: Checkout Repository
@@ -118,18 +111,18 @@ jobs:
       run: flutter config --enable-windows-desktop
     
     - name: Build Windows
-      run: flutter build windows --release ${{ matrix.flutter-arch }}
+      run: flutter build windows --release
     
     - name: Archive Windows Build
       run: |
-        Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath AHU-AIO-Windows-${{ matrix.arch }}.zip
+        Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath AHU-AIO-Windows-x64.zip
       shell: pwsh
     
     - name: Upload Windows Build
       uses: actions/upload-artifact@v5
       with:
-        name: AHU-AIO-Windows-${{ matrix.arch }}
-        path: AHU-AIO-Windows-${{ matrix.arch }}.zip
+        name: AHU-AIO-Windows-x64
+        path: AHU-AIO-Windows-x64.zip
 
   build-macos:
     name: Build macOS
