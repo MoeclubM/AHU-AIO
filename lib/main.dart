@@ -86,7 +86,7 @@ class HomePage extends StatelessWidget {
                   MaterialPageRoute(builder: (context) => const JWLoginPage()),
                 );
               },
-              child: const Text('教务系统'),
+              child: const Text('安大微教务'),
             ),
             const SizedBox(height: 20),
             ElevatedButton(

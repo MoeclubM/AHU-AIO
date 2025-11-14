@@ -296,24 +296,27 @@ class _HomePageState extends State<HomePage> {
 
                     return Card(
                       margin: const EdgeInsets.symmetric(vertical: 4.0),
-                      child: ExpansionTile(
-                        initiallyExpanded: true,
-                        title: Text(timeSlot),
-                        subtitle: Text('${courses.length} 节课'),
-                        children: courses.map((course) {
-                          return ListTile(
-                            title: Text(course['context'] ?? '未知课程'),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 4),
-                                Text('${course['startTime']} - ${course['endTime']}'),
-                                if (course['place'] != null)
-                                  Text(course['place']),
-                              ],
-                            ),
-                          );
-                        }).toList(),
+                      child: Theme(
+                        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                        child: ExpansionTile(
+                          initiallyExpanded: true,
+                          title: Text(timeSlot),
+                          subtitle: Text('${courses.length} 节课'),
+                          children: courses.map((course) {
+                            return ListTile(
+                              title: Text(course['context'] ?? '未知课程'),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 4),
+                                  Text('${course['startTime']} - ${course['endTime']}'),
+                                  if (course['place'] != null)
+                                    Text(course['place']),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
                       ),
                     );
                   },

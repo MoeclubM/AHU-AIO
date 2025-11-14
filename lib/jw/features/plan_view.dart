@@ -121,7 +121,7 @@ class _PlanPageState extends State<PlanPage> {
     final overallCompletion = planData.totalCompletionRate;
     final planCompletion = planData.planCompletionRate;
 
-    return Card.filled(
+    return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -287,7 +287,7 @@ class _PlanPageState extends State<PlanPage> {
     final completionRate = category.completionRate;
     final percentage = (completionRate * 100).toStringAsFixed(1);
 
-    return Card.filled(
+    return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -374,7 +374,7 @@ class _PlanPageState extends State<PlanPage> {
     final completionRate = module.completionRate;
     final percentage = (completionRate * 100).toStringAsFixed(1);
 
-    return Card.filled(
+    return Card(
       margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -510,8 +510,7 @@ class _PlanPageState extends State<PlanPage> {
 
     return Container(
       margin: const EdgeInsets.only(top: 8, left: 16),
-      child: Card.filled(
-        color: Colors.grey.withValues(alpha: 0.1),
+      child: Card(
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Column(
@@ -678,7 +677,7 @@ class _PlanPageState extends State<PlanPage> {
       statusIcon = Icons.radio_button_unchecked;
     }
 
-    return Card.filled(
+    return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
