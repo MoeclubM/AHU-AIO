@@ -74,16 +74,9 @@ class _SchedulePageState extends State<SchedulePage> {
       margin: const EdgeInsets.all(16),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Row(
           children: [
-            Text(
-              '学期',
-              style: theme.textTheme.titleSmall,
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
+            Expanded(
               child: DropdownButton<SemesterInfo>(
                 value: semesterValue,
                 isExpanded: true,
@@ -93,6 +86,7 @@ class _SchedulePageState extends State<SchedulePage> {
                     : (value) {
                         if (value != null) {
                           _logic.selectSemester(value);
+                          _logic.refreshData();
                         }
                       },
                 items: semesters
@@ -105,14 +99,8 @@ class _SchedulePageState extends State<SchedulePage> {
                     .toList(),
               ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              '周次',
-              style: theme.textTheme.titleSmall,
-            ),
-            const SizedBox(height: 8),
-            SizedBox(
-              width: double.infinity,
+            const SizedBox(width: 16),
+            Expanded(
               child: DropdownButton<int>(
                 value: weekValue,
                 isExpanded: true,
@@ -122,6 +110,7 @@ class _SchedulePageState extends State<SchedulePage> {
                     : (value) {
                         if (value != null) {
                           _logic.selectWeek(value);
+                          _logic.refreshData();
                         }
                       },
                 items: weeks
@@ -132,15 +121,6 @@ class _SchedulePageState extends State<SchedulePage> {
                       ),
                     )
                     .toList(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton.icon(
-                onPressed: isLoading ? null : () => _logic.refreshData(),
-                icon: const Icon(Icons.refresh),
-                label: const Text('刷新课表'),
               ),
             ),
           ],

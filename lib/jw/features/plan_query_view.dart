@@ -66,31 +66,8 @@ class _PlanQueryPageState extends State<PlanQueryPage> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? Colors.grey.shade900 : Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text(
-          '培养方案查询',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 20,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.purple.shade600,
-                Colors.purple.shade700,
-              ],
-            ),
-          ),
-        ),
+        title: const Text('培养方案查询'),
         actions: [
           IconButton(
             onPressed: () {

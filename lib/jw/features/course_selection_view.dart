@@ -178,37 +178,10 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? Colors.grey.shade900 : Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text(
-          '选课系统',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 20,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.teal.shade600,
-                Colors.teal.shade700,
-                Colors.cyan.shade600,
-              ],
-            ),
-          ),
-        ),
+        title: const Text('选课系统'),
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
           tabs: const [
             Tab(text: '可选课程', icon: Icon(Icons.search)),
             Tab(text: '已选课程', icon: Icon(Icons.check_circle)),
@@ -329,10 +302,6 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
             onPressed: _loadCourses,
             icon: const Icon(Icons.refresh),
             label: const Text('刷新'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal.shade600,
-              foregroundColor: Colors.white,
-            ),
           ),
         ],
       ),
@@ -422,8 +391,6 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
                         onPressed: () => _showClassSelectionDialog(course),
                         child: const Text('选课'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal.shade600,
-                          foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                         ),
                       ),

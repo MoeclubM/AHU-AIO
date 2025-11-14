@@ -119,31 +119,8 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? Colors.grey.shade900 : Colors.grey.shade50,
       appBar: AppBar(
-        title: const Text(
-          '教室课表',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 20,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.cyan.shade600,
-                Colors.cyan.shade700,
-              ],
-            ),
-          ),
-        ),
+        title: const Text('教室课表'),
         actions: [
           IconButton(
             onPressed: _loadClassrooms,
@@ -239,8 +216,6 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
                     icon: const Icon(Icons.search),
                     label: const Text('搜索'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.cyan.shade600,
-                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
@@ -547,31 +522,8 @@ class _ClassroomScheduleDetailPageState extends State<ClassroomScheduleDetailPag
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? Colors.grey.shade900 : Colors.grey.shade50,
       appBar: AppBar(
-        title: Text(
-          '${widget.roomName} - 课表',
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.cyan.shade600,
-                Colors.cyan.shade700,
-              ],
-            ),
-          ),
-        ),
+        title: Text('${widget.roomName} - 课表'),
       ),
       body: RefreshIndicator(
         onRefresh: _loadScheduleData,
@@ -607,10 +559,6 @@ class _ClassroomScheduleDetailPageState extends State<ClassroomScheduleDetailPag
                     onPressed: _loadScheduleData,
                     icon: const Icon(Icons.refresh),
                     label: const Text('刷新'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.cyan.shade600,
-                      foregroundColor: Colors.white,
-                    ),
                   ),
                   const SizedBox(width: 8),
                   ApiDebugButton(
