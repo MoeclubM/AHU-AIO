@@ -121,7 +121,7 @@ class _JWLoginPageState extends State<JWLoginPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('教务系统登录'),
+        title: const Text('安大微教务登录'),
       ),
       body: SafeArea(
         child: Center(
@@ -151,7 +151,7 @@ class _JWLoginPageState extends State<JWLoginPage> {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            '安徽大学教务系统',
+                            '安大微教务',
                             style: Theme.of(context).textTheme.bodyLarge,
                           ),
                         ],

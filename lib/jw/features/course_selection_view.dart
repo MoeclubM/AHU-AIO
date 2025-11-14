@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../api/course_selection.dart';
 import '../api/api_manager.dart';
 import '../api/api_models.dart';
+import '../utils/api_debug_helper.dart';
 import '../../globals.dart' as globals;
 
 /// 选课页面
@@ -180,6 +181,12 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
     return Scaffold(
       appBar: AppBar(
         title: const Text('选课系统'),
+        actions: [
+          ApiDebugButton(
+            apiName: '选课系统',
+            apiUrl: 'https://jwapp.ahu.edu.cn/eams-course-selection-app/api/courses',
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           tabs: const [

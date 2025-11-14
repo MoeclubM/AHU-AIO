@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../api/getgrades.dart';
 import '../models/grade_model.dart';
+import '../utils/api_debug_helper.dart';
 import '../../globals.dart' as globals;
 
 class GradesPage extends StatefulWidget {
@@ -88,6 +89,12 @@ class _GradesPageState extends State<GradesPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('成绩查询'),
+        actions: [
+          ApiDebugButton(
+            apiName: '成绩查询',
+            apiUrl: 'https://jwapp.ahu.edu.cn/eams-grade-app/api/student/grades',
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -240,35 +247,21 @@ class _GradesPageState extends State<GradesPage> {
         final semester = sortedSemesters[index];
         final semesterGrades = grouped[semester]!;
 
-        return Card.filled(
+        return Card(
           margin: const EdgeInsets.only(bottom: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: double.infinity,
+              Padding(
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.purple.shade500,
-                      Colors.indigo.shade500,
-                    ],
-                  ),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(12),
-                    topRight: Radius.circular(12),
-                  ),
-                ),
                 child: Text(
                   semester,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
+                  style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
+              const Divider(height: 1),
               ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -299,34 +292,19 @@ class _GradesPageState extends State<GradesPage> {
           width: 60,
           height: 60,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: isPass
-                  ? [Colors.green.shade400, Colors.green.shade600]
-                  : [Colors.red.shade400, Colors.red.shade600],
-            ),
+            color: isPass ? Colors.green.shade100 : Colors.red.shade100,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                grade.gradeLevel,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
+          child: Center(
+            child: Text(
+              grade.gradeLevel,
+              style: TextStyle(
+                color: isPass ? Colors.green.shade700 : Colors.red.shade700,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
               ),
-              if (grade.gradeLevel == grade.score)
-                Text(
-                  '',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                  ),
-                ),
-            ],
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
         const SizedBox(width: 12),
@@ -369,15 +347,14 @@ class _GradesPageState extends State<GradesPage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
+        color: Colors.grey.shade200,
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: Colors.blue.shade200),
       ),
       child: Text(
         '$label: $value',
         style: TextStyle(
           fontSize: 11,
-          color: Colors.blue.shade700,
+          color: Colors.grey.shade700,
           fontWeight: FontWeight.w500,
         ),
       ),

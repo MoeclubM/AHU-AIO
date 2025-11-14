@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../api/getroom.dart';
 import '../models/room_model.dart';
+import '../utils/api_debug_helper.dart';
 import '../../globals.dart' as globals;
 
 class RoomPage extends StatefulWidget {
@@ -108,6 +109,12 @@ class _RoomPageState extends State<RoomPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('空闲教室查询'),
+        actions: [
+          ApiDebugButton(
+            apiName: '空闲教室查询',
+            apiUrl: 'https://jwapp.ahu.edu.cn/eams-room-app/api/rooms',
+          ),
+        ],
       ),
       body: Column(
         children: [
