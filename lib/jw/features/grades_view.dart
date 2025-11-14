@@ -256,7 +256,7 @@ class _GradesPageState extends State<GradesPage> {
                 padding: const EdgeInsets.all(16),
                 child: Text(
                   semester,
-                  style: theme.textTheme.titleMedium?.copyWith(
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                   ),
                 ),
