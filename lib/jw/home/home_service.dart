@@ -182,7 +182,7 @@ class HomePageLogic extends ChangeNotifier {
       
       // 正在进行：当前时间在课程开始和结束之间
       // 即将进行：课程在30分钟内开始
-      return (now.isAfter(courseStart) && now.isBefore(courseEnd)) || 
+      return (now.isAfter(courseStart) || now.isAtSameMomentAs(courseStart)) && now.isBefore(courseEnd) || 
              (courseStart.isAfter(now) && courseStart.isBefore(upcomingThreshold));
     } catch (e) {
       return false;
