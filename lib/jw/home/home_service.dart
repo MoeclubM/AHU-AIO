@@ -145,4 +145,52 @@ class HomePageLogic extends ChangeNotifier {
 
     return result;
   }
+
+  /// 检查课程是否正在进行或即将进行（30分钟内）
+  bool isCourseOngoingOrUpcoming(Map<String, dynamic> course, String targetDate) {
+    final now = DateTime.now();
+    final today = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    
+    // 只检查今天的课程
+    if (targetDate != today) {
+      return false;
+    }
+    
+    final startTime = course['startTime']?.toString() ?? '';
+    final endTime = course['endTime']?.toString() ?? '';
+    
+    if (startTime.isEmpty || endTime.isEmpty) {
+      return false;
+    }
+    
+    try {
+      final startParts = startTime.split(':');
+      final endParts = endTime.split(':');
+      
+      if (startParts.length != 2 || endParts.length != 2) {
+        return false;
+      }
+      
+      final startHour = int.parse(startParts[0]);
+      final startMinute = int.parse(startParts[1]);
+      final endHour = int.parse(endParts[0]);
+      final endMinute = int.parse(endParts[1]);
+      
+      final courseStart = DateTime(now.year, now.month, now.day, startHour, startMinute);
+      final courseEnd = DateTime(now.year, now.month, now.day, endHour, endMinute);
+      final upcomingThreshold = now.add(const Duration(minutes: 30));
+      
+      // 正在进行：当前时间在课程开始和结束之间
+      // 即将进行：课程在30分钟内开始
+      return (now.isAfter(courseStart) && now.isBefore(courseEnd)) || 
+             (courseStart.isAfter(now) && courseStart.isBefore(upcomingThreshold));
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// 检查时间段是否包含正在进行或即将进行的课程
+  bool hasOngoingOrUpcomingCourse(List<Map<String, dynamic>> courses, String targetDate) {
+    return courses.any((course) => isCourseOngoingOrUpcoming(course, targetDate));
+  }
 }

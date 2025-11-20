@@ -293,26 +293,109 @@ class _HomePageState extends State<HomePage> {
                   itemBuilder: (context, index) {
                     final timeSlot = groupedSchedules.keys.elementAt(index);
                     final courses = groupedSchedules[timeSlot]!;
+                    
+                    // 检查此时间段是否包含正在进行或即将进行的课程
+                    final hasOngoingOrUpcoming = logic.hasOngoingOrUpcomingCourse(courses, selectedDateString);
 
                     return Card(
                       margin: const EdgeInsets.symmetric(vertical: 4.0),
+                      // 如果包含正在进行或即将进行的课程，添加边框高亮
+                      color: hasOngoingOrUpcoming 
+                          ? (isDark ? theme.colorScheme.primary.withValues(alpha: 0.1) : theme.colorScheme.primary.withValues(alpha: 0.05))
+                          : null,
+                      shape: hasOngoingOrUpcoming
+                          ? RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(
+                                color: theme.colorScheme.primary,
+                                width: 2,
+                              ),
+                            )
+                          : null,
                       child: Theme(
                         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                         child: ExpansionTile(
-                          initiallyExpanded: true,
-                          title: Text(timeSlot),
+                          // 只展开包含正在进行或即将进行课程的时间段
+                          initiallyExpanded: hasOngoingOrUpcoming,
+                          title: Row(
+                            children: [
+                              Text(timeSlot),
+                              if (hasOngoingOrUpcoming) ...[
+                                const SizedBox(width: 8),
+                                Icon(
+                                  Icons.play_circle_outline,
+                                  size: 20,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ],
+                            ],
+                          ),
                           subtitle: Text('${courses.length} 节课'),
                           children: courses.map((course) {
-                            return ListTile(
-                              title: Text(course['context'] ?? '未知课程'),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 4),
-                                  Text('${course['startTime']} - ${course['endTime']}'),
-                                  if (course['place'] != null)
-                                    Text(course['place']),
-                                ],
+                            // 检查单个课程是否正在进行或即将进行
+                            final isOngoingOrUpcoming = logic.isCourseOngoingOrUpcoming(course, selectedDateString);
+                            
+                            return Container(
+                              decoration: isOngoingOrUpcoming
+                                  ? BoxDecoration(
+                                      color: theme.colorScheme.primary.withValues(alpha: 0.08),
+                                      border: Border(
+                                        left: BorderSide(
+                                          color: theme.colorScheme.primary,
+                                          width: 4,
+                                        ),
+                                      ),
+                                    )
+                                  : null,
+                              child: ListTile(
+                                title: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        course['context'] ?? '未知课程',
+                                        style: isOngoingOrUpcoming
+                                            ? TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                color: theme.colorScheme.primary,
+                                              )
+                                            : null,
+                                      ),
+                                    ),
+                                    if (isOngoingOrUpcoming)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: theme.colorScheme.primary,
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                        child: Text(
+                                          '进行中',
+                                          style: TextStyle(
+                                            color: theme.colorScheme.onPrimary,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${course['startTime']} - ${course['endTime']}',
+                                      style: isOngoingOrUpcoming
+                                          ? TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              color: theme.colorScheme.primary,
+                                            )
+                                          : null,
+                                    ),
+                                    if (course['place'] != null)
+                                      Text(course['place']),
+                                  ],
+                                ),
                               ),
                             );
                           }).toList(),
