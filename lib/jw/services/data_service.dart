@@ -178,14 +178,34 @@ class DataService {
   /// 获取本周剩余课程数量
   static int getRemainingClassesCount(List<ScheduleModel> schedules) {
     final now = DateTime.now();
+    final currentTime = now.hour * 100 + now.minute;
     final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    final endOfWeek = startOfWeek.add(const Duration(days: 6));
-
+    final endOfWeek = startOfWeek.add(const Duration(days: 6, hours: 23, minutes: 59, seconds: 59));
+    
     return schedules
         .where((schedule) {
           final scheduleDate = DateTime.parse(schedule.date);
-          return scheduleDate.isAfter(now) ||
-                 (scheduleDate.isAfter(startOfWeek) && scheduleDate.isBefore(endOfWeek));
+          
+          // 只统计从现在到本周末的课程
+          if (scheduleDate.isBefore(startOfWeek) || scheduleDate.isAfter(endOfWeek)) {
+            return false;
+          }
+          
+          // 如果是今天的课程，需要检查时间是否还未开始
+          if (scheduleDate.year == now.year && 
+              scheduleDate.month == now.month && 
+              scheduleDate.day == now.day) {
+            // 解析课程开始时间
+            final timeParts = schedule.startTime.split(':');
+            if (timeParts.length == 2) {
+              final courseTime = int.parse(timeParts[0]) * 100 + int.parse(timeParts[1]);
+              return courseTime > currentTime;
+            }
+            return false;
+          }
+          
+          // 未来几天的课程都算入
+          return scheduleDate.isAfter(now);
         })
         .length;
   }
