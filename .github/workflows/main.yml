@@ -1,10 +1,9 @@
-name: Multi-Platform Build
+name: Build and Release
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    tags:
+      - 'v*'
 
 jobs:
   build-android:
@@ -25,26 +24,26 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v3
-    
+
     - name: Set Up Java
       uses: actions/setup-java@v3.12.0
       with:
         distribution: 'oracle'
         java-version: '17'
-    
+
     - name: Set Up Flutter
       uses: subosito/flutter-action@v2
       with:
         flutter-version: '3.35.6'
-    
+
     - name: Install Dependencies
       run: flutter pub get
-    
+
     - name: Build APK
       run: flutter build ${{ matrix.target }} ${{ matrix.build-args }}
-    
+
     - name: Upload APK
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v4
       with:
         name: AHU-AIO-Android-${{ matrix.arch }}
         path: build/app/outputs/flutter-apk/app-release.apk
@@ -58,33 +57,33 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v3
-    
+
     - name: Install Linux Build Dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
-    
+
     - name: Set Up Flutter
       uses: subosito/flutter-action@v2
       with:
         flutter-version: '3.35.6'
-    
+
     - name: Install Dependencies
       run: flutter pub get
-    
+
     - name: Enable Linux Desktop
       run: flutter config --enable-linux-desktop
-    
+
     - name: Build Linux
       run: flutter build linux --release
-    
+
     - name: Archive Linux Build
       run: |
         cd build/linux/x64/release/bundle
         tar -czf ../../../../../AHU-AIO-Linux-x86_64.tar.gz .
-    
+
     - name: Upload Linux Build
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v4
       with:
         name: AHU-AIO-Linux-x86_64
         path: AHU-AIO-Linux-x86_64.tar.gz
@@ -98,28 +97,28 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v3
-    
+
     - name: Set Up Flutter
       uses: subosito/flutter-action@v2
       with:
         flutter-version: '3.35.6'
-    
+
     - name: Install Dependencies
       run: flutter pub get
-    
+
     - name: Enable Windows Desktop
       run: flutter config --enable-windows-desktop
-    
+
     - name: Build Windows
       run: flutter build windows --release
-    
+
     - name: Archive Windows Build
       run: |
         Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath AHU-AIO-Windows-x64.zip
       shell: pwsh
-    
+
     - name: Upload Windows Build
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v4
       with:
         name: AHU-AIO-Windows-x64
         path: AHU-AIO-Windows-x64.zip
@@ -133,29 +132,58 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v3
-    
+
     - name: Set Up Flutter
       uses: subosito/flutter-action@v2
       with:
         flutter-version: '3.35.6'
-    
+
     - name: Install Dependencies
       run: flutter pub get
-    
+
     - name: Enable macOS Desktop
       run: flutter config --enable-macos-desktop
-    
+
     - name: Build macOS
       run: flutter build macos --release
-    
+
     - name: Archive macOS Build
       run: |
         cd build/macos/Build/Products/Release
         zip -r ../../../../../AHU-AIO-macOS-universal.zip ahu_aio.app
-    
+
     - name: Upload macOS Build
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v4
       with:
         name: AHU-AIO-macOS-universal
         path: AHU-AIO-macOS-universal.zip
 
+  release:
+    name: Create Release
+    needs: [build-android, build-linux, build-windows, build-macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Download All Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: artifacts
+
+    - name: Prepare Release Files
+      run: |
+        mkdir -p release
+        mv artifacts/AHU-AIO-Android-arm64/app-release.apk release/AHU-AIO-Android-arm64.apk
+        mv artifacts/AHU-AIO-Android-x86_64/app-release.apk release/AHU-AIO-Android-x86_64.apk
+        mv artifacts/AHU-AIO-Linux-x86_64/AHU-AIO-Linux-x86_64.tar.gz release/
+        mv artifacts/AHU-AIO-Windows-x64/AHU-AIO-Windows-x64.zip release/
+        mv artifacts/AHU-AIO-macOS-universal/AHU-AIO-macOS-universal.zip release/
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: release/*
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
