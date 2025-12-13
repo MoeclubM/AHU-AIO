@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../api/getallsemesters.dart';
+import '../utils/time_utils.dart';
 import 'schedule_logic.dart';
 import 'schedule_service.dart';
 
@@ -35,22 +36,23 @@ class _SchedulePageState extends State<SchedulePage> {
 
         return RefreshIndicator(
           onRefresh: _logic.refreshData,
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
-            children: [
-              _buildSelectionArea(isLoading),
-              if (isLoading)
-                const Padding(
-                  padding: EdgeInsets.only(top: 8.0),
-                  child: LinearProgressIndicator(),
-                ),
-              if (errorText.isNotEmpty) _buildErrorNotice(errorText),
-              if (!isLoading && errorText.isEmpty && !hasData)
-                _buildEmptyNotice(),
-              ..._buildDaySections(scheduleByDay),
-              const SizedBox(height: 24),
-            ],
+            child: Column(
+              children: [
+                _buildSelectionArea(isLoading),
+                if (isLoading)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8.0),
+                    child: LinearProgressIndicator(),
+                  ),
+                if (errorText.isNotEmpty) _buildErrorNotice(errorText),
+                if (!isLoading && errorText.isEmpty && !hasData)
+                  _buildEmptyNotice(),
+                if (hasData) _buildScheduleTable(scheduleByDay),
+                const SizedBox(height: 24),
+              ],
+            ),
           ),
         );
       }),
@@ -132,7 +134,7 @@ class _SchedulePageState extends State<SchedulePage> {
   Widget _buildErrorNotice(String message) {
     final theme = Theme.of(context);
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -167,7 +169,7 @@ class _SchedulePageState extends State<SchedulePage> {
   Widget _buildEmptyNotice() {
     final theme = Theme.of(context);
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -188,139 +190,238 @@ class _SchedulePageState extends State<SchedulePage> {
     );
   }
 
-  List<Widget> _buildDaySections(Map<int, List<ScheduleEntry>> scheduleByDay) {
-    final widgets = <Widget>[];
-    for (var weekday = 1; weekday <= 7; weekday++) {
-      final entries = scheduleByDay[weekday] ?? <ScheduleEntry>[];
-      widgets.add(_buildDayCard(weekday, entries));
-    }
-    return widgets;
-  }
-
-  Widget _buildDayCard(int weekday, List<ScheduleEntry> entries) {
+  /// 构建课表表格
+  Widget _buildScheduleTable(Map<int, List<ScheduleEntry>> scheduleByDay) {
     final theme = Theme.of(context);
-    final children = <Widget>[];
+    final isDark = theme.brightness == Brightness.dark;
 
-    if (entries.isEmpty) {
-      children.add(
-        Text(
-          '本周无课程安排',
-          style: theme.textTheme.bodyMedium,
-        ),
-      );
-    } else {
-      for (var i = 0; i < entries.length; i++) {
-        children.add(_buildCourseTile(entries[i]));
-        if (i != entries.length - 1) {
-          children.add(const Divider(height: 24));
-        }
-      }
+    // 收集所有时间段，构建节次表
+    final timeSlots = _buildTimeSlots(scheduleByDay);
+
+    if (timeSlots.isEmpty) {
+      return const SizedBox.shrink();
     }
 
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 6),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _weekdayLabel(weekday),
-              style: theme.textTheme.titleMedium,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      clipBehavior: Clip.antiAlias,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minWidth: MediaQuery.of(context).size.width - 32,
+          ),
+          child: Table(
+            defaultColumnWidth: const IntrinsicColumnWidth(),
+            border: TableBorder.all(
+              color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
+              width: 0.5,
             ),
-            const SizedBox(height: 12),
-            ...children,
-          ],
+            children: [
+              // 表头：时间 | 周一 | 周二 | ... | 周日
+              _buildHeaderRow(theme, isDark),
+              // 每个时间段一行
+              ...timeSlots.map((slot) => _buildTimeSlotRow(
+                    slot,
+                    scheduleByDay,
+                    theme,
+                    isDark,
+                  )),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildCourseTile(ScheduleEntry entry) {
-    final theme = Theme.of(context);
-    final chips = <Widget>[];
+  /// 构建时间段列表
+  List<_TimeSlot> _buildTimeSlots(Map<int, List<ScheduleEntry>> scheduleByDay) {
+    final allSlots = <_TimeSlot>{};
 
-    if (entry.isCurrentWeek) {
-      chips.add(_buildStatusChip('当前周', theme.colorScheme.primary));
-    }
-    if (entry.isHonorCourse) {
-      chips.add(_buildStatusChip('荣誉课程', theme.colorScheme.secondary));
+    for (final entries in scheduleByDay.values) {
+      for (final entry in entries) {
+        allSlots.add(_TimeSlot(startTime: entry.startTime, endTime: entry.endTime));
+      }
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          entry.courseName,
-          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          '${entry.startTime} - ${entry.endTime} · ${entry.roomName}',
-          style: theme.textTheme.bodyMedium,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          entry.teacherName,
-          style: theme.textTheme.bodySmall,
-        ),
-        if (chips.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            children: chips,
+    final slots = allSlots.toList();
+
+    // 按开始时间的分钟数排序，避免字符串比较问题（如 "8:00" vs "10:00"）
+    slots.sort((a, b) {
+      final aMinutes = TimeUtils.timeToMinutes(a.startTime);
+      final bMinutes = TimeUtils.timeToMinutes(b.startTime);
+      return aMinutes.compareTo(bMinutes);
+    });
+
+    return slots;
+  }
+
+  /// 构建表头行
+  TableRow _buildHeaderRow(ThemeData theme, bool isDark) {
+    final headerStyle = theme.textTheme.labelMedium?.copyWith(
+      fontWeight: FontWeight.bold,
+    );
+    final headerBgColor = isDark ? Colors.grey.shade800 : Colors.grey.shade100;
+
+    final weekdays = ['时间', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+
+    return TableRow(
+      decoration: BoxDecoration(color: headerBgColor),
+      children: weekdays.map((day) {
+        return TableCell(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+            alignment: Alignment.center,
+            child: Text(day, style: headerStyle),
           ),
-        ],
+        );
+      }).toList(),
+    );
+  }
+
+  /// 构建时间段行
+  TableRow _buildTimeSlotRow(
+    _TimeSlot slot,
+    Map<int, List<ScheduleEntry>> scheduleByDay,
+    ThemeData theme,
+    bool isDark,
+  ) {
+    final timeStyle = theme.textTheme.labelSmall?.copyWith(
+      color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+    );
+
+    return TableRow(
+      children: [
+        // 时间列
+        TableCell(
+          verticalAlignment: TableCellVerticalAlignment.middle,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+            width: 60,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(slot.startTime, style: timeStyle),
+                const SizedBox(height: 2),
+                Text('-', style: timeStyle),
+                const SizedBox(height: 2),
+                Text(slot.endTime, style: timeStyle),
+              ],
+            ),
+          ),
+        ),
+        // 周一到周日的课程
+        ...List.generate(7, (index) {
+          final weekday = index + 1;
+          final entries = scheduleByDay[weekday] ?? [];
+          final matchingEntries = entries.where((e) =>
+              e.startTime == slot.startTime && e.endTime == slot.endTime);
+
+          if (matchingEntries.isEmpty) {
+            return TableCell(
+              child: Container(
+                width: 100,
+                height: 80,
+                padding: const EdgeInsets.all(4),
+              ),
+            );
+          }
+
+          return TableCell(
+            child: _buildCourseCell(matchingEntries.toList(), theme, isDark),
+          );
+        }),
       ],
     );
   }
 
-  Widget _buildStatusChip(String label, Color color) {
-    final theme = Theme.of(context);
-    return Chip(
-      label: Text(
-        label,
-        style: theme.textTheme.labelSmall?.copyWith(color: color),
+  /// 构建课程单元格
+  Widget _buildCourseCell(
+    List<ScheduleEntry> entries,
+    ThemeData theme,
+    bool isDark,
+  ) {
+    return Container(
+      width: 100,
+      constraints: const BoxConstraints(minHeight: 80),
+      padding: const EdgeInsets.all(4),
+      child: Column(
+        children: entries.map((entry) {
+          final bgColor = isDark
+              ? theme.colorScheme.surfaceContainerHighest
+              : theme.colorScheme.surfaceContainerLow;
+
+          final borderColor = entry.isCurrentWeek
+              ? theme.colorScheme.primary
+              : (isDark ? Colors.grey.shade600 : Colors.grey.shade300);
+
+          return Container(
+            width: double.infinity,
+            margin: entries.length > 1 ? const EdgeInsets.only(bottom: 4) : null,
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: bgColor,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: borderColor,
+                width: entry.isCurrentWeek ? 1.5 : 0.5,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 课程名称
+                Text(
+                  entry.courseName,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                // 教室
+                Text(
+                  entry.roomName,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                // 教师
+                Text(
+                  entry.teacherName,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          );
+        }).toList(),
       ),
-      side: BorderSide(color: color.withValues(alpha: 0.6)),
-      backgroundColor: color.withValues(alpha: 0.1),
-      visualDensity: VisualDensity.compact,
-      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
   }
 
-  String _weekdayLabel(int weekday) {
-    const labels = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-    final baseLabel = labels[weekday - 1];
-    final startDate = _resolveSelectedWeekStartDate();
-    if (startDate == null) {
-      return baseLabel;
-    }
-    final dateForWeekday = startDate.add(Duration(days: weekday - 1));
-    final month = dateForWeekday.month.toString().padLeft(2, '0');
-    final day = dateForWeekday.day.toString().padLeft(2, '0');
-    return '$baseLabel（$month-$day）';
-  }
+}
 
-  DateTime? _resolveSelectedWeekStartDate() {
-    final semesterStart = _resolveSemesterStartDate();
-    if (semesterStart == null) {
-      return null;
-    }
-    final weekOffset = (_logic.selectedWeek.value - 1) * 7;
-    return semesterStart.add(Duration(days: weekOffset));
-  }
+/// 时间段数据类
+class _TimeSlot {
+  final String startTime;
+  final String endTime;
 
-  DateTime? _resolveSemesterStartDate() {
-    final semester = _logic.selectedSemester.value;
-    if (semester != null && semester.startDate.isNotEmpty) {
-      return DateTime.tryParse(semester.startDate);
-    }
-    final currentInfo = _logic.currentSemesterInfo.value;
-    if (currentInfo != null && currentInfo.startDate.isNotEmpty) {
-      return DateTime.tryParse(currentInfo.startDate);
-    }
-    return null;
-  }
+  _TimeSlot({required this.startTime, required this.endTime});
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _TimeSlot &&
+          startTime == other.startTime &&
+          endTime == other.endTime;
+
+  @override
+  int get hashCode => startTime.hashCode ^ endTime.hashCode;
 }

@@ -9,12 +9,60 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   DateTime? _selectedDate;
+  DateTime _lastRefreshDate = DateTime.now();
+  bool _isUserSelectedDate = false; // 标记用户是否手动选择了日期
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _lastRefreshDate = DateTime.now();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkAndRefreshIfNeeded();
+    }
+  }
+
+  /// 检查是否需要刷新数据（跨天检测）
+  void _checkAndRefreshIfNeeded() {
+    if (!mounted) return;
+
+    final now = DateTime.now();
+    final lastDate = DateTime(_lastRefreshDate.year, _lastRefreshDate.month, _lastRefreshDate.day);
+    final today = DateTime(now.year, now.month, now.day);
+
+    // 如果跨天了
+    if (today.isAfter(lastDate)) {
+      _lastRefreshDate = now;
+
+      // 如果用户没有手动选择日期，或者选择的是旧的今天，则重置为新的今天
+      if (!_isUserSelectedDate || _selectedDate?.day == lastDate.day) {
+        setState(() {
+          _selectedDate = null;
+          _isUserSelectedDate = false;
+        });
+      }
+
+      // 触发数据刷新
+      try {
+        final logic = Provider.of<HomePageLogic>(context, listen: false);
+        logic.refreshData();
+      } catch (e) {
+        // Provider 可能在初始化阶段不可用，忽略错误
+        debugPrint('Auto refresh skipped: $e');
+      }
+    }
   }
 
   @override
@@ -121,10 +169,17 @@ class _HomePageState extends State<HomePage> {
       lastDate: DateTime.now().add(const Duration(days: 365)),
       locale: const Locale('zh', 'CN'),
     );
-    
+
     if (picked != null && picked != _selectedDate) {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final pickedDate = DateTime(picked.year, picked.month, picked.day);
+
       setState(() {
         _selectedDate = picked;
+        // 如果选择的是今天，重置标志；否则标记为用户手动选择
+        _isUserSelectedDate = !pickedDate.isAtSameMomentAs(today);
+        _lastRefreshDate = now;
       });
       // 格式化日期为API需要的格式
       final dateString = '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
@@ -300,15 +355,20 @@ class _HomePageState extends State<HomePage> {
                     return Card(
                       margin: const EdgeInsets.symmetric(vertical: 4.0),
                       // 如果包含正在进行或即将进行的课程，添加边框高亮
-                      color: hasOngoingOrUpcoming 
-                          ? (isDark ? theme.colorScheme.primary.withValues(alpha: 0.1) : theme.colorScheme.primary.withValues(alpha: 0.05))
+                      // 浅色模式使用primaryContainer实现更柔和的背景色
+                      color: hasOngoingOrUpcoming
+                          ? (isDark
+                              ? theme.colorScheme.primary.withValues(alpha: 0.15)
+                              : theme.colorScheme.primaryContainer.withValues(alpha: 0.4))
                           : null,
                       shape: hasOngoingOrUpcoming
                           ? RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                               side: BorderSide(
-                                color: theme.colorScheme.primary,
-                                width: 2,
+                                color: isDark
+                                    ? theme.colorScheme.primary
+                                    : theme.colorScheme.primary.withValues(alpha: 0.6),
+                                width: isDark ? 2 : 1.5,
                               ),
                             )
                           : null,
@@ -334,11 +394,14 @@ class _HomePageState extends State<HomePage> {
                           children: courses.map((course) {
                             // 检查单个课程是否正在进行或即将进行
                             final isOngoingOrUpcoming = logic.isCourseOngoingOrUpcoming(course, selectedDateString);
-                            
+
                             return Container(
                               decoration: isOngoingOrUpcoming
                                   ? BoxDecoration(
-                                      color: theme.colorScheme.primary.withValues(alpha: 0.08),
+                                      // 浅色模式使用更柔和的背景
+                                      color: isDark
+                                          ? theme.colorScheme.primary.withValues(alpha: 0.12)
+                                          : theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
                                       border: Border(
                                         left: BorderSide(
                                           color: theme.colorScheme.primary,
@@ -356,7 +419,10 @@ class _HomePageState extends State<HomePage> {
                                         style: isOngoingOrUpcoming
                                             ? TextStyle(
                                                 fontWeight: FontWeight.bold,
-                                                color: theme.colorScheme.primary,
+                                                // 浅色模式使用较深的primary色调
+                                                color: isDark
+                                                    ? theme.colorScheme.primary
+                                                    : theme.colorScheme.primary,
                                               )
                                             : null,
                                       ),
@@ -365,7 +431,10 @@ class _HomePageState extends State<HomePage> {
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: theme.colorScheme.primary,
+                                          // 浅色模式使用更柔和的标签背景
+                                          color: isDark
+                                              ? theme.colorScheme.primary
+                                              : theme.colorScheme.primary.withValues(alpha: 0.85),
                                           borderRadius: BorderRadius.circular(12),
                                         ),
                                         child: Text(
@@ -388,7 +457,9 @@ class _HomePageState extends State<HomePage> {
                                       style: isOngoingOrUpcoming
                                           ? TextStyle(
                                               fontWeight: FontWeight.w600,
-                                              color: theme.colorScheme.primary,
+                                              color: isDark
+                                                  ? theme.colorScheme.primary
+                                                  : theme.colorScheme.primary.withValues(alpha: 0.8),
                                             )
                                           : null,
                                     ),
