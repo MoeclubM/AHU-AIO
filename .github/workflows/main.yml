@@ -3,7 +3,7 @@ name: Build and Release
 on:
   push:
     tags:
-      - 'release-*'
+      - '*'
 
 env:
   FLUTTER_VERSION: '3.35.6'
