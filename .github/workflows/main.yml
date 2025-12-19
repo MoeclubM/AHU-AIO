@@ -26,14 +26,8 @@ jobs:
       - name: Extract Version from Tag
         id: get-version
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${{ github.event.inputs.version }}"
-          elif [ -n "${{ github.ref_name }}" ]; then
-            VERSION="${{ github.ref_name }}"
-          else
-            VERSION="v1.0.0"
-          fi
-          echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
+          VERSION="${{ github.ref_name }}"
+          echo "version=${VERSION#release-}" >> $GITHUB_OUTPUT
           echo "tag=${VERSION}" >> $GITHUB_OUTPUT
 
       - name: Generate Changelog
