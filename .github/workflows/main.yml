@@ -3,14 +3,99 @@ name: Build and Release
 on:
   push:
     tags:
-      - 'v*'
+      - 'release-*'
+
+env:
+  FLUTTER_VERSION: '3.35.6'
 
 jobs:
+  # 提取版本信息
+  get-version:
+    name: Extract Version Info
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
+      tag: ${{ steps.get-version.outputs.tag }}
+      changelog: ${{ steps.get-changelog.outputs.changelog }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Extract Version from Tag
+        id: get-version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [ -n "${{ github.ref_name }}" ]; then
+            VERSION="${{ github.ref_name }}"
+          else
+            VERSION="v1.0.0"
+          fi
+          echo "version=${VERSION#v}" >> $GITHUB_OUTPUT
+          echo "tag=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Generate Changelog
+        id: get-changelog
+        run: |
+          # 获取上一个标签
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -n "$PREV_TAG" ]; then
+            echo "## Changes since $PREV_TAG" > changelog.md
+            echo "" >> changelog.md
+            git log --pretty=format:"- %s (%h)" $PREV_TAG..HEAD >> changelog.md
+          else
+            echo "## Changes in this release" > changelog.md
+            echo "" >> changelog.md
+            git log --pretty=format:"- %s (%h)" >> changelog.md
+          fi
+          echo "" >> changelog.md
+          echo "" >> changelog.md
+          echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$PREV_TAG..${{ steps.get-version.outputs.tag }}"
+          CHANGELOG=$(cat changelog.md)
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+  # 运行测试
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: get-version
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set Up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Run Tests
+        run: flutter test --coverage
+
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: coverage/lcov.info
+          fail_ci_if_error: true
+
+      - name: Check Formatting
+        run: flutter format --set-exit-if-changed lib test
+
+      - name: Analyze Code
+        run: flutter analyze
+
   build-android:
     name: Build Android
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    needs: [get-version, test]
     strategy:
       matrix:
         include:
@@ -34,18 +119,20 @@ jobs:
     - name: Set Up Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.35.6'
+        flutter-version: ${{ env.FLUTTER_VERSION }}
 
     - name: Install Dependencies
       run: flutter pub get
 
     - name: Build APK
-      run: flutter build ${{ matrix.target }} ${{ matrix.build-args }}
+      run: |
+        flutter build apk --release --target-platform ${{ matrix.arch == 'arm64' && 'android-arm64' || 'android-x64' }} \
+          --build-number ${{ needs.get-version.outputs.version }}
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: AHU-AIO-Android-${{ matrix.arch }}
+        name: AHU-AIO-Android-${{ matrix.arch }}-${{ needs.get-version.outputs.version }}
         path: build/app/outputs/flutter-apk/app-release.apk
 
   build-linux:
@@ -53,6 +140,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    needs: [get-version, test]
 
     steps:
     - name: Checkout Repository
@@ -66,7 +154,7 @@ jobs:
     - name: Set Up Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.35.6'
+        flutter-version: ${{ env.FLUTTER_VERSION }}
 
     - name: Install Dependencies
       run: flutter pub get
@@ -75,24 +163,25 @@ jobs:
       run: flutter config --enable-linux-desktop
 
     - name: Build Linux
-      run: flutter build linux --release
+      run: flutter build linux --release --build-number ${{ needs.get-version.outputs.version }}
 
     - name: Archive Linux Build
       run: |
         cd build/linux/x64/release/bundle
-        tar -czf ../../../../../AHU-AIO-Linux-x86_64.tar.gz .
+        tar -czf ../../../../../AHU-AIO-Linux-x86_64-${{ needs.get-version.outputs.version }}.tar.gz .
 
     - name: Upload Linux Build
       uses: actions/upload-artifact@v4
       with:
-        name: AHU-AIO-Linux-x86_64
-        path: AHU-AIO-Linux-x86_64.tar.gz
+        name: AHU-AIO-Linux-x86_64-${{ needs.get-version.outputs.version }}
+        path: AHU-AIO-Linux-x86_64-${{ needs.get-version.outputs.version }}.tar.gz
 
   build-windows:
     name: Build Windows
     runs-on: windows-latest
     permissions:
       contents: read
+    needs: [get-version, test]
 
     steps:
     - name: Checkout Repository
@@ -101,7 +190,7 @@ jobs:
     - name: Set Up Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.35.6'
+        flutter-version: ${{ env.FLUTTER_VERSION }}
 
     - name: Install Dependencies
       run: flutter pub get
@@ -110,24 +199,25 @@ jobs:
       run: flutter config --enable-windows-desktop
 
     - name: Build Windows
-      run: flutter build windows --release
+      run: flutter build windows --release --build-number ${{ needs.get-version.outputs.version }}
 
     - name: Archive Windows Build
       run: |
-        Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath AHU-AIO-Windows-x64.zip
+        Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath AHU-AIO-Windows-x64-${{ needs.get-version.outputs.version }}.zip
       shell: pwsh
 
     - name: Upload Windows Build
       uses: actions/upload-artifact@v4
       with:
-        name: AHU-AIO-Windows-x64
-        path: AHU-AIO-Windows-x64.zip
+        name: AHU-AIO-Windows-x64-${{ needs.get-version.outputs.version }}
+        path: AHU-AIO-Windows-x64-${{ needs.get-version.outputs.version }}.zip
 
   build-macos:
     name: Build macOS
     runs-on: macos-latest
     permissions:
       contents: read
+    needs: [get-version, test]
 
     steps:
     - name: Checkout Repository
@@ -136,7 +226,7 @@ jobs:
     - name: Set Up Flutter
       uses: subosito/flutter-action@v2
       with:
-        flutter-version: '3.35.6'
+        flutter-version: ${{ env.FLUTTER_VERSION }}
 
     - name: Install Dependencies
       run: flutter pub get
@@ -145,22 +235,22 @@ jobs:
       run: flutter config --enable-macos-desktop
 
     - name: Build macOS
-      run: flutter build macos --release
+      run: flutter build macos --release --build-number ${{ needs.get-version.outputs.version }}
 
     - name: Archive macOS Build
       run: |
         cd build/macos/Build/Products/Release
-        zip -r ../../../../../AHU-AIO-macOS-universal.zip ahu_aio.app
+        zip -r ../../../../../AHU-AIO-macOS-universal-${{ needs.get-version.outputs.version }}.zip ahu_aio.app
 
     - name: Upload macOS Build
       uses: actions/upload-artifact@v4
       with:
-        name: AHU-AIO-macOS-universal
-        path: AHU-AIO-macOS-universal.zip
+        name: AHU-AIO-macOS-universal-${{ needs.get-version.outputs.version }}
+        path: AHU-AIO-macOS-universal-${{ needs.get-version.outputs.version }}.zip
 
   release:
     name: Create Release
-    needs: [build-android, build-linux, build-windows, build-macos]
+    needs: [get-version, build-android, build-linux, build-windows, build-macos]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -174,16 +264,61 @@ jobs:
     - name: Prepare Release Files
       run: |
         mkdir -p release
-        mv artifacts/AHU-AIO-Android-arm64/app-release.apk release/AHU-AIO-Android-arm64.apk
-        mv artifacts/AHU-AIO-Android-x86_64/app-release.apk release/AHU-AIO-Android-x86_64.apk
-        mv artifacts/AHU-AIO-Linux-x86_64/AHU-AIO-Linux-x86_64.tar.gz release/
-        mv artifacts/AHU-AIO-Windows-x64/AHU-AIO-Windows-x64.zip release/
-        mv artifacts/AHU-AIO-macOS-universal/AHU-AIO-macOS-universal.zip release/
+        mv artifacts/AHU-AIO-Android-arm64-*/app-release.apk release/AHU-AIO-Android-arm64-${{ needs.get-version.outputs.version }}.apk
+        mv artifacts/AHU-AIO-Android-x86_64-*/app-release.apk release/AHU-AIO-Android-x86_64-${{ needs.get-version.outputs.version }}.apk
+        mv artifacts/AHU-AIO-Linux-x86_64-*/AHU-AIO-Linux-x86_64-*.tar.gz release/
+        mv artifacts/AHU-AIO-Windows-x64-*/AHU-AIO-Windows-x64-*.zip release/
+        mv artifacts/AHU-AIO-macOS-universal-*/AHU-AIO-macOS-universal-*.zip release/
+
+        # 生成安装说明
+        cat > release/INSTALL.md << 'EOF'
+        # 安装说明
+
+        ## Android
+        - **arm64**: 适用于大多数现代 Android 设备
+        - **x86_64**: 适用于 Android 模拟器或特殊设备
+
+        ## Linux
+        解压后运行 `ahu_aio` 可执行文件
+
+        ## Windows
+        解压后运行 `ahu_aio.exe` 可执行文件
+
+        ## macOS
+        解压后将应用拖入 Applications 文件夹
+
+        ---
+        版本: ${{ needs.get-version.outputs.version }}
+        构建时间: $(date)
+        EOF
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        files: release/*
-        generate_release_notes: true
+        tag_name: ${{ needs.get-version.outputs.tag }}
+        name: Release ${{ needs.get-version.outputs.tag }}
+        body: |
+          ${{ needs.get-version.outputs.changelog }}
+
+          ## 下载
+
+          ### Android (APK)
+          - [AHU-AIO Android arm64](https://github.com/${{ github.repository }}/releases/download/${{ needs.get-version.outputs.tag }}/AHU-AIO-Android-arm64-${{ needs.get-version.outputs.version }}.apk)
+          - [AHU-AIO Android x86_64](https://github.com/${{ github.repository }}/releases/download/${{ needs.get-version.outputs.tag }}/AHU-AIO-Android-x86_64-${{ needs.get-version.outputs.version }}.apk)
+
+          ### Linux
+          - [AHU-AIO Linux x86_64](https://github.com/${{ github.repository }}/releases/download/${{ needs.get-version.outputs.tag }}/AHU-AIO-Linux-x86_64-${{ needs.get-version.outputs.version }}.tar.gz)
+
+          ### Windows
+          - [AHU-AIO Windows x64](https://github.com/${{ github.repository }}/releases/download/${{ needs.get-version.outputs.tag }}/AHU-AIO-Windows-x64-${{ needs.get-version.outputs.version }}.zip)
+
+          ### macOS
+          - [AHU-AIO macOS Universal](https://github.com/${{ github.repository }}/releases/download/${{ needs.get-version.outputs.tag }}/AHU-AIO-macOS-universal-${{ needs.get-version.outputs.version }}.zip)
+
+          详见 [INSTALL.md](https://github.com/${{ github.repository }}/blob/${{ needs.get-version.outputs.tag }}/release/INSTALL.md)
+        draft: false
+        prerelease: false
+        files: |
+          release/*
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

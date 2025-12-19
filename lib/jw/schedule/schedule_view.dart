@@ -88,7 +88,6 @@ class _SchedulePageState extends State<SchedulePage> {
                     : (value) {
                         if (value != null) {
                           _logic.selectSemester(value);
-                          _logic.refreshData();
                         }
                       },
                 items: semesters

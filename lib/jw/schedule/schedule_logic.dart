@@ -49,25 +49,40 @@ class ScheduleLogic extends GetxController {
       if (semesters != null) {
         allSemesters.value = semesters;
       }
-      
+
       // 获取当前学期信息
       final currentSemester = await SemesterConfig.getCurrentSemesterInfo();
       if (currentSemester != null) {
         currentSemesterInfo.value = currentSemester;
-        
-        // 设置默认选中的学期
-        final currentSemesterData = allSemesters.firstWhereOrNull(
-          (semester) => semester.id == currentSemester.id
-        );
-        if (currentSemesterData != null) {
-          selectedSemester.value = currentSemesterData;
-        }
-        
-        // 设置可用周数
-        availableWeeks.value = currentSemester.weekIndices;
-        if (availableWeeks.isNotEmpty) {
-          // 设置为当前周，而不是第一周
-          selectedWeek.value = _getCurrentWeek(currentSemester);
+
+        // 只有在没有选中任何学期时，才设置默认选中当前学期
+        if (selectedSemester.value == null) {
+          final currentSemesterData = allSemesters.firstWhereOrNull(
+            (semester) => semester.id == currentSemester.id
+          );
+          if (currentSemesterData != null) {
+            selectedSemester.value = currentSemesterData;
+          }
+
+          // 设置可用周数
+          availableWeeks.value = currentSemester.weekIndices;
+          if (availableWeeks.isNotEmpty) {
+            // 设置为当前周，而不是第一周
+            selectedWeek.value = _getCurrentWeek(currentSemester);
+          }
+        } else {
+          // 如果已经有选中的学期，更新该学期的周数信息
+          if (currentSemesterInfo.value != null &&
+              selectedSemester.value!.id == currentSemesterInfo.value!.id) {
+            // 当前学期，使用真实的周数信息
+            availableWeeks.value = currentSemesterInfo.value!.weekIndices;
+            if (availableWeeks.isNotEmpty) {
+              selectedWeek.value = _getCurrentWeek(currentSemesterInfo.value!);
+            }
+          } else {
+            // 其他学期，使用默认的周数（1-20周）
+            availableWeeks.value = List.generate(20, (index) => index + 1);
+          }
         }
       }
     } catch (e) {
@@ -128,7 +143,7 @@ class ScheduleLogic extends GetxController {
       }
     }
 
-    // 重新加载课程数据
+    // 重新加载课程数据，但不重新加载学期数据
     await loadScheduleData();
     // 强制更新UI
     update();
