@@ -70,13 +70,7 @@ jobs:
         run: flutter pub get
 
       - name: Run Tests
-        run: flutter test --coverage
-
-      - name: Upload Coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          file: coverage/lcov.info
-          fail_ci_if_error: true
+        run: flutter test
 
       - name: Check Formatting
         run: flutter format --set-exit-if-changed lib test
