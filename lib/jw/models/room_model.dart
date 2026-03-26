@@ -182,8 +182,9 @@ class RoomFilter {
     if (minCapacity != null) data['minCapacity'] = minCapacity;
     if (maxCapacity != null) data['maxCapacity'] = maxCapacity;
     if (date != null) data['date'] = date;
-    if (timeSlots != null && timeSlots!.isNotEmpty)
+    if (timeSlots != null && timeSlots!.isNotEmpty) {
       data['timeSlots'] = timeSlots;
+    }
     if (startTime != null) data['startTime'] = startTime;
     if (endTime != null) data['endTime'] = endTime;
     if (hasProjector != null) data['hasProjector'] = hasProjector;

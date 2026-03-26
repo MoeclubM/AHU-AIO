@@ -46,7 +46,6 @@ class _PlanPageState extends State<PlanPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(title: const Text('培养方案完成情况')),

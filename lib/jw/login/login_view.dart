@@ -118,9 +118,6 @@ class _JWLoginPageState extends State<JWLoginPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return Scaffold(
       appBar: AppBar(title: const Text('安大微教务登录')),
       body: SafeArea(

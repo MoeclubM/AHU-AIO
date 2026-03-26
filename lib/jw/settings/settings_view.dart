@@ -38,10 +38,6 @@ class _SettingsPageState extends State<SettingsPage> {
     await _themeManager.setThemeMode(mode);
   }
 
-  bool get _isDarkMode {
-    return _themeManager.isDarkMode(context);
-  }
-
   String get _currentThemeMode {
     return _themeManager.themeMode;
   }

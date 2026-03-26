@@ -30,6 +30,8 @@ analyzer:
     unused_field: info
     unused_local_variable: info
     use_build_context_synchronously: info
+    deprecated_member_use: info
+    curly_braces_in_flow_control_structures: info
 
 linter:
   # The lint rules applied to this project can be customized in the

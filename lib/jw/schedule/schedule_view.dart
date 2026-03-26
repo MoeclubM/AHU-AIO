@@ -60,7 +60,6 @@ class _SchedulePageState extends State<SchedulePage> {
   }
 
   Widget _buildSelectionArea(bool isLoading) {
-    final theme = Theme.of(context);
     final semesters = _logic.allSemesters.toList();
     final selectedSemester = _logic.selectedSemester.value;
     final weeks = _logic.availableWeeks.toList();
