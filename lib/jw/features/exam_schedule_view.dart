@@ -77,9 +77,14 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
             matchesStatus = examDate.isAfter(now);
             break;
           case '进行中':
-            final startDateTime = DateTime.tryParse('${exam.examDate} ${exam.startTime}') ?? DateTime.now();
-            final endDateTime = DateTime.tryParse('${exam.examDate} ${exam.endTime}') ?? DateTime.now();
-            matchesStatus = now.isAfter(startDateTime) && now.isBefore(endDateTime);
+            final startDateTime =
+                DateTime.tryParse('${exam.examDate} ${exam.startTime}') ??
+                DateTime.now();
+            final endDateTime =
+                DateTime.tryParse('${exam.examDate} ${exam.endTime}') ??
+                DateTime.now();
+            matchesStatus =
+                now.isAfter(startDateTime) && now.isBefore(endDateTime);
             break;
           case '已结束':
             matchesStatus = examDate.isBefore(now);
@@ -171,15 +176,15 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _error != null
-                    ? _buildErrorWidget()
-                    : TabBarView(
-                        controller: _tabController,
-                        children: [
-                          _buildExamList(_filteredExams),
-                          _buildExamList(_getUpcomingExams()),
-                          _buildExamList(_getPastExams()),
-                        ],
-                      ),
+                ? _buildErrorWidget()
+                : TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildExamList(_filteredExams),
+                      _buildExamList(_getUpcomingExams()),
+                      _buildExamList(_getPastExams()),
+                    ],
+                  ),
           ),
         ],
       ),
@@ -216,7 +221,10 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
             ),
             onChanged: (value) {
               setState(() {
@@ -237,7 +245,10 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
                   decoration: const InputDecoration(
                     labelText: '考试状态',
                     border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                   ),
                   items: ['全部', '未开始', '进行中', '已结束'].map((status) {
                     return DropdownMenuItem<String>(
@@ -259,11 +270,15 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
                   onPressed: _selectDateRange,
                   icon: const Icon(Icons.date_range),
                   label: Text(
-                    _startDate == null ? '选择日期范围' :
-                    '${DateFormat('MM/dd').format(_startDate!)} - ${DateFormat('MM/dd').format(_endDate ?? _startDate!)}',
+                    _startDate == null
+                        ? '选择日期范围'
+                        : '${DateFormat('MM/dd').format(_startDate!)} - ${DateFormat('MM/dd').format(_endDate ?? _startDate!)}',
                   ),
                   style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                   ),
                 ),
               ),
@@ -282,9 +297,9 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-              primary: Colors.red.shade600,
-            ),
+            colorScheme: Theme.of(
+              context,
+            ).colorScheme.copyWith(primary: Colors.red.shade600),
           ),
           child: child!,
         );
@@ -334,8 +349,11 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
   Widget _buildExamCard(ExamInfo exam) {
     final now = DateTime.now();
     final examDate = DateTime.tryParse(exam.examDate) ?? DateTime.now();
-    final startDateTime = DateTime.tryParse('${exam.examDate} ${exam.startTime}') ?? DateTime.now();
-    final endDateTime = DateTime.tryParse('${exam.examDate} ${exam.endTime}') ?? DateTime.now();
+    final startDateTime =
+        DateTime.tryParse('${exam.examDate} ${exam.startTime}') ??
+        DateTime.now();
+    final endDateTime =
+        DateTime.tryParse('${exam.examDate} ${exam.endTime}') ?? DateTime.now();
 
     ExamStatus status;
     Color statusColor;
@@ -370,11 +388,7 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
                     color: statusColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(
-                    statusIcon,
-                    color: statusColor,
-                    size: 24,
-                  ),
+                  child: Icon(statusIcon, color: statusColor, size: 24),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -401,7 +415,10 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
                 Column(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: statusColor,
                         borderRadius: BorderRadius.circular(12),
@@ -448,15 +465,14 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
             Row(
               children: [
                 Expanded(
-                  child: _buildInfoItem(
-                    Icons.location_on,
-                    exam.classroom,
-                  ),
+                  child: _buildInfoItem(Icons.location_on, exam.classroom),
                 ),
                 Expanded(
                   child: _buildInfoItem(
                     Icons.event_seat,
-                    exam.seatNumber.isNotEmpty ? '座位号: ${exam.seatNumber}' : '座位待分配',
+                    exam.seatNumber.isNotEmpty
+                        ? '座位号: ${exam.seatNumber}'
+                        : '座位待分配',
                   ),
                 ),
               ],
@@ -470,19 +486,12 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
   Widget _buildInfoItem(IconData icon, String text) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 16,
-          color: Colors.grey.shade600,
-        ),
+        Icon(icon, size: 16, color: Colors.grey.shade600),
         const SizedBox(width: 4),
         Expanded(
           child: Text(
             text,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade700,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -553,10 +562,7 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
           const SizedBox(height: 8),
           const Text(
             '当前没有考试安排信息',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey),
           ),
         ],
       ),
@@ -568,11 +574,7 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 64,
-            color: Colors.red.shade400,
-          ),
+          Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
           const SizedBox(height: 16),
           Text(
             '加载失败',
@@ -586,16 +588,10 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
           Text(
             _error!,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _loadExams,
-            child: const Text('重试'),
-          ),
+          ElevatedButton(onPressed: _loadExams, child: const Text('重试')),
         ],
       ),
     );

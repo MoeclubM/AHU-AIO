@@ -22,8 +22,6 @@ class _MainPageState extends State<MainPage> {
     MainPageService.checkTokenAndNavigate(context);
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -34,36 +32,26 @@ class _MainPageState extends State<MainPage> {
             _selectedIndex = index;
           });
         },
-        children: const [
-          HomePage(),
-          SchedulePage(),
-          FuncPage(),
-          SettingsPage(),
+        children: [
+          HomePage(isVisible: _selectedIndex == 0),
+          const SchedulePage(),
+          const FuncPage(),
+          const SettingsPage(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
-          _selectedIndex = index;
+          setState(() {
+            _selectedIndex = index;
+          });
           _pageController.jumpToPage(index);
         },
         destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home),
-            label: '首页',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.schedule),
-            label: '课表',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.web),
-            label: '更多功能',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings),
-            label: '设置',
-          ),
+          NavigationDestination(icon: Icon(Icons.home), label: '首页'),
+          NavigationDestination(icon: Icon(Icons.schedule), label: '课表'),
+          NavigationDestination(icon: Icon(Icons.web), label: '更多功能'),
+          NavigationDestination(icon: Icon(Icons.settings), label: '设置'),
         ],
       ),
     );

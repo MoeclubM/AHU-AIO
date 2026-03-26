@@ -15,9 +15,7 @@ class FuncPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('更多功能'),
-      ),
+      appBar: AppBar(title: const Text('更多功能')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: GridView.builder(
@@ -85,9 +83,7 @@ class FuncPage extends StatelessWidget {
           backgroundColor: Colors.blue.shade600,
           duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       );
     } else {
@@ -114,7 +110,9 @@ class FuncPage extends StatelessWidget {
         case '教室课表查询':
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const ClassroomSchedulePage()),
+            MaterialPageRoute(
+              builder: (context) => const ClassroomSchedulePage(),
+            ),
           );
           break;
         case '通知公告':
@@ -126,13 +124,17 @@ class FuncPage extends StatelessWidget {
         case '选课系统':
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const CourseSelectionPage()),
+            MaterialPageRoute(
+              builder: (context) => const CourseSelectionPage(),
+            ),
           );
           break;
         case '培养方案完成情况':
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const AcademicWarningPage()),
+            MaterialPageRoute(
+              builder: (context) => const AcademicWarningPage(),
+            ),
           );
           break;
         default:
@@ -171,39 +173,11 @@ class Feature {
 }
 
 final List<Feature> _features = [
-  const Feature(
-    title: '通知公告',
-    subtitle: '查看学校通知公告',
-    isComingSoon: false,
-  ),
-  const Feature(
-    title: '培养方案完成情况',
-    subtitle: '查看学分完成进度',
-    isComingSoon: false,
-  ),
-  const Feature(
-    title: '培养方案查询',
-    subtitle: '查看专业培养计划',
-    isComingSoon: false,
-  ),
-  const Feature(
-    title: '成绩查询',
-    subtitle: '查看考试成绩',
-    isComingSoon: false,
-  ),
-  const Feature(
-    title: '空闲教室查询',
-    subtitle: '查找可用教室',
-    isComingSoon: false,
-  ),
-  const Feature(
-    title: '教室课表查询',
-    subtitle: '查看教室使用情况',
-    isComingSoon: false,
-  ),
-  const Feature(
-    title: '选课系统',
-    subtitle: '在线选课和退选',
-    isComingSoon: false,
-  ),
+  const Feature(title: '通知公告', subtitle: '查看学校通知公告', isComingSoon: false),
+  const Feature(title: '培养方案完成情况', subtitle: '查看学分完成进度', isComingSoon: false),
+  const Feature(title: '培养方案查询', subtitle: '查看专业培养计划', isComingSoon: false),
+  const Feature(title: '成绩查询', subtitle: '查看考试成绩', isComingSoon: false),
+  const Feature(title: '空闲教室查询', subtitle: '查找可用教室', isComingSoon: false),
+  const Feature(title: '教室课表查询', subtitle: '查看教室使用情况', isComingSoon: false),
+  const Feature(title: '选课系统', subtitle: '在线选课和退选', isComingSoon: false),
 ];

@@ -17,20 +17,25 @@ MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCFY5N+9UX+0BF+xz1svFguI4CIDvmQTfINkOZ1HOO3
     required String password,
   }) async {
     try {
-      final String encryptedPassword =
-          _encryptWithPublicKey(password, _publicKeyPem);
+      final String encryptedPassword = _encryptWithPublicKey(
+        password,
+        _publicKeyPem,
+      );
 
       // 拼接 URL 查询参数
       final Uri url =
-          Uri.parse('https://jwapp.ahu.edu.cn/token/password/passwordLogin')
-              .replace(queryParameters: {
-        'username': username,
-        'password': encryptedPassword,
-        'appId': 'DEVICE_ID',
-        'deviceId': 'DEVICE_ID',
-        'osType': 'web',
-        'geo': '',
-      });
+          Uri.parse(
+            'https://jwapp.ahu.edu.cn/token/password/passwordLogin',
+          ).replace(
+            queryParameters: {
+              'username': username,
+              'password': encryptedPassword,
+              'appId': 'DEVICE_ID',
+              'deviceId': 'DEVICE_ID',
+              'osType': 'web',
+              'geo': '',
+            },
+          );
 
       final Map<String, String> headers = {
         'accept': 'application/json',
@@ -41,22 +46,24 @@ MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCFY5N+9UX+0BF+xz1svFguI4CIDvmQTfINkOZ1HOO3
         'referer': 'https://jwapp.ahu.edu.cn/uniapp/',
         'user-agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
-        'sec-ch-ua': '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
+        'sec-ch-ua':
+            '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
         'sec-ch-ua-mobile': '?0',
         'sec-ch-ua-platform': '"Windows"',
       };
 
-      final response = await http.post(
-        url,
-        headers: headers,
-      ).timeout(const Duration(seconds: 10));
+      final response = await http
+          .post(url, headers: headers)
+          .timeout(const Duration(seconds: 10));
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = jsonDecode(response.body);
         if (responseData['code'] == 0) {
           return responseData['data']['idToken'];
         } else {
-          throw Exception('登录失败，错误代码：${responseData['code']}，消息：${responseData['msg'] ?? '未知错误'}');
+          throw Exception(
+            '登录失败，错误代码：${responseData['code']}，消息：${responseData['msg'] ?? '未知错误'}',
+          );
         }
       } else if (response.statusCode == 401) {
         throw Exception('登录失败，错误信息：用户名或密码错误');
@@ -78,8 +85,9 @@ MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCFY5N+9UX+0BF+xz1svFguI4CIDvmQTfINkOZ1HOO3
     pkcs1.init(true, PublicKeyParameter<RSAPublicKey>(publicKey));
 
     // 加密数据
-    final Uint8List encryptedData =
-        pkcs1.process(Uint8List.fromList(utf8.encode(data)));
+    final Uint8List encryptedData = pkcs1.process(
+      Uint8List.fromList(utf8.encode(data)),
+    );
 
     // 返回 Base64 编码后的加密数据
     return base64Encode(encryptedData);

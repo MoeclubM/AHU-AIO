@@ -26,7 +26,10 @@ class RoomApi {
   }
 
   /// 获取建筑列表
-  static Future<List<dynamic>> getBuildings(String token, {String? campusAssoc}) async {
+  static Future<List<dynamic>> getBuildings(
+    String token, {
+    String? campusAssoc,
+  }) async {
     final url = campusAssoc != null
         ? 'https://jwapp.ahu.edu.cn/eams-micro-server/api/v1/room/place/building?campusAssoc=$campusAssoc'
         : 'https://jwapp.ahu.edu.cn/eams-micro-server/api/v1/room/place/building';
@@ -47,7 +50,10 @@ class RoomApi {
   }
 
   /// 获取教室列表 (POST请求)
-  static Future<Map<String, dynamic>> getRooms(String token, Map<String, dynamic> filters) async {
+  static Future<Map<String, dynamic>> getRooms(
+    String token,
+    Map<String, dynamic> filters,
+  ) async {
     final response = await sendPostRequest(
       'https://jwapp.ahu.edu.cn/eams-micro-server/api/v1/room/place/rooms',
       token,
@@ -58,7 +64,10 @@ class RoomApi {
   }
 
   /// 获取教室占用情况 (POST请求)
-  static Future<Map<String, dynamic>> getRoomOccupancy(String token, Map<String, dynamic> params) async {
+  static Future<Map<String, dynamic>> getRoomOccupancy(
+    String token,
+    Map<String, dynamic> params,
+  ) async {
     final response = await sendPostRequest(
       'https://jwapp.ahu.edu.cn/eams-micro-server/api/v1/room/place/room-occupancy',
       token,
@@ -79,7 +88,11 @@ class RoomApi {
   }
 
   /// 获取教室课表
-  static Future<Map<String, dynamic>> getRoomSchedule(String token, String roomId, String weekStartDate) async {
+  static Future<Map<String, dynamic>> getRoomSchedule(
+    String token,
+    String roomId,
+    String weekStartDate,
+  ) async {
     final response = await sendRequest(
       'https://jwapp.ahu.edu.cn/eams-micro-server/api/v1/room/room/$roomId/schedule?week=$weekStartDate',
       token,
@@ -89,24 +102,32 @@ class RoomApi {
 }
 
 /// 发送POST请求的工具函数
-Future<http.Response?> sendPostRequest(String url, String token, Map<String, dynamic> data) async {
+Future<http.Response?> sendPostRequest(
+  String url,
+  String token,
+  Map<String, dynamic> data,
+) async {
   try {
-    final response = await http.post(
-      Uri.parse(url),
-      headers: {
-        'accept': 'application/json',
-        'authorization': token,
-        'content-type': 'application/json;charset=UTF-8',
-        'referer': 'https://jwapp.ahu.edu.cn/uniapp/',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
-        'sec-ch-ua': '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"Windows"',
-        'usertoken': token,
-        'x-id-token': token,
-      },
-      body: jsonEncode(data),
-    ).timeout(const Duration(seconds: 10));
+    final response = await http
+        .post(
+          Uri.parse(url),
+          headers: {
+            'accept': 'application/json',
+            'authorization': token,
+            'content-type': 'application/json;charset=UTF-8',
+            'referer': 'https://jwapp.ahu.edu.cn/uniapp/',
+            'user-agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+            'sec-ch-ua':
+                '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
+            'sec-ch-ua-mobile': '?0',
+            'sec-ch-ua-platform': '"Windows"',
+            'usertoken': token,
+            'x-id-token': token,
+          },
+          body: jsonEncode(data),
+        )
+        .timeout(const Duration(seconds: 10));
     return response;
   } catch (e) {
     return null;

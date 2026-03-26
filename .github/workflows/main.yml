@@ -19,7 +19,7 @@ jobs:
       changelog: ${{ steps.get-changelog.outputs.changelog }}
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -59,7 +59,7 @@ jobs:
     needs: get-version
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set Up Flutter
         uses: subosito/flutter-action@v2
@@ -73,7 +73,7 @@ jobs:
         run: flutter test
 
       - name: Check Formatting
-        run: flutter format --set-exit-if-changed lib test
+        run: dart format --set-exit-if-changed lib test
 
       - name: Analyze Code
         run: flutter analyze
@@ -96,12 +96,12 @@ jobs:
 
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Set Up Java
-      uses: actions/setup-java@v3.12.0
+      uses: actions/setup-java@v4
       with:
-        distribution: 'oracle'
+        distribution: 'temurin'
         java-version: '17'
 
     - name: Set Up Flutter
@@ -132,7 +132,7 @@ jobs:
 
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Install Linux Build Dependencies
       run: |
@@ -173,7 +173,7 @@ jobs:
 
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Set Up Flutter
       uses: subosito/flutter-action@v2
@@ -209,7 +209,7 @@ jobs:
 
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Set Up Flutter
       uses: subosito/flutter-action@v2

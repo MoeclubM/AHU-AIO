@@ -5,7 +5,11 @@ import '../api/sendrequest.dart';
 
 /// API调试辅助工具
 class ApiDebugHelper {
-  static void showApiDebugDialog(BuildContext context, String apiName, String apiUrl) {
+  static void showApiDebugDialog(
+    BuildContext context,
+    String apiName,
+    String apiUrl,
+  ) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -17,7 +21,10 @@ class ApiDebugHelper {
             children: [
               _buildInfoRow('API名称', apiName),
               _buildInfoRow('请求URL', apiUrl),
-              _buildInfoRow('Token', globals.idToken?.substring(0, 20) ?? '无' + '...'),
+              _buildInfoRow(
+                'Token',
+                globals.idToken?.substring(0, 20) ?? '无' + '...',
+              ),
               const SizedBox(height: 16),
               ElevatedButton.icon(
                 onPressed: () => _testApi(context, apiName, apiUrl),
@@ -49,25 +56,23 @@ class ApiDebugHelper {
         children: [
           Text(
             label,
-            style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           ),
           const SizedBox(height: 2),
           SelectableText(
             value,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade700,
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
           ),
         ],
       ),
     );
   }
 
-  static Future<void> _testApi(BuildContext context, String apiName, String apiUrl) async {
+  static Future<void> _testApi(
+    BuildContext context,
+    String apiName,
+    String apiUrl,
+  ) async {
     final messenger = ScaffoldMessenger.of(context);
 
     messenger.showSnackBar(
@@ -95,7 +100,8 @@ class ApiDebugHelper {
         if (response.statusCode == 200) {
           result = '✅ 请求成功 (${response.statusCode})\n\n';
           result += '响应头:\n${response.headers}\n\n';
-          result += '响应体:\n${response.body.length > 500 ? response.body.substring(0, 500) + "..." : response.body}';
+          result +=
+              '响应体:\n${response.body.length > 500 ? response.body.substring(0, 500) + "..." : response.body}';
         } else {
           result = '❌ 请求失败 (${response.statusCode})\n\n';
           result += '错误信息: ${response.reasonPhrase ?? "未知错误"}\n\n';
@@ -130,10 +136,7 @@ class ApiDebugHelper {
       if (context.mounted) {
         messenger.hideCurrentSnackBar();
         messenger.showSnackBar(
-          SnackBar(
-            content: Text('API测试出错: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('API测试出错: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -154,7 +157,8 @@ class ApiDebugButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IconButton(
-      onPressed: () => ApiDebugHelper.showApiDebugDialog(context, apiName, apiUrl),
+      onPressed: () =>
+          ApiDebugHelper.showApiDebugDialog(context, apiName, apiUrl),
       icon: const Icon(Icons.bug_report),
       tooltip: 'API调试',
       color: Colors.white,

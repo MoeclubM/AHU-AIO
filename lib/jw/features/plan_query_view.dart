@@ -51,13 +51,15 @@ class _PlanQueryPageState extends State<PlanQueryPage> {
         ),
       )
       ..loadRequest(
-        Uri.parse('https://jwapp.ahu.edu.cn/eams-student-plan-app/index.html#/'),
+        Uri.parse(
+          'https://jwapp.ahu.edu.cn/eams-student-plan-app/index.html#/',
+        ),
         headers: {
           'Cookie': globals.idToken ?? '',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         },
       );
-
   }
 
   @override
@@ -77,7 +79,8 @@ class _PlanQueryPageState extends State<PlanQueryPage> {
           ),
           ApiDebugButton(
             apiName: '培养方案查询网页',
-            apiUrl: 'https://jwapp.ahu.edu.cn/eams-student-plan-app/index.html#/',
+            apiUrl:
+                'https://jwapp.ahu.edu.cn/eams-student-plan-app/index.html#/',
           ),
         ],
       ),
@@ -87,9 +90,7 @@ class _PlanQueryPageState extends State<PlanQueryPage> {
           if (_isLoading)
             Container(
               color: Colors.white,
-              child: const Center(
-                child: CircularProgressIndicator(),
-              ),
+              child: const Center(child: CircularProgressIndicator()),
             ),
           if (_error != null)
             Container(
@@ -139,5 +140,4 @@ class _PlanQueryPageState extends State<PlanQueryPage> {
       ),
     );
   }
-
-  }
+}

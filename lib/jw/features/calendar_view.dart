@@ -39,7 +39,9 @@ class _CalendarPageState extends State<CalendarPage> {
           .toList();
 
       // 获取当前学期
-      final currentSemesterData = await CalendarApi.getCurrentSemester(globals.idToken!);
+      final currentSemesterData = await CalendarApi.getCurrentSemester(
+        globals.idToken!,
+      );
       final currentSemesterId = currentSemesterData['id'] as int? ?? 0;
 
       // 找到当前学期并设为默认选中
@@ -57,7 +59,8 @@ class _CalendarPageState extends State<CalendarPage> {
 
       setState(() {
         _semesters = semesters;
-        _selectedSemester = currentSemester ?? (semesters.isNotEmpty ? semesters.first : null);
+        _selectedSemester =
+            currentSemester ?? (semesters.isNotEmpty ? semesters.first : null);
         _isLoading = false;
       });
     } catch (e) {
@@ -71,11 +74,17 @@ class _CalendarPageState extends State<CalendarPage> {
   Future<void> _loadSemesterCalendar(SemesterModel semester) async {
     try {
       // 获取校历布局表
-      final layoutData = await CalendarApi.getCampusLayoutTable(globals.idToken!, semester.id);
+      final layoutData = await CalendarApi.getCampusLayoutTable(
+        globals.idToken!,
+        semester.id,
+      );
       final layout = CalendarLayoutModel.fromJson(layoutData);
 
       // 获取校历事件
-      final eventsData = await CalendarApi.getCalendarEvents(globals.idToken!, semester.id);
+      final eventsData = await CalendarApi.getCalendarEvents(
+        globals.idToken!,
+        semester.id,
+      );
       final events = (eventsData['events'] as List? ?? [])
           .map((data) => CalendarEventModel.fromJson(data))
           .toList();
@@ -137,17 +146,17 @@ class _CalendarPageState extends State<CalendarPage> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? _buildErrorWidget()
-              : Column(
-                  children: [
-                    _buildSemesterSelector(),
-                    Expanded(
-                      child: _calendarLayout != null
-                          ? _buildCalendarView()
-                          : _buildEmptyWidget(),
-                    ),
-                  ],
+          ? _buildErrorWidget()
+          : Column(
+              children: [
+                _buildSemesterSelector(),
+                Expanded(
+                  child: _calendarLayout != null
+                      ? _buildCalendarView()
+                      : _buildEmptyWidget(),
                 ),
+              ],
+            ),
     );
   }
 
@@ -156,11 +165,7 @@ class _CalendarPageState extends State<CalendarPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 64,
-            color: Colors.red.shade400,
-          ),
+          Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
           const SizedBox(height: 16),
           Text(
             '加载失败',
@@ -174,10 +179,7 @@ class _CalendarPageState extends State<CalendarPage> {
           Text(
             _error!,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
@@ -231,18 +233,11 @@ class _CalendarPageState extends State<CalendarPage> {
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.calendar_month,
-            color: Colors.teal.shade600,
-            size: 20,
-          ),
+          Icon(Icons.calendar_month, color: Colors.teal.shade600, size: 20),
           const SizedBox(width: 8),
           const Text(
             '选择学期：',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -296,11 +291,7 @@ class _CalendarPageState extends State<CalendarPage> {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.school,
-                  color: Colors.teal.shade600,
-                  size: 24,
-                ),
+                Icon(Icons.school, color: Colors.teal.shade600, size: 24),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -339,18 +330,12 @@ class _CalendarPageState extends State<CalendarPage> {
         children: [
           Text(
             label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.teal.shade700,
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.teal.shade700),
           ),
           const SizedBox(height: 2),
           Text(
             date,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -368,10 +353,7 @@ class _CalendarPageState extends State<CalendarPage> {
           children: [
             const Text(
               '教学周历',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             _buildWeekGrid(),
@@ -393,23 +375,30 @@ class _CalendarPageState extends State<CalendarPage> {
           child: Row(
             children: [
               const SizedBox(width: 40), // 周数列宽度
-              ...layout.weekDays.map((day) => Expanded(
-                child: Center(
-                  child: Text(
-                    day,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
+              ...layout.weekDays.map(
+                (day) => Expanded(
+                  child: Center(
+                    child: Text(
+                      day,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
                     ),
                   ),
                 ),
-              )),
+              ),
             ],
           ),
         ),
         const Divider(height: 1),
         // 周数网格
-        ...weeks.take(4).map((weekNum) => _buildWeekRow(weekNum, layout.weeklyLayout[weekNum]!)),
+        ...weeks
+            .take(4)
+            .map(
+              (weekNum) =>
+                  _buildWeekRow(weekNum, layout.weeklyLayout[weekNum]!),
+            ),
         if (weeks.length > 4)
           TextButton(
             onPressed: () {
@@ -431,38 +420,37 @@ class _CalendarPageState extends State<CalendarPage> {
             alignment: Alignment.center,
             child: Text(
               '第$weekNum周',
-              style: const TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
             ),
           ),
-          ...days.map((day) => Expanded(
-            child: Container(
-              margin: const EdgeInsets.all(1),
-              decoration: BoxDecoration(
-                color: day.isToday
-                    ? Colors.teal.withValues(alpha: 0.3)
-                    : day.isHoliday
-                        ? Colors.red.withValues(alpha: 0.1)
-                        : Colors.transparent,
-                borderRadius: BorderRadius.circular(4),
-                border: day.isToday
-                    ? Border.all(color: Colors.teal, width: 1)
-                    : null,
-              ),
-              child: Center(
-                child: Text(
-                  day.getDateString(),
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: day.isHoliday ? Colors.red.shade600 : null,
-                    fontWeight: day.isToday ? FontWeight.bold : null,
+          ...days.map(
+            (day) => Expanded(
+              child: Container(
+                margin: const EdgeInsets.all(1),
+                decoration: BoxDecoration(
+                  color: day.isToday
+                      ? Colors.teal.withValues(alpha: 0.3)
+                      : day.isHoliday
+                      ? Colors.red.withValues(alpha: 0.1)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(4),
+                  border: day.isToday
+                      ? Border.all(color: Colors.teal, width: 1)
+                      : null,
+                ),
+                child: Center(
+                  child: Text(
+                    day.getDateString(),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: day.isHoliday ? Colors.red.shade600 : null,
+                      fontWeight: day.isToday ? FontWeight.bold : null,
+                    ),
                   ),
                 ),
               ),
             ),
-          )),
+          ),
         ],
       ),
     );
@@ -477,10 +465,7 @@ class _CalendarPageState extends State<CalendarPage> {
           children: [
             const Text(
               '重要事件',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 16),
             ..._events.map((event) => _buildEventItem(event)),
@@ -497,7 +482,9 @@ class _CalendarPageState extends State<CalendarPage> {
       decoration: BoxDecoration(
         color: event.getEventTypeColor().withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: event.getEventTypeColor().withValues(alpha: 0.3)),
+        border: Border.all(
+          color: event.getEventTypeColor().withValues(alpha: 0.3),
+        ),
       ),
       child: Row(
         children: [
@@ -524,10 +511,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 const SizedBox(height: 4),
                 Text(
                   '${event.date.year}-${event.date.month.toString().padLeft(2, '0')}-${event.date.day.toString().padLeft(2, '0')}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                 ),
               ],
             ),

@@ -18,8 +18,12 @@ class UserInfoExtendedApi {
   }
 
   /// 获取用户配置信息
-  static Future<Map<String, dynamic>> getUserConfig(String token, {String type = ''}) async {
-    String url = 'https://jwapp.ahu.edu.cn/eams-micro-server/api/v1/superApp-userConfig';
+  static Future<Map<String, dynamic>> getUserConfig(
+    String token, {
+    String type = '',
+  }) async {
+    String url =
+        'https://jwapp.ahu.edu.cn/eams-micro-server/api/v1/superApp-userConfig';
     if (type.isNotEmpty) {
       url += '?type=$type';
     }

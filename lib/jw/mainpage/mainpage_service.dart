@@ -15,9 +15,9 @@ class MainPageService {
         final userInfo = await getUserInfo(idToken);
         if (userInfo != null) {
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('登录成功')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('登录成功')));
           }
         } else {
           await _logout(context);
@@ -25,9 +25,9 @@ class MainPageService {
       } catch (e) {
         if (e.toString() == 'Exception: 网络请求超时') {
           if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('网络请求超时')),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text('网络请求超时')));
           }
         } else if (e.toString() == 'Exception: Unauthorized') {
           await _logout(context);

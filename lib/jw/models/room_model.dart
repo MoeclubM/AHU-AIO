@@ -4,11 +4,7 @@ class CampusModel {
   final String name;
   final String code;
 
-  const CampusModel({
-    required this.id,
-    required this.name,
-    required this.code,
-  });
+  const CampusModel({required this.id, required this.name, required this.code});
 
   factory CampusModel.fromJson(Map<String, dynamic> json) {
     return CampusModel(
@@ -77,7 +73,9 @@ class RoomModel {
 
     List<String>? facilities;
     if (json['facilities'] != null) {
-      facilities = (json['facilities'] as List).map((f) => f.toString()).toList();
+      facilities = (json['facilities'] as List)
+          .map((f) => f.toString())
+          .toList();
     }
 
     return RoomModel(
@@ -184,7 +182,8 @@ class RoomFilter {
     if (minCapacity != null) data['minCapacity'] = minCapacity;
     if (maxCapacity != null) data['maxCapacity'] = maxCapacity;
     if (date != null) data['date'] = date;
-    if (timeSlots != null && timeSlots!.isNotEmpty) data['timeSlots'] = timeSlots;
+    if (timeSlots != null && timeSlots!.isNotEmpty)
+      data['timeSlots'] = timeSlots;
     if (startTime != null) data['startTime'] = startTime;
     if (endTime != null) data['endTime'] = endTime;
     if (hasProjector != null) data['hasProjector'] = hasProjector;

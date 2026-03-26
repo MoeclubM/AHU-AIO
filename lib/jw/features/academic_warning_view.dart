@@ -12,7 +12,8 @@ class AcademicWarningPage extends StatefulWidget {
   State<AcademicWarningPage> createState() => _AcademicWarningPageState();
 }
 
-class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTickerProviderStateMixin {
+class _AcademicWarningPageState extends State<AcademicWarningPage>
+    with SingleTickerProviderStateMixin {
   Map<String, dynamic> _planData = {};
   bool _isLoading = false;
   String? _error;
@@ -68,21 +69,16 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Colors.blue.shade600,
-                Colors.blue.shade700,
-              ],
+              colors: [Colors.blue.shade600, Colors.blue.shade700],
             ),
           ),
         ),
         actions: [
-          IconButton(
-            onPressed: _loadPlanData,
-            icon: const Icon(Icons.refresh),
-          ),
+          IconButton(onPressed: _loadPlanData, icon: const Icon(Icons.refresh)),
           ApiDebugButton(
             apiName: '培养方案完成情况',
-            apiUrl: 'https://jwapp.ahu.edu.cn/eams-micro-server/api/v1/plan/search/completion/info?code=01',
+            apiUrl:
+                'https://jwapp.ahu.edu.cn/eams-micro-server/api/v1/plan/search/completion/info?code=01',
           ),
         ],
         bottom: TabBar(
@@ -101,14 +97,11 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
         child: _isLoading
             ? const Center(child: CircularProgressIndicator())
             : _error != null
-                ? _buildErrorWidget()
-                : TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildPlanCompletionTab(),
-                      _buildOutOfPlanTab(),
-                    ],
-                  ),
+            ? _buildErrorWidget()
+            : TabBarView(
+                controller: _tabController,
+                children: [_buildPlanCompletionTab(), _buildOutOfPlanTab()],
+              ),
       ),
     );
   }
@@ -134,10 +127,7 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
           // 各模块完成情况
           const Text(
             '各类课程完成情况',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
 
@@ -182,27 +172,24 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
                 const Text(' / ', style: TextStyle(fontSize: 16)),
                 Text(
                   '$total',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
+                  style: const TextStyle(fontSize: 16, color: Colors.grey),
                 ),
               ],
             ),
             const Text(
               '计划学分完成情况',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey),
             ),
             const SizedBox(height: 16),
             LinearProgressIndicator(
               value: percentage / 100,
               backgroundColor: Colors.grey.shade300,
               valueColor: AlwaysStoppedAnimation<Color>(
-                percentage >= 80 ? Colors.green :
-                percentage >= 60 ? Colors.orange : Colors.red,
+                percentage >= 80
+                    ? Colors.green
+                    : percentage >= 60
+                    ? Colors.orange
+                    : Colors.red,
               ),
               minHeight: 8,
             ),
@@ -216,16 +203,15 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
     final name = module['name']?.toString() ?? '';
     final requiredCredits = (module['requiredCredits'] ?? 0).toInt();
     final actualCredits = (module['actualCredits'] ?? 0).toInt();
-    final percentage = requiredCredits > 0 ? (actualCredits / requiredCredits * 100) : 0.0;
+    final percentage = requiredCredits > 0
+        ? (actualCredits / requiredCredits * 100)
+        : 0.0;
     final courses = module['courses'] as List<dynamic>? ?? [];
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ExpansionTile(
-        title: Text(
-          name,
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
+        title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -234,8 +220,11 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
               value: percentage / 100,
               backgroundColor: Colors.grey.shade300,
               valueColor: AlwaysStoppedAnimation<Color>(
-                percentage >= 100 ? Colors.green :
-                percentage >= 50 ? Colors.orange : Colors.red,
+                percentage >= 100
+                    ? Colors.green
+                    : percentage >= 50
+                    ? Colors.orange
+                    : Colors.red,
               ),
               minHeight: 6,
             ),
@@ -259,10 +248,7 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
                 children: [
                   const Text(
                     '计划内课程',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   const SizedBox(height: 8),
                   ...courses.map(
@@ -279,10 +265,7 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
               padding: const EdgeInsets.all(16),
               child: Text(
                 '暂无计划内课程',
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
               ),
             ),
           ],
@@ -292,11 +275,17 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
   }
 
   Widget _buildCourseItem(Map<String, dynamic> course) {
-    final courseName = course['name']?.toString() ?? course['courseName']?.toString() ?? '未知课程';
-    final courseCode = course['code']?.toString() ?? course['courseCode']?.toString() ?? '';
+    final courseName =
+        course['name']?.toString() ??
+        course['courseName']?.toString() ??
+        '未知课程';
+    final courseCode =
+        course['code']?.toString() ?? course['courseCode']?.toString() ?? '';
     final credits = (course['credits'] ?? 0).toDouble();
-    final result = course['result']?.toString() ?? course['status']?.toString() ?? '未修读';
-    final semester = course['semester']?.toString() ?? course['termName']?.toString() ?? '';
+    final result =
+        course['result']?.toString() ?? course['status']?.toString() ?? '未修读';
+    final semester =
+        course['semester']?.toString() ?? course['termName']?.toString() ?? '';
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -317,10 +306,7 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
                 if (courseCode.isNotEmpty)
                   Text(
                     courseCode,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                   ),
               ],
             ),
@@ -329,10 +315,7 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
             width: 60,
             child: Text(
               '${credits}学分',
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
               textAlign: TextAlign.center,
             ),
           ),
@@ -353,10 +336,7 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
               flex: 1,
               child: Text(
                 semester,
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                 textAlign: TextAlign.right,
               ),
             ),
@@ -366,8 +346,11 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
   }
 
   Color _getResultColor(String result) {
-    if (result.contains('通过') || result.contains('及格') ||
-        result.contains('优秀') || result.contains('良好') || result.contains('中等')) {
+    if (result.contains('通过') ||
+        result.contains('及格') ||
+        result.contains('优秀') ||
+        result.contains('良好') ||
+        result.contains('中等')) {
       return Colors.green;
     } else if (result.contains('不通过') || result.contains('不及格')) {
       return Colors.red;
@@ -379,7 +362,8 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
   }
 
   Widget _buildOutOfPlanTab() {
-    final outOfPlanCourses = _planData['outplanCourses'] as List<dynamic>? ?? [];
+    final outOfPlanCourses =
+        _planData['outplanCourses'] as List<dynamic>? ?? [];
     final outOfPlanCredits = _planData['outOfPlanCredits'] as int? ?? 0;
 
     // 计算统计数据
@@ -493,10 +477,7 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
 
           const Text(
             '计划外课程',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
 
@@ -539,11 +520,19 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
   }
 
   Widget _buildOutOfPlanCourseItem(Map<String, dynamic> course) {
-    final courseName = course['course']?['name']?.toString() ?? course['courseName']?.toString() ?? '未知课程';
-    final courseCode = course['course']?['code']?.toString() ?? course['courseCode']?.toString() ?? '';
+    final courseName =
+        course['course']?['name']?.toString() ??
+        course['courseName']?.toString() ??
+        '未知课程';
+    final courseCode =
+        course['course']?['code']?.toString() ??
+        course['courseCode']?.toString() ??
+        '';
     final credits = (course['course']?['credits'] ?? 0).toDouble();
-    final result = course['result']?.toString() ?? course['status']?.toString() ?? '未修读';
-    final semester = course['semester']?.toString() ?? course['termName']?.toString() ?? '';
+    final result =
+        course['result']?.toString() ?? course['status']?.toString() ?? '未修读';
+    final semester =
+        course['semester']?.toString() ?? course['termName']?.toString() ?? '';
     final gpa = (course['gpa'] ?? 0.0).toDouble();
 
     return Card(
@@ -552,10 +541,7 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
         contentPadding: const EdgeInsets.all(16),
         title: Text(
           courseName,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -563,18 +549,12 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
             if (courseCode.isNotEmpty)
               Text(
                 '课程代码：$courseCode',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
             if (semester.isNotEmpty)
               Text(
                 '开课学期：$semester',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
           ],
         ),
@@ -584,13 +564,13 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  '学分',
-                  style: TextStyle(fontSize: 10),
-                ),
+                const Text('学分', style: TextStyle(fontSize: 10)),
                 Text(
                   '${credits.toInt()}',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),
@@ -598,10 +578,7 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  '成绩',
-                  style: TextStyle(fontSize: 10),
-                ),
+                const Text('成绩', style: TextStyle(fontSize: 10)),
                 Text(
                   result,
                   style: TextStyle(
@@ -617,13 +594,13 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    '绩点',
-                    style: TextStyle(fontSize: 10),
-                  ),
+                  const Text('绩点', style: TextStyle(fontSize: 10)),
                   Text(
                     gpa.toStringAsFixed(1),
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
                   ),
                 ],
               ),
@@ -635,12 +612,17 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
   }
 
   bool _isPassed(String result) {
-    return result.contains('通过') || result.contains('及格') ||
-        result.contains('优秀') || result.contains('良好') || result.contains('中等');
+    return result.contains('通过') ||
+        result.contains('及格') ||
+        result.contains('优秀') ||
+        result.contains('良好') ||
+        result.contains('中等');
   }
 
   bool _isFailed(String result) {
-    return result.contains('不通过') || result.contains('不及格') || result.contains('缺考');
+    return result.contains('不通过') ||
+        result.contains('不及格') ||
+        result.contains('缺考');
   }
 
   int _calculateTotalCompletedCredits() {
@@ -655,24 +637,14 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.school_outlined,
-            size: 64,
-            color: Colors.grey.shade400,
-          ),
+          Icon(Icons.school_outlined, size: 64, color: Colors.grey.shade400),
           const SizedBox(height: 16),
           Text(
             '暂无培养方案数据',
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _loadPlanData,
-            child: const Text('刷新'),
-          ),
+          ElevatedButton(onPressed: _loadPlanData, child: const Text('刷新')),
         ],
       ),
     );
@@ -683,11 +655,7 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 64,
-            color: Colors.red.shade400,
-          ),
+          Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
           const SizedBox(height: 16),
           Text(
             '加载失败',
@@ -701,16 +669,10 @@ class _AcademicWarningPageState extends State<AcademicWarningPage> with SingleTi
           Text(
             _error!,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _loadPlanData,
-            child: const Text('重试'),
-          ),
+          ElevatedButton(onPressed: _loadPlanData, child: const Text('重试')),
         ],
       ),
     );

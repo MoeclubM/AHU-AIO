@@ -279,10 +279,17 @@ class NoticeInfo {
       noticeId: json['noticeId'] ?? json['id']?.toString() ?? '',
       title: json['title'] ?? json['headline'] ?? json['subject'] ?? '',
       content: json['content'] ?? json['body'] ?? json['message'] ?? '',
-      publishTime: json['publishTime'] ?? json['createTime'] ?? json['publishDate'] ?? json['time'] ?? '',
-      publisher: json['publisher'] ?? json['author'] ?? json['deptName'] ?? '系统',
+      publishTime:
+          json['publishTime'] ??
+          json['createTime'] ??
+          json['publishDate'] ??
+          json['time'] ??
+          '',
+      publisher:
+          json['publisher'] ?? json['author'] ?? json['deptName'] ?? '系统',
       category: json['category'] ?? json['type'] ?? json['noticeType'] ?? '通知',
-      isRead: json['isRead'] ?? json['read'] ?? json['status'] == 'read' ?? false,
+      isRead:
+          json['isRead'] ?? json['read'] ?? json['status'] == 'read' ?? false,
     );
   }
 
@@ -380,7 +387,11 @@ class CourseRequirement {
     return CourseRequirement(
       id: json['id'] ?? '',
       courseName: json['courseName'] ?? json['name'] ?? '',
-      courseIds: (json['courseIds'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [],
+      courseIds:
+          (json['courseIds'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
       requiredCredits: json['requiredCredits'] ?? json['credits'] ?? 0,
       isRequired: json['isRequired'] ?? json['required'] ?? false,
       isCore: json['isCore'] ?? json['core'] ?? false,

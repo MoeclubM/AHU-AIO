@@ -109,7 +109,9 @@ class CalendarLayoutModel {
       semesterId: json['semesterId'] ?? 0,
       semesterName: json['semesterName']?.toString() ?? '',
       weeklyLayout: layout,
-      weekDays: List<String>.from(json['weekDays'] ?? ['一', '二', '三', '四', '五', '六', '日']),
+      weekDays: List<String>.from(
+        json['weekDays'] ?? ['一', '二', '三', '四', '五', '六', '日'],
+      ),
     );
   }
 }

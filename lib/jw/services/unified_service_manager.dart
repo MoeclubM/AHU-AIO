@@ -8,7 +8,8 @@ import '../../globals.dart' as globals;
 
 /// 统一服务管理器 - 提供数据缓存、批量请求和状态管理
 class UnifiedServiceManager {
-  static final UnifiedServiceManager _instance = UnifiedServiceManager._internal();
+  static final UnifiedServiceManager _instance =
+      UnifiedServiceManager._internal();
   factory UnifiedServiceManager() => _instance;
   UnifiedServiceManager._internal();
 
@@ -31,7 +32,9 @@ class UnifiedServiceManager {
 
   /// 获取用户信息（带缓存）
   Future<UserInfo> getUserInfo({bool forceRefresh = false}) async {
-    if (!forceRefresh && _cachedUserInfo != null && _userInfoCacheTime != null) {
+    if (!forceRefresh &&
+        _cachedUserInfo != null &&
+        _userInfoCacheTime != null) {
       final age = DateTime.now().difference(_userInfoCacheTime!);
       if (age < _userInfoCacheTimeout) {
         return _cachedUserInfo!;
@@ -58,7 +61,9 @@ class UnifiedServiceManager {
 
   /// 获取当前学期信息（带缓存）
   Future<SemesterInfo> getCurrentSemester({bool forceRefresh = false}) async {
-    if (!forceRefresh && _cachedCurrentSemester != null && _currentSemesterCacheTime != null) {
+    if (!forceRefresh &&
+        _cachedCurrentSemester != null &&
+        _currentSemesterCacheTime != null) {
       final age = DateTime.now().difference(_currentSemesterCacheTime!);
       if (age < _semesterCacheTimeout) {
         return _cachedCurrentSemester!;
@@ -66,7 +71,9 @@ class UnifiedServiceManager {
     }
 
     try {
-      final semesterData = await ApiManager.getCurrentSemester(globals.idToken!);
+      final semesterData = await ApiManager.getCurrentSemester(
+        globals.idToken!,
+      );
       final semester = SemesterInfo.fromJson(semesterData);
 
       _cachedCurrentSemester = semester;
@@ -84,7 +91,9 @@ class UnifiedServiceManager {
   }
 
   /// 获取完整的学生仪表板数据
-  Future<StudentDashboardData> getStudentDashboard({bool forceRefresh = false}) async {
+  Future<StudentDashboardData> getStudentDashboard({
+    bool forceRefresh = false,
+  }) async {
     final cacheKey = 'student_dashboard';
 
     if (!forceRefresh && _hasValidCache(cacheKey)) {
@@ -92,7 +101,9 @@ class UnifiedServiceManager {
     }
 
     try {
-      final currentSemester = await getCurrentSemester(forceRefresh: forceRefresh);
+      final currentSemester = await getCurrentSemester(
+        forceRefresh: forceRefresh,
+      );
 
       final results = await Future.wait([
         // 基础信息
@@ -108,10 +119,24 @@ class UnifiedServiceManager {
       ]);
 
       final userInfo = results[0] as UserInfo;
-      final grades = (results[1] as List).map((g) => GradeInfo.fromJson(g)).toList();
-      final exams = (results[2] as Map)['exams']?.map((e) => ExamInfo.fromJson(e)).toList() ?? [];
-      final notices = (results[3] as Map)['notices']?.map((n) => NoticeInfo.fromJson(n)).toList() ?? [];
-      final todos = (results[4] as Map)['todos']?.map((t) => NoticeInfo.fromJson(t)).toList() ?? [];
+      final grades = (results[1] as List)
+          .map((g) => GradeInfo.fromJson(g))
+          .toList();
+      final exams =
+          (results[2] as Map)['exams']
+              ?.map((e) => ExamInfo.fromJson(e))
+              .toList() ??
+          [];
+      final notices =
+          (results[3] as Map)['notices']
+              ?.map((n) => NoticeInfo.fromJson(n))
+              .toList() ??
+          [];
+      final todos =
+          (results[4] as Map)['todos']
+              ?.map((t) => NoticeInfo.fromJson(t))
+              .toList() ??
+          [];
       final currentWeek = results[5] as Map<String, dynamic>;
       final academicStats = results[6] as Map<String, dynamic>;
 
@@ -141,7 +166,9 @@ class UnifiedServiceManager {
   }
 
   /// 批量获取课程相关数据
-  Future<CourseDataBundle> getCourseDataBundle({bool forceRefresh = false}) async {
+  Future<CourseDataBundle> getCourseDataBundle({
+    bool forceRefresh = false,
+  }) async {
     final cacheKey = 'course_data_bundle';
 
     if (!forceRefresh && _hasValidCache(cacheKey)) {
@@ -149,23 +176,44 @@ class UnifiedServiceManager {
     }
 
     try {
-      final currentSemester = await getCurrentSemester(forceRefresh: forceRefresh);
+      final currentSemester = await getCurrentSemester(
+        forceRefresh: forceRefresh,
+      );
 
       final results = await Future.wait([
         // 可选课程
-        CourseSelectionApi.getAvailableCourses(globals.idToken!, semesterId: currentSemester.semesterId.toString()),
+        CourseSelectionApi.getAvailableCourses(
+          globals.idToken!,
+          semesterId: currentSemester.semesterId.toString(),
+        ),
         // 已选课程
-        CourseSelectionApi.getSelectedCourses(globals.idToken!, semesterId: currentSemester.semesterId.toString()),
+        CourseSelectionApi.getSelectedCourses(
+          globals.idToken!,
+          semesterId: currentSemester.semesterId.toString(),
+        ),
         // 选课计划
-        CourseSelectionApi.getSelectionPlan(globals.idToken!, currentSemester.semesterId.toString()),
+        CourseSelectionApi.getSelectionPlan(
+          globals.idToken!,
+          currentSemester.semesterId.toString(),
+        ),
         // 选课统计
-        CourseSelectionApi.getSelectionStats(globals.idToken!, currentSemester.semesterId.toString()),
+        CourseSelectionApi.getSelectionStats(
+          globals.idToken!,
+          currentSemester.semesterId.toString(),
+        ),
         // 学生课表
-        ApiManager.getStudentSchedule(globals.idToken!, currentSemester.semesterId.toString()),
+        ApiManager.getStudentSchedule(
+          globals.idToken!,
+          currentSemester.semesterId.toString(),
+        ),
       ]);
 
-      final availableCourses = (results[0] as List).map((c) => _convertToCourseItem(c)).toList();
-      final selectedCourses = (results[1] as List).map((c) => _convertToCourseItem(c)).toList();
+      final availableCourses = (results[0] as List)
+          .map((c) => _convertToCourseItem(c))
+          .toList();
+      final selectedCourses = (results[1] as List)
+          .map((c) => _convertToCourseItem(c))
+          .toList();
       final selectionPlan = results[2] as Map<String, dynamic>;
       final selectionStats = results[3] as Map<String, dynamic>;
       final schedule = results[4];
@@ -194,7 +242,9 @@ class UnifiedServiceManager {
   }
 
   /// 批量获取学业相关数据
-  Future<AcademicDataBundle> getAcademicDataBundle({bool forceRefresh = false}) async {
+  Future<AcademicDataBundle> getAcademicDataBundle({
+    bool forceRefresh = false,
+  }) async {
     final cacheKey = 'academic_data_bundle';
 
     if (!forceRefresh && _hasValidCache(cacheKey)) {
@@ -202,12 +252,17 @@ class UnifiedServiceManager {
     }
 
     try {
-      final currentSemester = await getCurrentSemester(forceRefresh: forceRefresh);
+      final currentSemester = await getCurrentSemester(
+        forceRefresh: forceRefresh,
+      );
 
       final results = await Future.wait([
         // 成绩数据
         ApiManager.getStudentGrades(globals.idToken!),
-        ApiManager.getGradesBySemester(globals.idToken!, currentSemester.semesterId),
+        ApiManager.getGradesBySemester(
+          globals.idToken!,
+          currentSemester.semesterId,
+        ),
         ApiManager.getGpaStats(globals.idToken!),
         // 考试数据
         ApiManager.getStudentExams(globals.idToken!),
@@ -217,10 +272,18 @@ class UnifiedServiceManager {
         _analyzeAcademicWarnings(),
       ]);
 
-      final allGrades = (results[0] as List).map((g) => GradeInfo.fromJson(g)).toList();
-      final currentSemesterGrades = (results[1] as List).map((g) => GradeInfo.fromJson(g)).toList();
+      final allGrades = (results[0] as List)
+          .map((g) => GradeInfo.fromJson(g))
+          .toList();
+      final currentSemesterGrades = (results[1] as List)
+          .map((g) => GradeInfo.fromJson(g))
+          .toList();
       final gpaStats = results[2] as Map<String, dynamic>;
-      final exams = (results[3] as Map)['exams']?.map((e) => ExamInfo.fromJson(e)).toList() ?? [];
+      final exams =
+          (results[3] as Map)['exams']
+              ?.map((e) => ExamInfo.fromJson(e))
+              .toList() ??
+          [];
       final planData = results[4] as Map<String, dynamic>;
       final warnings = results[5] as List;
 
@@ -249,7 +312,9 @@ class UnifiedServiceManager {
   }
 
   /// 获取实时通知数据
-  Future<NotificationData> getNotificationData({bool forceRefresh = false}) async {
+  Future<NotificationData> getNotificationData({
+    bool forceRefresh = false,
+  }) async {
     final cacheKey = 'notification_data';
 
     if (!forceRefresh && _hasValidCache(cacheKey)) {
@@ -281,8 +346,9 @@ class UnifiedServiceManager {
         notices: notices,
         todos: todos,
         schedules: schedules,
-        unreadCount: notices.where((n) => !n.isRead).length +
-                     todos.where((t) => !t.isRead).length,
+        unreadCount:
+            notices.where((n) => !n.isRead).length +
+            todos.where((t) => !t.isRead).length,
         lastUpdated: DateTime.now(),
       );
 
@@ -348,10 +414,7 @@ class UnifiedServiceManager {
   }
 
   void _setCache<T>(String key, T data) {
-    _cache[key] = CacheItem(
-      data: data,
-      timestamp: DateTime.now(),
-    );
+    _cache[key] = CacheItem(data: data, timestamp: DateTime.now());
   }
 
   void _notifyDataChange<T>(String key, T data) {
@@ -438,10 +501,7 @@ class CacheItem {
   final dynamic data;
   final DateTime timestamp;
 
-  CacheItem({
-    required this.data,
-    required this.timestamp,
-  });
+  CacheItem({required this.data, required this.timestamp});
 }
 
 /// 学生仪表板数据

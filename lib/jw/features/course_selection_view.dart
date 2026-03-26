@@ -48,12 +48,19 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
   }
 
   Future<void> _loadSemesters() async {
-    final semestersData = await ApiManager.getStudentSemesters(globals.idToken!);
-    final semesters = semestersData.map((data) => SemesterInfo.fromJson(data)).toList();
+    final semestersData = await ApiManager.getStudentSemesters(
+      globals.idToken!,
+    );
+    final semesters = semestersData
+        .map((data) => SemesterInfo.fromJson(data))
+        .toList();
 
     setState(() {
       _semesters = semesters;
-      _currentSemester = semesters.firstWhere((s) => s.isCurrent, orElse: () => semesters.first);
+      _currentSemester = semesters.firstWhere(
+        (s) => s.isCurrent,
+        orElse: () => semesters.first,
+      );
     });
   }
 
@@ -65,19 +72,28 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
     });
 
     final results = await Future.wait([
-      CourseSelectionApi.getAvailableCourses(globals.idToken!, semesterId: _currentSemester!.semesterId.toString()),
-      CourseSelectionApi.getSelectedCourses(globals.idToken!, semesterId: _currentSemester!.semesterId.toString()),
+      CourseSelectionApi.getAvailableCourses(
+        globals.idToken!,
+        semesterId: _currentSemester!.semesterId.toString(),
+      ),
+      CourseSelectionApi.getSelectedCourses(
+        globals.idToken!,
+        semesterId: _currentSemester!.semesterId.toString(),
+      ),
     ]);
 
     setState(() {
-      _availableCourses = results[0].map((data) => CourseItem.fromJson(data)).toList();
-      _selectedCourses = results[1].map((data) => CourseItem.fromJson(data)).toList();
+      _availableCourses = results[0]
+          .map((data) => CourseItem.fromJson(data))
+          .toList();
+      _selectedCourses = results[1]
+          .map((data) => CourseItem.fromJson(data))
+          .toList();
       _searchResults = _availableCourses;
       _isLoading = false;
     });
   }
 
-  
   Future<void> _searchCourses() async {
     if (_searchQuery.trim().isEmpty) {
       setState(() {
@@ -96,10 +112,15 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
       'semesterId': _currentSemester?.semesterId,
     };
 
-    final results = await CourseSelectionApi.searchCourses(globals.idToken!, searchParams);
+    final results = await CourseSelectionApi.searchCourses(
+      globals.idToken!,
+      searchParams,
+    );
 
     setState(() {
-      _searchResults = results.map((data) => CourseItem.fromJson(data)).toList();
+      _searchResults = results
+          .map((data) => CourseItem.fromJson(data))
+          .toList();
       _isSearching = false;
     });
   }
@@ -111,7 +132,10 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
       'semesterId': _currentSemester!.semesterId,
     };
 
-    final result = await CourseSelectionApi.selectCourse(globals.idToken!, selectionData);
+    final result = await CourseSelectionApi.selectCourse(
+      globals.idToken!,
+      selectionData,
+    );
 
     if (result['success'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -152,7 +176,10 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
 
     if (confirmed != true) return;
 
-    final result = await CourseSelectionApi.dropCourse(globals.idToken!, course.selectionId!);
+    final result = await CourseSelectionApi.dropCourse(
+      globals.idToken!,
+      course.selectionId!,
+    );
 
     if (result['success'] == true) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -172,7 +199,6 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
     }
   }
 
-  
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -184,7 +210,8 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
         actions: [
           ApiDebugButton(
             apiName: '选课系统',
-            apiUrl: 'https://jwapp.ahu.edu.cn/eams-course-selection-app/api/courses',
+            apiUrl:
+                'https://jwapp.ahu.edu.cn/eams-course-selection-app/api/courses',
           ),
         ],
         bottom: TabBar(
@@ -198,14 +225,14 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? _buildErrorWidget()
-              : TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildAvailableCoursesTab(),
-                    _buildSelectedCoursesTab(),
-                  ],
-                ),
+          ? _buildErrorWidget()
+          : TabBarView(
+              controller: _tabController,
+              children: [
+                _buildAvailableCoursesTab(),
+                _buildSelectedCoursesTab(),
+              ],
+            ),
     );
   }
 
@@ -235,7 +262,6 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
     );
   }
 
-  
   Widget _buildSearchSection() {
     return Container(
       margin: const EdgeInsets.all(16),
@@ -259,9 +285,7 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
             onPressed: _searchCourses,
             icon: const Icon(Icons.search),
           ),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         ),
         onChanged: (value) {
           setState(() {
@@ -274,7 +298,10 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
   }
 
   Widget _buildSelectedCoursesHeader() {
-    final totalCredits = _selectedCourses.fold(0.0, (sum, course) => sum + course.credits);
+    final totalCredits = _selectedCourses.fold(
+      0.0,
+      (sum, course) => sum + course.credits,
+    );
 
     return Container(
       margin: const EdgeInsets.all(16),
@@ -298,10 +325,7 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
               ),
               Text(
                 '总计 $totalCredits 学分',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
               ),
             ],
           ),
@@ -317,10 +341,7 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
 
   Widget _buildCourseList(List<CourseItem> courses, bool isAvailableList) {
     if (courses.isEmpty) {
-      return _buildEmptyWidget(
-        '未找到符合条件的课程',
-        '请尝试调整搜索条件或筛选选项',
-      );
+      return _buildEmptyWidget('未找到符合条件的课程', '请尝试调整搜索条件或筛选选项');
     }
 
     return ListView.builder(
@@ -374,7 +395,10 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
                 Column(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: isAvailableList
                             ? (course.isAvailable ? Colors.green : Colors.red)
@@ -398,7 +422,10 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
                         onPressed: () => _showClassSelectionDialog(course),
                         child: const Text('选课'),
                         style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
                         ),
                       ),
                     if (!isAvailableList)
@@ -422,10 +449,7 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
                 Expanded(
                   child: Text(
                     course.schedule,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
                 ),
               ],
@@ -436,17 +460,12 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
     );
   }
 
-  
   Widget _buildEmptyWidget(String title, String subtitle) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.search_off,
-            size: 64,
-            color: Colors.grey.shade400,
-          ),
+          Icon(Icons.search_off, size: 64, color: Colors.grey.shade400),
           const SizedBox(height: 16),
           Text(
             title,
@@ -460,10 +479,7 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
           Text(
             subtitle,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
         ],
       ),
@@ -475,11 +491,7 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 64,
-            color: Colors.red.shade400,
-          ),
+          Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
           const SizedBox(height: 16),
           Text(
             '加载失败',
@@ -493,16 +505,10 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
           Text(
             _error!,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _loadInitialData,
-            child: const Text('重试'),
-          ),
+          ElevatedButton(onPressed: _loadInitialData, child: const Text('重试')),
         ],
       ),
     );

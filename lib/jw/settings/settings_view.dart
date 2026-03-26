@@ -75,9 +75,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('设置'),
-      ),
+      appBar: AppBar(title: const Text('设置')),
       body: FutureBuilder(
         future: _loadUserInfo(),
         builder: (context, snapshot) {
@@ -129,17 +127,14 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildThemeModeSelector(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '主题模式',
-              style: theme.textTheme.titleMedium,
-            ),
+            Text('主题模式', style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
             RadioListTile<String>(
               title: const Text('跟随系统'),
@@ -167,17 +162,14 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildUserInfo(Map<String, dynamic> userInfo) {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '个人信息',
-              style: theme.textTheme.titleMedium,
-            ),
+            Text('个人信息', style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
             ListTile(
               title: const Text('姓名'),
@@ -247,17 +239,14 @@ class _SettingsPageState extends State<SettingsPage> {
 
   Widget _buildAppInfo() {
     final theme = Theme.of(context);
-    
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '关于应用',
-              style: theme.textTheme.titleMedium,
-            ),
+            Text('关于应用', style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
             _buildInfoItem('应用名称', 'AHU-AIO'),
             const SizedBox(height: 8),

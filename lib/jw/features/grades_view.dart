@@ -52,9 +52,10 @@ class _GradesPageState extends State<GradesPage> {
         semesterSet.add(grade.semester);
       }
 
-      
       setState(() {
-        _allGrades = grades.isNotEmpty ? grades : grouped.values.expand((e) => e).toList();
+        _allGrades = grades.isNotEmpty
+            ? grades
+            : grouped.values.expand((e) => e).toList();
         _groupedGrades = grouped;
         _semesters = semesterSet.toList()..sort((a, b) => b.compareTo(a));
         _filteredGrades = _allGrades;
@@ -92,22 +93,21 @@ class _GradesPageState extends State<GradesPage> {
         actions: [
           ApiDebugButton(
             apiName: '成绩查询',
-            apiUrl: 'https://jwapp.ahu.edu.cn/eams-grade-app/api/student/grades',
+            apiUrl:
+                'https://jwapp.ahu.edu.cn/eams-grade-app/api/student/grades',
           ),
         ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? _buildErrorWidget()
-              : Column(
-                  children: [
-                    _buildSemesterFilter(),
-                    Expanded(
-                      child: _buildGradesList(),
-                    ),
-                  ],
-                ),
+          ? _buildErrorWidget()
+          : Column(
+              children: [
+                _buildSemesterFilter(),
+                Expanded(child: _buildGradesList()),
+              ],
+            ),
     );
   }
 
@@ -116,11 +116,7 @@ class _GradesPageState extends State<GradesPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 64,
-            color: Colors.red.shade400,
-          ),
+          Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
           const SizedBox(height: 16),
           Text(
             '加载失败',
@@ -134,10 +130,7 @@ class _GradesPageState extends State<GradesPage> {
           Text(
             _error!,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
@@ -171,10 +164,7 @@ class _GradesPageState extends State<GradesPage> {
           const SizedBox(width: 8),
           const Text(
             '学期筛选：',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 14,
-            ),
+            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -209,11 +199,7 @@ class _GradesPageState extends State<GradesPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.school_outlined,
-              size: 64,
-              color: Colors.grey.shade400,
-            ),
+            Icon(Icons.school_outlined, size: 64, color: Colors.grey.shade400),
             const SizedBox(height: 16),
             Text(
               '暂无成绩数据',
@@ -323,10 +309,7 @@ class _GradesPageState extends State<GradesPage> {
               const SizedBox(height: 4),
               Text(
                 '${grade.courseCode} | ${grade.courseType} | ${grade.requiredType}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
               ),
               const SizedBox(height: 8),
               Row(

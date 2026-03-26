@@ -3,7 +3,8 @@ import 'package:provider/provider.dart';
 import 'home_service.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final bool isVisible;
+  const HomePage({super.key, this.isVisible = true});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -28,6 +29,26 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 
   @override
+  void didUpdateWidget(HomePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 当从其他页面切换回首页时，刷新即将开始课程的显示
+    if (widget.isVisible && !oldWidget.isVisible) {
+      _refreshUpcomingDisplay();
+    }
+  }
+
+  /// 刷新即将开始课程的显示状态（不重新请求数据）
+  void _refreshUpcomingDisplay() {
+    if (!mounted) return;
+    try {
+      final logic = Provider.of<HomePageLogic>(context, listen: false);
+      logic.refreshDisplay();
+    } catch (e) {
+      debugPrint('Refresh display skipped: $e');
+    }
+  }
+
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _checkAndRefreshIfNeeded();
@@ -39,7 +60,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     if (!mounted) return;
 
     final now = DateTime.now();
-    final lastDate = DateTime(_lastRefreshDate.year, _lastRefreshDate.month, _lastRefreshDate.day);
+    final lastDate = DateTime(
+      _lastRefreshDate.year,
+      _lastRefreshDate.month,
+      _lastRefreshDate.day,
+    );
     final today = DateTime(now.year, now.month, now.day);
 
     // 如果跨天了
@@ -134,10 +159,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      '选择日期',
-                      style: theme.textTheme.bodySmall,
-                    ),
+                    Text('选择日期', style: theme.textTheme.bodySmall),
                     const SizedBox(height: 2),
                     Text(
                       _formatSelectedDate(),
@@ -182,12 +204,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         _lastRefreshDate = now;
       });
       // 格式化日期为API需要的格式
-      final dateString = '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+      final dateString =
+          '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
       logic.refreshDataForDate(dateString);
     }
   }
 
-  Widget _buildSchedules(dynamic schedules, HomePageLogic logic, BuildContext context) {
+  Widget _buildSchedules(
+    dynamic schedules,
+    HomePageLogic logic,
+    BuildContext context,
+  ) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -260,7 +287,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final selectedDateString = _selectedDate != null
         ? '${_selectedDate!.year}-${_selectedDate!.month.toString().padLeft(2, '0')}-${_selectedDate!.day.toString().padLeft(2, '0')}'
         : DateTime.now().toString().substring(0, 10);
-    final groupedSchedules = logic.getGroupedSchedulesForDate(selectedDateString);
+    final groupedSchedules = logic.getGroupedSchedulesForDate(
+      selectedDateString,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -277,12 +306,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     child: Column(
                       children: [
                         Text(
-                          groupedSchedules.values.fold(0, (sum, courses) => sum + courses.length).toString(),
+                          groupedSchedules.values
+                              .fold(0, (sum, courses) => sum + courses.length)
+                              .toString(),
                           style: theme.textTheme.headlineMedium,
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          _selectedDate != null && _selectedDate!.day != DateTime.now().day
+                          _selectedDate != null &&
+                                  _selectedDate!.day != DateTime.now().day
                               ? '选定日期'
                               : '今日课程',
                           style: theme.textTheme.bodySmall,
@@ -304,10 +336,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                           style: theme.textTheme.headlineMedium,
                         ),
                         const SizedBox(height: 4),
-                        Text(
-                          '本周剩余',
-                          style: theme.textTheme.bodySmall,
-                        ),
+                        Text('本周剩余', style: theme.textTheme.bodySmall),
                       ],
                     ),
                   ),
@@ -327,16 +356,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            _selectedDate != null
-                                ? '选定日期暂无课程'
-                                : '今日暂无课程',
+                            _selectedDate != null ? '选定日期暂无课程' : '今日暂无课程',
                             style: theme.textTheme.titleMedium,
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            '请选择其他日期查看',
-                            style: theme.textTheme.bodySmall,
-                          ),
+                          Text('请选择其他日期查看', style: theme.textTheme.bodySmall),
                         ],
                       ),
                     ),
@@ -348,9 +372,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   itemBuilder: (context, index) {
                     final timeSlot = groupedSchedules.keys.elementAt(index);
                     final courses = groupedSchedules[timeSlot]!;
-                    
+
                     // 检查此时间段是否包含正在进行或即将进行的课程
-                    final hasOngoingOrUpcoming = logic.hasOngoingOrUpcomingCourse(courses, selectedDateString);
+                    final hasOngoingOrUpcoming = logic
+                        .hasOngoingOrUpcomingCourse(
+                          courses,
+                          selectedDateString,
+                        );
 
                     return Card(
                       margin: const EdgeInsets.symmetric(vertical: 4.0),
@@ -358,8 +386,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       // 浅色模式使用primaryContainer实现更柔和的背景色
                       color: hasOngoingOrUpcoming
                           ? (isDark
-                              ? theme.colorScheme.primary.withValues(alpha: 0.15)
-                              : theme.colorScheme.primaryContainer.withValues(alpha: 0.4))
+                                ? theme.colorScheme.primary.withValues(
+                                    alpha: 0.15,
+                                  )
+                                : theme.colorScheme.primaryContainer.withValues(
+                                    alpha: 0.4,
+                                  ))
                           : null,
                       shape: hasOngoingOrUpcoming
                           ? RoundedRectangleBorder(
@@ -367,13 +399,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                               side: BorderSide(
                                 color: isDark
                                     ? theme.colorScheme.primary
-                                    : theme.colorScheme.primary.withValues(alpha: 0.6),
+                                    : theme.colorScheme.primary.withValues(
+                                        alpha: 0.6,
+                                      ),
                                 width: isDark ? 2 : 1.5,
                               ),
                             )
                           : null,
                       child: Theme(
-                        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                        data: Theme.of(
+                          context,
+                        ).copyWith(dividerColor: Colors.transparent),
                         child: ExpansionTile(
                           // 只展开包含正在进行或即将进行课程的时间段
                           initiallyExpanded: hasOngoingOrUpcoming,
@@ -393,15 +429,21 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                           subtitle: Text('${courses.length} 节课'),
                           children: courses.map((course) {
                             // 检查单个课程是否正在进行或即将进行
-                            final isOngoingOrUpcoming = logic.isCourseOngoingOrUpcoming(course, selectedDateString);
+                            final isOngoingOrUpcoming = logic
+                                .isCourseOngoingOrUpcoming(
+                                  course,
+                                  selectedDateString,
+                                );
 
                             return Container(
                               decoration: isOngoingOrUpcoming
                                   ? BoxDecoration(
                                       // 浅色模式使用更柔和的背景
                                       color: isDark
-                                          ? theme.colorScheme.primary.withValues(alpha: 0.12)
-                                          : theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+                                          ? theme.colorScheme.primary
+                                                .withValues(alpha: 0.12)
+                                          : theme.colorScheme.primaryContainer
+                                                .withValues(alpha: 0.5),
                                       border: Border(
                                         left: BorderSide(
                                           color: theme.colorScheme.primary,
@@ -429,13 +471,19 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                     ),
                                     if (isOngoingOrUpcoming)
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
                                         decoration: BoxDecoration(
                                           // 浅色模式使用更柔和的标签背景
                                           color: isDark
                                               ? theme.colorScheme.primary
-                                              : theme.colorScheme.primary.withValues(alpha: 0.85),
-                                          borderRadius: BorderRadius.circular(12),
+                                              : theme.colorScheme.primary
+                                                    .withValues(alpha: 0.85),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
                                         ),
                                         child: Text(
                                           '进行中',
@@ -459,7 +507,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                               fontWeight: FontWeight.w600,
                                               color: isDark
                                                   ? theme.colorScheme.primary
-                                                  : theme.colorScheme.primary.withValues(alpha: 0.8),
+                                                  : theme.colorScheme.primary
+                                                        .withValues(alpha: 0.8),
                                             )
                                           : null,
                                     ),
@@ -480,7 +529,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     );
   }
 
-  Widget _buildExams(List<dynamic>? exams, HomePageLogic logic, BuildContext context) {
+  Widget _buildExams(
+    List<dynamic>? exams,
+    HomePageLogic logic,
+    BuildContext context,
+  ) {
     final theme = Theme.of(context);
 
     if (exams == null) {
@@ -491,12 +544,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             padding: const EdgeInsets.all(32),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '无法获取考试信息',
-                  style: theme.textTheme.titleMedium,
-                ),
-              ],
+              children: [Text('无法获取考试信息', style: theme.textTheme.titleMedium)],
             ),
           ),
         ),
@@ -512,15 +560,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  '暂无考试安排',
-                  style: theme.textTheme.titleMedium,
-                ),
+                Text('暂无考试安排', style: theme.textTheme.titleMedium),
                 const SizedBox(height: 8),
-                Text(
-                  '请选择其他月份查看',
-                  style: theme.textTheme.bodySmall,
-                ),
+                Text('请选择其他月份查看', style: theme.textTheme.bodySmall),
               ],
             ),
           ),
@@ -561,5 +603,4 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       },
     );
   }
-
-  }
+}

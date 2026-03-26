@@ -40,8 +40,11 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
 
     setState(() {
       if (response?['statusCode'] == 200) {
-        final data = response!['body'] is String ? jsonDecode(response!['body']) : response!['body'];
-        _classrooms = (data['data'] as List? ?? []).cast<Map<String, dynamic>>();
+        final data = response!['body'] is String
+            ? jsonDecode(response!['body'])
+            : response!['body'];
+        _classrooms = (data['data'] as List? ?? [])
+            .cast<Map<String, dynamic>>();
         _filteredClassrooms = List.from(_classrooms);
 
         // 调试信息
@@ -62,10 +65,7 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
     final response = await sendRequest(url, token);
 
     if (response != null && response.statusCode == 200) {
-      return {
-        'statusCode': 200,
-        'body': response.body,
-      };
+      return {'statusCode': 200, 'body': response.body};
     } else {
       return {
         'statusCode': response?.statusCode ?? 500,
@@ -76,14 +76,12 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
 
   // 获取教室课表数据
   Future<Map<String, dynamic>?> _getClassroomSchedule(String roomId) async {
-    final url = 'https://jwapp.ahu.edu.cn/eams-room-course-table-app/api/room/schedule?roomId=$roomId';
+    final url =
+        'https://jwapp.ahu.edu.cn/eams-room-course-table-app/api/room/schedule?roomId=$roomId';
     final response = await sendRequest(url, globals.idToken ?? '');
 
     if (response != null && response.statusCode == 200) {
-      return {
-        'statusCode': 200,
-        'body': response.body,
-      };
+      return {'statusCode': 200, 'body': response.body};
     } else {
       return {
         'statusCode': response?.statusCode ?? 500,
@@ -105,9 +103,9 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
           final query = _searchQuery.toLowerCase();
 
           return name.contains(query) ||
-                 code.contains(query) ||
-                 building.contains(query) ||
-                 campus.contains(query);
+              code.contains(query) ||
+              building.contains(query) ||
+              campus.contains(query);
         }).toList();
       }
     });
@@ -128,7 +126,8 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
           ),
           ApiDebugButton(
             apiName: '教室列表',
-            apiUrl: 'https://jwapp.ahu.edu.cn/eams-room-course-table-app/api/room/list',
+            apiUrl:
+                'https://jwapp.ahu.edu.cn/eams-room-course-table-app/api/room/list',
           ),
         ],
       ),
@@ -229,8 +228,8 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _error != null
-                    ? _buildErrorWidget()
-                    : _buildClassroomList(),
+                ? _buildErrorWidget()
+                : _buildClassroomList(),
           ),
         ],
       ),
@@ -282,10 +281,7 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
         ),
         title: Text(
           roomName,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -306,8 +302,7 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
               children: [
                 _buildInfoChip('校区', campusName),
                 const SizedBox(width: 8),
-                if (buildingName.isNotEmpty)
-                  _buildInfoChip('楼栋', buildingName),
+                if (buildingName.isNotEmpty) _buildInfoChip('楼栋', buildingName),
                 const SizedBox(width: 8),
                 _buildInfoChip('楼层', floor),
               ],
@@ -345,10 +340,7 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
       ),
       child: Text(
         '$label: $value',
-        style: TextStyle(
-          fontSize: 10,
-          color: Colors.grey.shade700,
-        ),
+        style: TextStyle(fontSize: 10, color: Colors.grey.shade700),
       ),
     );
   }
@@ -360,10 +352,8 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ClassroomScheduleDetailPage(
-          roomId: roomId,
-          roomName: roomName,
-        ),
+        builder: (context) =>
+            ClassroomScheduleDetailPage(roomId: roomId, roomName: roomName),
       ),
     );
   }
@@ -395,26 +385,16 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.search_off,
-            size: 64,
-            color: Colors.grey.shade400,
-          ),
+          Icon(Icons.search_off, size: 64, color: Colors.grey.shade400),
           const SizedBox(height: 16),
           Text(
             '未找到教室',
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 8),
           Text(
             '请尝试调整搜索条件',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade500,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
           ),
         ],
       ),
@@ -426,11 +406,7 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 64,
-            color: Colors.red.shade400,
-          ),
+          Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
           const SizedBox(height: 16),
           Text(
             '加载失败',
@@ -444,16 +420,10 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
           Text(
             _error!,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _loadClassrooms,
-            child: const Text('重试'),
-          ),
+          ElevatedButton(onPressed: _loadClassrooms, child: const Text('重试')),
         ],
       ),
     );
@@ -472,10 +442,12 @@ class ClassroomScheduleDetailPage extends StatefulWidget {
   });
 
   @override
-  State<ClassroomScheduleDetailPage> createState() => _ClassroomScheduleDetailPageState();
+  State<ClassroomScheduleDetailPage> createState() =>
+      _ClassroomScheduleDetailPageState();
 }
 
-class _ClassroomScheduleDetailPageState extends State<ClassroomScheduleDetailPage> {
+class _ClassroomScheduleDetailPageState
+    extends State<ClassroomScheduleDetailPage> {
   Map<String, dynamic> _scheduleData = {};
   bool _isLoading = false;
   String? _error;
@@ -522,9 +494,7 @@ class _ClassroomScheduleDetailPageState extends State<ClassroomScheduleDetailPag
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('${widget.roomName} - 课表'),
-      ),
+      appBar: AppBar(title: Text('${widget.roomName} - 课表')),
       body: RefreshIndicator(
         onRefresh: _loadScheduleData,
         child: Column(
@@ -535,15 +505,18 @@ class _ClassroomScheduleDetailPageState extends State<ClassroomScheduleDetailPag
               color: Colors.white,
               child: Row(
                 children: [
-                  const Text('当前周次：', style: TextStyle(fontWeight: FontWeight.w600)),
+                  const Text(
+                    '当前周次：',
+                    style: TextStyle(fontWeight: FontWeight.w600),
+                  ),
                   const SizedBox(width: 8),
                   DropdownButton<String>(
                     value: _selectedWeek,
                     items: List.generate(20, (index) => '第${index + 1}周')
-                        .map((week) => DropdownMenuItem(
-                              value: week,
-                              child: Text(week),
-                            ))
+                        .map(
+                          (week) =>
+                              DropdownMenuItem(value: week, child: Text(week)),
+                        )
                         .toList(),
                     onChanged: (value) {
                       if (value != null) {
@@ -563,7 +536,8 @@ class _ClassroomScheduleDetailPageState extends State<ClassroomScheduleDetailPag
                   const SizedBox(width: 8),
                   ApiDebugButton(
                     apiName: '教室课表',
-                    apiUrl: 'https://jwapp.ahu.edu.cn/eams-room-course-table-app/api/room/schedule?roomId=${widget.roomId}&week=$_selectedWeek',
+                    apiUrl:
+                        'https://jwapp.ahu.edu.cn/eams-room-course-table-app/api/room/schedule?roomId=${widget.roomId}&week=$_selectedWeek',
                   ),
                 ],
               ),
@@ -574,8 +548,8 @@ class _ClassroomScheduleDetailPageState extends State<ClassroomScheduleDetailPag
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _error != null
-                      ? _buildErrorWidget()
-                      : _buildScheduleGrid(),
+                  ? _buildErrorWidget()
+                  : _buildScheduleGrid(),
             ),
           ],
         ),
@@ -585,7 +559,21 @@ class _ClassroomScheduleDetailPageState extends State<ClassroomScheduleDetailPag
 
   Widget _buildScheduleGrid() {
     // 构建课表网格
-    final timeSlots = ['第1节', '第2节', '第3节', '第4节', '第5节', '第6节', '第7节', '第8节', '第9节', '第10节', '第11节', '第12节', '第13节'];
+    final timeSlots = [
+      '第1节',
+      '第2节',
+      '第3节',
+      '第4节',
+      '第5节',
+      '第6节',
+      '第7节',
+      '第8节',
+      '第9节',
+      '第10节',
+      '第11节',
+      '第12节',
+      '第13节',
+    ];
     final weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
 
     return SingleChildScrollView(
@@ -606,9 +594,9 @@ class _ClassroomScheduleDetailPageState extends State<ClassroomScheduleDetailPag
             decoration: BoxDecoration(color: Colors.cyan.shade50),
             children: [
               const TableCell(child: Center(child: Text('时间'))),
-              ...weekdays.map((day) => TableCell(
-                child: Center(child: Text(day)),
-              )),
+              ...weekdays.map(
+                (day) => TableCell(child: Center(child: Text(day))),
+              ),
             ],
           ),
           // 时间行
@@ -695,11 +683,7 @@ class _ClassroomScheduleDetailPageState extends State<ClassroomScheduleDetailPag
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 64,
-            color: Colors.red.shade400,
-          ),
+          Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
           const SizedBox(height: 16),
           Text(
             '加载失败',
@@ -713,16 +697,10 @@ class _ClassroomScheduleDetailPageState extends State<ClassroomScheduleDetailPag
           Text(
             _error!,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _loadScheduleData,
-            child: const Text('重试'),
-          ),
+          ElevatedButton(onPressed: _loadScheduleData, child: const Text('重试')),
         ],
       ),
     );

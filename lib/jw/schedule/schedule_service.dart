@@ -115,9 +115,14 @@ class ScheduleService extends ChangeNotifier {
         final endTime = _parseTime(schedule['endTime']);
 
         final scheduleWeeks = _extractWeekIndices(schedule['weekIndices']);
-        final effectiveWeeks = scheduleWeeks.isNotEmpty ? scheduleWeeks : classWeeks;
+        final effectiveWeeks = scheduleWeeks.isNotEmpty
+            ? scheduleWeeks
+            : classWeeks;
         final courseDate = _parseDate(schedule['date'] ?? rawClass['date']);
-        final weekFromDate = _calculateWeekNumber(courseDate, semesterStartDate);
+        final weekFromDate = _calculateWeekNumber(
+          courseDate,
+          semesterStartDate,
+        );
 
         final includeCourse = _shouldIncludeCourse(
           selectedWeek: selectedWeek,
@@ -128,11 +133,13 @@ class ScheduleService extends ChangeNotifier {
           continue;
         }
 
-        final highlightCurrentWeek = currentWeek != null && _shouldIncludeCourse(
-          selectedWeek: currentWeek,
-          availableWeeks: effectiveWeeks,
-          derivedWeek: weekFromDate,
-        );
+        final highlightCurrentWeek =
+            currentWeek != null &&
+            _shouldIncludeCourse(
+              selectedWeek: currentWeek,
+              availableWeeks: effectiveWeeks,
+              derivedWeek: weekFromDate,
+            );
 
         final teacherName = _getTeacherName(rawClass['teacherAssignmentList']);
         final roomName = _resolveRoomName(schedule);
@@ -250,7 +257,10 @@ class ScheduleService extends ChangeNotifier {
     final weeks = <int>{};
     for (final segment in segments) {
       if (segment.contains('-')) {
-        final parts = segment.split('-').where((part) => part.isNotEmpty).toList();
+        final parts = segment
+            .split('-')
+            .where((part) => part.isNotEmpty)
+            .toList();
         if (parts.length == 2) {
           final start = int.tryParse(parts[0]);
           final end = int.tryParse(parts[1]);
@@ -355,8 +365,9 @@ class ScheduleService extends ChangeNotifier {
       return null;
     }
 
-    final startOfSemesterWeek = semesterStartDate
-        .subtract(Duration(days: semesterStartDate.weekday - DateTime.monday));
+    final startOfSemesterWeek = semesterStartDate.subtract(
+      Duration(days: semesterStartDate.weekday - DateTime.monday),
+    );
     final difference = courseDate.difference(startOfSemesterWeek).inDays;
     if (difference < 0) {
       return null;
@@ -400,7 +411,8 @@ class ScheduleService extends ChangeNotifier {
     final tags = data['tags'];
     if (tags is List) {
       for (final tag in tags) {
-        if (tag is String && (tag.contains('荣誉') || tag.toLowerCase().contains('honor'))) {
+        if (tag is String &&
+            (tag.contains('荣誉') || tag.toLowerCase().contains('honor'))) {
           return true;
         }
       }

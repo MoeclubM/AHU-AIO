@@ -47,11 +47,11 @@ class HomePageLogic extends ChangeNotifier {
       _tests = tests;
 
       // 缓存数据以支持离线访问和快速启动
-      await prefs.setString('cachedSchedules', jsonEncode(
-        schedules.map((s) => s.toJson()).toList()
-      ));
+      await prefs.setString(
+        'cachedSchedules',
+        jsonEncode(schedules.map((s) => s.toJson()).toList()),
+      );
       await prefs.setString('cachedTests', jsonEncode(tests));
-
     } catch (e) {
       _currentError = e.toString();
       debugPrint('数据获取失败: $e');
@@ -65,7 +65,10 @@ class HomePageLogic extends ChangeNotifier {
         if (cachedSchedules != null) {
           final schedulesList = jsonDecode(cachedSchedules) as List;
           _schedules = schedulesList
-              .map((item) => ScheduleModel.fromJson(item as Map<String, dynamic>, ''))
+              .map(
+                (item) =>
+                    ScheduleModel.fromJson(item as Map<String, dynamic>, ''),
+              )
               .where((schedule) => schedule.date.isNotEmpty) // 过滤无效日期数据
               .toList();
         }
@@ -103,12 +106,20 @@ class HomePageLogic extends ChangeNotifier {
     await _fetchData(date);
   }
 
+  /// 刷新显示状态（不重新请求数据），用于更新即将开始课程的高亮
+  void refreshDisplay() {
+    if (hasListeners) {
+      notifyListeners();
+    }
+  }
+
   /// 获取今日课程数量
   int getTodayClassesCount() {
     if (_schedules == null) return 0;
 
     final today = DateTime.now();
-    final todayKey = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    final todayKey =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
 
     return DataService.getClassesCountForDate(_schedules!, todayKey);
   }
@@ -129,68 +140,96 @@ class HomePageLogic extends ChangeNotifier {
     return TimeUtils.formatTime(time);
   }
 
-  
   /// 获取指定日期的课程分组，返回时间段分组的课程列表
-  Map<String, List<Map<String, dynamic>>> getGroupedSchedulesForDate(String targetDate) {
+  Map<String, List<Map<String, dynamic>>> getGroupedSchedulesForDate(
+    String targetDate,
+  ) {
     if (_schedules == null) return {};
 
-    final groupedSchedules = DataService.groupSchedulesByTimeSlot(_schedules!, targetDate);
+    final groupedSchedules = DataService.groupSchedulesByTimeSlot(
+      _schedules!,
+      targetDate,
+    );
 
     // 转换为原来的格式以保持UI兼容性
     final Map<String, List<Map<String, dynamic>>> result = {};
 
     groupedSchedules.forEach((timeSlot, schedules) {
-      result[timeSlot] = schedules.map((schedule) => schedule.toJson()).toList();
+      result[timeSlot] = schedules
+          .map((schedule) => schedule.toJson())
+          .toList();
     });
 
     return result;
   }
 
   /// 检查课程是否正在进行或即将进行（30分钟内）
-  bool isCourseOngoingOrUpcoming(Map<String, dynamic> course, String targetDate) {
+  bool isCourseOngoingOrUpcoming(
+    Map<String, dynamic> course,
+    String targetDate,
+  ) {
     final now = DateTime.now();
-    final today = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    
+    final today =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
     // 只检查今天的课程
     if (targetDate != today) {
       return false;
     }
-    
+
     final startTime = course['startTime']?.toString() ?? '';
     final endTime = course['endTime']?.toString() ?? '';
-    
+
     if (startTime.isEmpty || endTime.isEmpty) {
       return false;
     }
-    
+
     try {
       final startParts = startTime.split(':');
       final endParts = endTime.split(':');
-      
+
       if (startParts.length != 2 || endParts.length != 2) {
         return false;
       }
-      
+
       final startHour = int.parse(startParts[0]);
       final startMinute = int.parse(startParts[1]);
       final endHour = int.parse(endParts[0]);
       final endMinute = int.parse(endParts[1]);
-      
-      final courseStart = DateTime(now.year, now.month, now.day, startHour, startMinute);
-      final courseEnd = DateTime(now.year, now.month, now.day, endHour, endMinute);
+
+      final courseStart = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        startHour,
+        startMinute,
+      );
+      final courseEnd = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        endHour,
+        endMinute,
+      );
       final upcomingThreshold = now.add(const Duration(minutes: 30));
-      
+
       // 正在进行：当前时间在课程开始和结束之间
       // 即将进行：课程在30分钟内开始
-      return (now.isAfter(courseStart) || now.isAtSameMomentAs(courseStart)) && now.isBefore(courseEnd) || 
-             (courseStart.isAfter(now) && courseStart.isBefore(upcomingThreshold));
+      return (now.isAfter(courseStart) || now.isAtSameMomentAs(courseStart)) &&
+              now.isBefore(courseEnd) ||
+          (courseStart.isAfter(now) && courseStart.isBefore(upcomingThreshold));
     } catch (e) {
       return false;
     }
   }
 
   /// 检查时间段是否包含正在进行或即将进行的课程
-  bool hasOngoingOrUpcomingCourse(List<Map<String, dynamic>> courses, String targetDate) {
-    return courses.any((course) => isCourseOngoingOrUpcoming(course, targetDate));
+  bool hasOngoingOrUpcomingCourse(
+    List<Map<String, dynamic>> courses,
+    String targetDate,
+  ) {
+    return courses.any(
+      (course) => isCourseOngoingOrUpcoming(course, targetDate),
+    );
   }
 }
