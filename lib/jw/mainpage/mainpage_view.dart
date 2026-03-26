@@ -34,17 +34,19 @@ class _MainPageState extends State<MainPage> {
             _selectedIndex = index;
           });
         },
-        children: const [
-          HomePage(),
-          SchedulePage(),
-          FuncPage(),
-          SettingsPage(),
+        children: [
+          HomePage(isVisible: _selectedIndex == 0),
+          const SchedulePage(),
+          const FuncPage(),
+          const SettingsPage(),
         ],
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {
-          _selectedIndex = index;
+          setState(() {
+            _selectedIndex = index;
+          });
           _pageController.jumpToPage(index);
         },
         destinations: const [

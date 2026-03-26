@@ -3,7 +3,8 @@ import 'package:provider/provider.dart';
 import 'home_service.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final bool isVisible;
+  const HomePage({super.key, this.isVisible = true});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -25,6 +26,26 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(HomePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // 当从其他页面切换回首页时，刷新即将开始课程的显示
+    if (widget.isVisible && !oldWidget.isVisible) {
+      _refreshUpcomingDisplay();
+    }
+  }
+
+  /// 刷新即将开始课程的显示状态（不重新请求数据）
+  void _refreshUpcomingDisplay() {
+    if (!mounted) return;
+    try {
+      final logic = Provider.of<HomePageLogic>(context, listen: false);
+      logic.refreshDisplay();
+    } catch (e) {
+      debugPrint('Refresh display skipped: $e');
+    }
   }
 
   @override

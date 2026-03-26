@@ -103,6 +103,13 @@ class HomePageLogic extends ChangeNotifier {
     await _fetchData(date);
   }
 
+  /// 刷新显示状态（不重新请求数据），用于更新即将开始课程的高亮
+  void refreshDisplay() {
+    if (hasListeners) {
+      notifyListeners();
+    }
+  }
+
   /// 获取今日课程数量
   int getTodayClassesCount() {
     if (_schedules == null) return 0;
