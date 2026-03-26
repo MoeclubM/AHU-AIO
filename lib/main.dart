@@ -22,9 +22,7 @@ void main() async {
   final themeManager = ThemeManager();
   await themeManager.loadThemeMode();
 
-  runApp(
-    MyApp(themeManager: themeManager),
-  );
+  runApp(MyApp(themeManager: themeManager));
 }
 
 class MyApp extends StatelessWidget {
@@ -44,10 +42,7 @@ class MyApp extends StatelessWidget {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          supportedLocales: const [
-            Locale('zh', 'CN'),
-            Locale('en', 'US'),
-          ],
+          supportedLocales: const [Locale('zh', 'CN'), Locale('en', 'US')],
           theme: ThemeData(
             primarySwatch: Colors.blue,
             brightness: Brightness.light,
@@ -72,9 +67,7 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('AHU All In One'),
-      ),
+      appBar: AppBar(title: const Text('AHU All In One')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -91,9 +84,9 @@ class HomePage extends StatelessWidget {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('缴费系统功能正在开发中...')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('缴费系统功能正在开发中...')));
               },
               child: const Text('缴费系统'),
             ),

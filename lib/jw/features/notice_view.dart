@@ -12,7 +12,8 @@ class NoticePage extends StatefulWidget {
   State<NoticePage> createState() => _NoticePageState();
 }
 
-class _NoticePageState extends State<NoticePage> with SingleTickerProviderStateMixin {
+class _NoticePageState extends State<NoticePage>
+    with SingleTickerProviderStateMixin {
   List<Map<String, dynamic>> _notices = [];
   bool _isLoading = false;
   String? _error;
@@ -56,8 +57,12 @@ class _NoticePageState extends State<NoticePage> with SingleTickerProviderStateM
       if (_notices.isNotEmpty) {
         print('第一个通知的数据结构: ${_notices.first}');
         print('read字段值: ${_notices.first['read']}');
-        print('未读通知数量: ${_notices.where((n) => (n['read'] ?? false) == false).length}');
-        print('已读通知数量: ${_notices.where((n) => (n['read'] ?? false) == true).length}');
+        print(
+          '未读通知数量: ${_notices.where((n) => (n['read'] ?? false) == false).length}',
+        );
+        print(
+          '已读通知数量: ${_notices.where((n) => (n['read'] ?? false) == true).length}',
+        );
       }
 
       _isLoading = false;
@@ -89,13 +94,11 @@ class _NoticePageState extends State<NoticePage> with SingleTickerProviderStateM
       appBar: AppBar(
         title: const Text('通知公告'),
         actions: [
-          IconButton(
-            onPressed: _loadNotices,
-            icon: const Icon(Icons.refresh),
-          ),
+          IconButton(onPressed: _loadNotices, icon: const Icon(Icons.refresh)),
           ApiDebugButton(
             apiName: '通知公告',
-            apiUrl: 'https://jwapp.ahu.edu.cn/eams-door/api/v1/protal-notice/get-notices',
+            apiUrl:
+                'https://jwapp.ahu.edu.cn/eams-door/api/v1/protal-notice/get-notices',
           ),
         ],
       ),
@@ -145,8 +148,8 @@ class _NoticePageState extends State<NoticePage> with SingleTickerProviderStateM
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _error != null
-                      ? _buildErrorWidget()
-                      : _buildNoticesList(),
+                  ? _buildErrorWidget()
+                  : _buildNoticesList(),
             ),
           ),
         ],
@@ -184,10 +187,7 @@ class _NoticePageState extends State<NoticePage> with SingleTickerProviderStateM
         contentPadding: const EdgeInsets.all(16),
         title: Text(
           title,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
@@ -198,10 +198,7 @@ class _NoticePageState extends State<NoticePage> with SingleTickerProviderStateM
             if (content.isNotEmpty)
               Text(
                 content,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade600,
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -212,20 +209,14 @@ class _NoticePageState extends State<NoticePage> with SingleTickerProviderStateM
                 const SizedBox(width: 4),
                 Text(
                   publisher,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade500,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                 ),
                 const SizedBox(width: 16),
                 Icon(Icons.access_time, size: 14, color: Colors.grey.shade500),
                 const SizedBox(width: 4),
                 Text(
                   _formatTime(publishTime),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade500,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                 ),
               ],
             ),
@@ -259,18 +250,12 @@ class _NoticePageState extends State<NoticePage> with SingleTickerProviderStateM
           const SizedBox(height: 16),
           Text(
             _isUnreadTab ? '暂无未读通知' : '暂无已读通知',
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 8),
           Text(
             '下拉刷新获取最新通知',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade500,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
           ),
         ],
       ),
@@ -282,11 +267,7 @@ class _NoticePageState extends State<NoticePage> with SingleTickerProviderStateM
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 64,
-            color: Colors.red.shade400,
-          ),
+          Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
           const SizedBox(height: 16),
           Text(
             '加载失败',
@@ -300,16 +281,10 @@ class _NoticePageState extends State<NoticePage> with SingleTickerProviderStateM
           Text(
             _error!,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _loadNotices,
-            child: const Text('重试'),
-          ),
+          ElevatedButton(onPressed: _loadNotices, child: const Text('重试')),
         ],
       ),
     );
@@ -341,12 +316,7 @@ class _NoticePageState extends State<NoticePage> with SingleTickerProviderStateM
                   Text(content),
                   const SizedBox(height: 16),
                 ],
-                Row(
-                  children: [
-                    const Text('发布者：'),
-                    Text(publisher),
-                  ],
-                ),
+                Row(children: [const Text('发布者：'), Text(publisher)]),
                 const SizedBox(height: 8),
                 Row(
                   children: [

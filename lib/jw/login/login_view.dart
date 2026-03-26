@@ -72,7 +72,9 @@ class _JWLoginPageState extends State<JWLoginPage> {
 
   // 显示提示信息
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   // 处理登录事件
@@ -120,9 +122,7 @@ class _JWLoginPageState extends State<JWLoginPage> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('安大微教务登录'),
-      ),
+      appBar: AppBar(title: const Text('安大微教务登录')),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(

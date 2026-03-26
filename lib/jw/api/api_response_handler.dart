@@ -14,10 +14,14 @@ class ApiResponseHandler {
       try {
         final data = jsonDecode(response.body);
         // 检查多种可能的响应格式
-        if (data['result'] == 0 || data['code'] == 0 || data['success'] == true) {
+        if (data['result'] == 0 ||
+            data['code'] == 0 ||
+            data['success'] == true) {
           return data['data'] ?? data;
         } else {
-          throw Exception('API返回错误: ${data['message'] ?? data['msg'] ?? data['error'] ?? '未知错误'}');
+          throw Exception(
+            'API返回错误: ${data['message'] ?? data['msg'] ?? data['error'] ?? '未知错误'}',
+          );
         }
       } catch (e) {
         if (e is Exception) rethrow;

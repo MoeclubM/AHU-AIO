@@ -53,7 +53,10 @@ class _RoomPageState extends State<RoomPage> {
 
   Future<void> _loadBuildings(String campusId) async {
     try {
-      final buildingsData = await RoomApi.getBuildings(globals.idToken!, campusAssoc: campusId);
+      final buildingsData = await RoomApi.getBuildings(
+        globals.idToken!,
+        campusAssoc: campusId,
+      );
       final buildings = buildingsData
           .map((data) => BuildingModel.fromJson(data))
           .toList();
@@ -84,7 +87,10 @@ class _RoomPageState extends State<RoomPage> {
         date: DateTime.now().toString().substring(0, 10),
       );
 
-      final roomsData = await RoomApi.getRooms(globals.idToken!, filter.toJson());
+      final roomsData = await RoomApi.getRooms(
+        globals.idToken!,
+        filter.toJson(),
+      );
       final rooms = (roomsData['rooms'] as List? ?? [])
           .map((data) => RoomModel.fromJson(data))
           .toList();
@@ -123,8 +129,8 @@ class _RoomPageState extends State<RoomPage> {
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : _error != null
-                    ? _buildErrorWidget()
-                    : _buildRoomsList(),
+                ? _buildErrorWidget()
+                : _buildRoomsList(),
           ),
         ],
       ),
@@ -156,10 +162,7 @@ class _RoomPageState extends State<RoomPage> {
             children: [
               Icon(Icons.location_on, color: Colors.green.shade600, size: 20),
               const SizedBox(width: 8),
-              const Text(
-                '校区：',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
+              const Text('校区：', style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(width: 8),
               Expanded(
                 child: DropdownButton<CampusModel>(
@@ -191,10 +194,7 @@ class _RoomPageState extends State<RoomPage> {
             children: [
               Icon(Icons.business, color: Colors.green.shade600, size: 20),
               const SizedBox(width: 8),
-              const Text(
-                '建筑：',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
+              const Text('建筑：', style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(width: 8),
               Expanded(
                 child: DropdownButton<BuildingModel>(
@@ -230,11 +230,7 @@ class _RoomPageState extends State<RoomPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 64,
-            color: Colors.red.shade400,
-          ),
+          Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
           const SizedBox(height: 16),
           Text(
             '查询失败',
@@ -248,10 +244,7 @@ class _RoomPageState extends State<RoomPage> {
           Text(
             _error!,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
         ],
       ),
@@ -272,10 +265,7 @@ class _RoomPageState extends State<RoomPage> {
             const SizedBox(height: 16),
             const Text(
               '请点击搜索按钮查询空闲教室',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey),
               textAlign: TextAlign.center,
             ),
           ],
@@ -309,12 +299,16 @@ class _RoomPageState extends State<RoomPage> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: isAvailable ? Colors.green.shade100 : Colors.red.shade100,
+                    color: isAvailable
+                        ? Colors.green.shade100
+                        : Colors.red.shade100,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.meeting_room,
-                    color: isAvailable ? Colors.green.shade600 : Colors.red.shade600,
+                    color: isAvailable
+                        ? Colors.green.shade600
+                        : Colors.red.shade600,
                     size: 20,
                   ),
                 ),
@@ -341,7 +335,10 @@ class _RoomPageState extends State<RoomPage> {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: isAvailable ? Colors.green : Colors.red,
                     borderRadius: BorderRadius.circular(12),
@@ -361,10 +358,7 @@ class _RoomPageState extends State<RoomPage> {
               const SizedBox(height: 12),
               const Text(
                 '空闲时段：',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 4),
               Wrap(
@@ -372,7 +366,10 @@ class _RoomPageState extends State<RoomPage> {
                 runSpacing: 4,
                 children: availableSlots.take(3).map((slot) {
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 2,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.green.shade50,
                       borderRadius: BorderRadius.circular(4),

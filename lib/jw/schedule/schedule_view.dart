@@ -25,14 +25,14 @@ class _SchedulePageState extends State<SchedulePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('课程表'),
-      ),
+      appBar: AppBar(title: const Text('课程表')),
       body: Obx(() {
         final scheduleByDay = _logic.processClasses();
         final isLoading = _logic.isLoading.value;
         final errorText = _logic.errorMessage.value;
-        final hasData = scheduleByDay.values.any((entries) => entries.isNotEmpty);
+        final hasData = scheduleByDay.values.any(
+          (entries) => entries.isNotEmpty,
+        );
 
         return RefreshIndicator(
           onRefresh: _logic.refreshData,
@@ -138,10 +138,7 @@ class _SchedulePageState extends State<SchedulePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '加载课表失败',
-              style: theme.textTheme.titleMedium,
-            ),
+            Text('加载课表失败', style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(
               message,
@@ -173,15 +170,9 @@ class _SchedulePageState extends State<SchedulePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '本周暂无课程',
-              style: theme.textTheme.titleMedium,
-            ),
+            Text('本周暂无课程', style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
-            Text(
-              '请选择其他周次或稍后再试。',
-              style: theme.textTheme.bodyMedium,
-            ),
+            Text('请选择其他周次或稍后再试。', style: theme.textTheme.bodyMedium),
           ],
         ),
       ),
@@ -219,12 +210,9 @@ class _SchedulePageState extends State<SchedulePage> {
               // 表头：时间 | 周一 | 周二 | ... | 周日
               _buildHeaderRow(theme, isDark),
               // 每个时间段一行
-              ...timeSlots.map((slot) => _buildTimeSlotRow(
-                    slot,
-                    scheduleByDay,
-                    theme,
-                    isDark,
-                  )),
+              ...timeSlots.map(
+                (slot) => _buildTimeSlotRow(slot, scheduleByDay, theme, isDark),
+              ),
             ],
           ),
         ),
@@ -238,7 +226,9 @@ class _SchedulePageState extends State<SchedulePage> {
 
     for (final entries in scheduleByDay.values) {
       for (final entry in entries) {
-        allSlots.add(_TimeSlot(startTime: entry.startTime, endTime: entry.endTime));
+        allSlots.add(
+          _TimeSlot(startTime: entry.startTime, endTime: entry.endTime),
+        );
       }
     }
 
@@ -310,8 +300,9 @@ class _SchedulePageState extends State<SchedulePage> {
         ...List.generate(7, (index) {
           final weekday = index + 1;
           final entries = scheduleByDay[weekday] ?? [];
-          final matchingEntries = entries.where((e) =>
-              e.startTime == slot.startTime && e.endTime == slot.endTime);
+          final matchingEntries = entries.where(
+            (e) => e.startTime == slot.startTime && e.endTime == slot.endTime,
+          );
 
           if (matchingEntries.isEmpty) {
             return TableCell(
@@ -353,7 +344,9 @@ class _SchedulePageState extends State<SchedulePage> {
 
           return Container(
             width: double.infinity,
-            margin: entries.length > 1 ? const EdgeInsets.only(bottom: 2) : null,
+            margin: entries.length > 1
+                ? const EdgeInsets.only(bottom: 2)
+                : null,
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
               color: bgColor,
@@ -404,7 +397,6 @@ class _SchedulePageState extends State<SchedulePage> {
       ),
     );
   }
-
 }
 
 /// 时间段数据类

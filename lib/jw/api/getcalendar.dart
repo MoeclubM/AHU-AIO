@@ -14,7 +14,10 @@ class CalendarApi {
   }
 
   /// 获取校历事件
-  static Future<Map<String, dynamic>> getCalendarEvents(String token, int semesterId) async {
+  static Future<Map<String, dynamic>> getCalendarEvents(
+    String token,
+    int semesterId,
+  ) async {
     final response = await sendRequest(
       'https://jwapp.ahu.edu.cn/eams-door/api/v1/calendar/get-calendar-event?semesterId=$semesterId',
       token,
@@ -24,7 +27,10 @@ class CalendarApi {
   }
 
   /// 获取校园布局表
-  static Future<Map<String, dynamic>> getCampusLayoutTable(String token, int semesterId) async {
+  static Future<Map<String, dynamic>> getCampusLayoutTable(
+    String token,
+    int semesterId,
+  ) async {
     final response = await sendRequest(
       'https://jwapp.ahu.edu.cn/eams-door/api/v1/calendar/get-campus-layout-table?semesterId=$semesterId',
       token,

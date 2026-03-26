@@ -106,25 +106,15 @@ class ApiExamples {
       final isValid = await ApiManager.isTokenValid(_token);
 
       if (!isValid) {
-        return {
-          'valid': false,
-          'message': 'Token已失效，请重新登录',
-        };
+        return {'valid': false, 'message': 'Token已失效，请重新登录'};
       }
 
       // 获取API状态
       final apiStatus = await ApiManager.getApiStatus(_token);
 
-      return {
-        'valid': true,
-        'apiStatus': apiStatus,
-        'message': 'Token有效',
-      };
+      return {'valid': true, 'apiStatus': apiStatus, 'message': 'Token有效'};
     } catch (e) {
-      return {
-        'valid': false,
-        'message': 'Token检查失败: $e',
-      };
+      return {'valid': false, 'message': 'Token检查失败: $e'};
     }
   }
 
@@ -179,10 +169,16 @@ class ApiExamples {
       final currentWeek = await ApiManager.getCurrentWeek(_token, semesterId);
 
       // 获取课表
-      final schedule = await ApiManager.getStudentSchedule(_token, semesterId.toString());
+      final schedule = await ApiManager.getStudentSchedule(
+        _token,
+        semesterId.toString(),
+      );
 
       // 获取课程单元
-      final courseUnits = await ApiManager.getCourseUnits(_token, semesterId: semesterId.toString());
+      final courseUnits = await ApiManager.getCourseUnits(
+        _token,
+        semesterId: semesterId.toString(),
+      );
 
       return {
         'currentSemester': currentSemester,

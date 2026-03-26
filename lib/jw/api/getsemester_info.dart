@@ -24,7 +24,10 @@ class SemesterApi {
   }
 
   /// 获取当前周次信息
-  static Future<Map<String, dynamic>> getCurrentWeek(String token, int semesterId) async {
+  static Future<Map<String, dynamic>> getCurrentWeek(
+    String token,
+    int semesterId,
+  ) async {
     final response = await sendRequest(
       'https://jwapp.ahu.edu.cn/eams-micro-server/api/v1/semester/current-week/$semesterId',
       token,
@@ -34,8 +37,14 @@ class SemesterApi {
   }
 
   /// 获取课程单元信息
-  static Future<List<dynamic>> getCourseUnits(String token, {int bizTypeId = 2, String? semesterId, String? campusId}) async {
-    String url = 'https://jwapp.ahu.edu.cn/eams-micro-server/api/v1/system/course-units?bizTypeId=$bizTypeId';
+  static Future<List<dynamic>> getCourseUnits(
+    String token, {
+    int bizTypeId = 2,
+    String? semesterId,
+    String? campusId,
+  }) async {
+    String url =
+        'https://jwapp.ahu.edu.cn/eams-micro-server/api/v1/system/course-units?bizTypeId=$bizTypeId';
     if (semesterId != null) {
       url += '&semesterId=$semesterId';
     }

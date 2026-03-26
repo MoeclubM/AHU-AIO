@@ -24,7 +24,10 @@ class GradeApi {
   }
 
   /// 获取指定学期的成绩
-  static Future<List<dynamic>> getGradesBySemester(String token, int semesterId) async {
+  static Future<List<dynamic>> getGradesBySemester(
+    String token,
+    int semesterId,
+  ) async {
     final response = await sendRequest(
       'https://jwapp.ahu.edu.cn/eams-micro-server/api/v1/grade/student/grades?semesterId=$semesterId',
       token,

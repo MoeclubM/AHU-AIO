@@ -49,16 +49,14 @@ class _PlanPageState extends State<PlanPage> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('培养方案完成情况'),
-      ),
+      appBar: AppBar(title: const Text('培养方案完成情况')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? _buildErrorWidget()
-              : _planData != null
-                  ? _buildPlanContent()
-                  : const Center(child: Text('暂无数据')),
+          ? _buildErrorWidget()
+          : _planData != null
+          ? _buildPlanContent()
+          : const Center(child: Text('暂无数据')),
     );
   }
 
@@ -67,11 +65,7 @@ class _PlanPageState extends State<PlanPage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 64,
-            color: Colors.red.shade400,
-          ),
+          Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
           const SizedBox(height: 16),
           Text(
             '加载失败',
@@ -85,10 +79,7 @@ class _PlanPageState extends State<PlanPage> {
           Text(
             _error!,
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
@@ -137,25 +128,14 @@ class _PlanPageState extends State<PlanPage> {
                 const SizedBox(width: 12),
                 const Text(
                   '完成情况概览',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ],
             ),
             const SizedBox(height: 20),
-            _buildProgressItem(
-              '总体完成率',
-              overallCompletion,
-              Colors.green,
-            ),
+            _buildProgressItem('总体完成率', overallCompletion, Colors.green),
             const SizedBox(height: 16),
-            _buildProgressItem(
-              '计划内完成率',
-              planCompletion,
-              Colors.blue,
-            ),
+            _buildProgressItem('计划内完成率', planCompletion, Colors.blue),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -195,10 +175,7 @@ class _PlanPageState extends State<PlanPage> {
           children: [
             Text(
               label,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             Text(
               '$percentage%',
@@ -222,7 +199,12 @@ class _PlanPageState extends State<PlanPage> {
     );
   }
 
-  Widget _buildInfoItem(String label, String value, IconData icon, Color color) {
+  Widget _buildInfoItem(
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -232,11 +214,7 @@ class _PlanPageState extends State<PlanPage> {
       ),
       child: Column(
         children: [
-          Icon(
-            icon,
-            color: color,
-            size: 24,
-          ),
+          Icon(icon, color: color, size: 24),
           const SizedBox(height: 8),
           Text(
             value,
@@ -249,10 +227,7 @@ class _PlanPageState extends State<PlanPage> {
           const SizedBox(height: 4),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
             textAlign: TextAlign.center,
           ),
         ],
@@ -266,17 +241,16 @@ class _PlanPageState extends State<PlanPage> {
       children: [
         Text(
           '各类别完成情况',
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
         // 优先使用详细的模块数据
         if (planData.modules.isNotEmpty) ...[
           ...planData.modules.map((module) => _buildModuleCard(module)),
         ] else ...[
-          ...planData.categories.map((category) => _buildCategoryCard(category)),
+          ...planData.categories.map(
+            (category) => _buildCategoryCard(category),
+          ),
         ],
       ],
     );
@@ -327,7 +301,9 @@ class _PlanPageState extends State<PlanPage> {
             const SizedBox(height: 12),
             LinearProgressIndicator(
               value: completionRate,
-              backgroundColor: isCompleted ? Colors.green.withValues(alpha: 0.2) : Colors.orange.withValues(alpha: 0.2),
+              backgroundColor: isCompleted
+                  ? Colors.green.withValues(alpha: 0.2)
+                  : Colors.orange.withValues(alpha: 0.2),
               valueColor: AlwaysStoppedAnimation<Color>(
                 isCompleted ? Colors.green : Colors.orange,
               ),
@@ -340,17 +316,11 @@ class _PlanPageState extends State<PlanPage> {
               children: [
                 Text(
                   '已完成: ${category.actualCredits.toStringAsFixed(1)} 学分',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                 ),
                 Text(
                   '要求: ${category.requiredCredits.toStringAsFixed(1)} 学分',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                 ),
                 if (!isCompleted)
                   Text(
@@ -430,7 +400,9 @@ class _PlanPageState extends State<PlanPage> {
             const SizedBox(height: 12),
             LinearProgressIndicator(
               value: completionRate,
-              backgroundColor: isCompleted ? Colors.green.withValues(alpha: 0.2) : Colors.orange.withValues(alpha: 0.2),
+              backgroundColor: isCompleted
+                  ? Colors.green.withValues(alpha: 0.2)
+                  : Colors.orange.withValues(alpha: 0.2),
               valueColor: AlwaysStoppedAnimation<Color>(
                 isCompleted ? Colors.green : Colors.orange,
               ),
@@ -444,17 +416,11 @@ class _PlanPageState extends State<PlanPage> {
               children: [
                 Text(
                   '已完成: ${module.passedCredits.toStringAsFixed(1)} 学分',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                 ),
                 Text(
                   '要求: ${module.requiredCredits.toStringAsFixed(1)} 学分',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                 ),
                 if (!isCompleted)
                   Text(
@@ -473,10 +439,7 @@ class _PlanPageState extends State<PlanPage> {
               children: [
                 Text(
                   '通过: ${module.passedCoursesCount} | 在读: ${module.takingCoursesCount} | 未修: ${module.unreplicatedCoursesCount}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade500,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                 ),
               ],
             ),
@@ -488,7 +451,10 @@ class _PlanPageState extends State<PlanPage> {
                 icon: const Icon(Icons.list_alt, size: 16),
                 label: const Text('查看课程详情'),
                 style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                 ),
               ),
             ],
@@ -553,7 +519,10 @@ class _PlanPageState extends State<PlanPage> {
                   icon: const Icon(Icons.list, size: 14),
                   label: const Text('查看课程'),
                   style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     minimumSize: Size.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
@@ -604,11 +573,23 @@ class _PlanPageState extends State<PlanPage> {
               // 统计信息
               Row(
                 children: [
-                  _buildStatCard('已完成', module.passedCoursesCount.toString(), Colors.green),
+                  _buildStatCard(
+                    '已完成',
+                    module.passedCoursesCount.toString(),
+                    Colors.green,
+                  ),
                   const SizedBox(width: 8),
-                  _buildStatCard('在读中', module.takingCoursesCount.toString(), Colors.blue),
+                  _buildStatCard(
+                    '在读中',
+                    module.takingCoursesCount.toString(),
+                    Colors.blue,
+                  ),
                   const SizedBox(width: 8),
-                  _buildStatCard('未修', module.unreplicatedCoursesCount.toString(), Colors.orange),
+                  _buildStatCard(
+                    '未修',
+                    module.unreplicatedCoursesCount.toString(),
+                    Colors.orange,
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
@@ -683,30 +664,20 @@ class _PlanPageState extends State<PlanPage> {
         contentPadding: const EdgeInsets.all(16),
         leading: CircleAvatar(
           backgroundColor: statusColor.withValues(alpha: 0.1),
-          child: Icon(
-            statusIcon,
-            color: statusColor,
-            size: 20,
-          ),
+          child: Icon(statusIcon, color: statusColor, size: 20),
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               course.name,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             if (course.code.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
                 course.code,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey.shade500,
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
               ),
             ],
           ],
@@ -729,10 +700,7 @@ class _PlanPageState extends State<PlanPage> {
                   const SizedBox(width: 12),
                   Text(
                     course.courseType,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
                 ],
               ),
@@ -740,10 +708,7 @@ class _PlanPageState extends State<PlanPage> {
                 const SizedBox(height: 4),
                 Text(
                   course.getFormattedTerms(),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade500,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                 ),
               ],
               if (course.remark != null && course.remark!.isNotEmpty) ...[

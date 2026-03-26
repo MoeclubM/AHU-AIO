@@ -6,10 +6,13 @@ import 'sendrequest.dart';
 
 /// 选课功能API
 class CourseSelectionApi {
-  static const String _baseUrl = 'https://jw.ahu.edu.cn/course-selection-api/api/v1/student';
+  static const String _baseUrl =
+      'https://jw.ahu.edu.cn/course-selection-api/api/v1/student';
 
   /// 发送选课系统专用请求（需要特殊headers）
-  static Future<http.Response?> _sendCourseSelectionRequest(String url, String token, {
+  static Future<http.Response?> _sendCourseSelectionRequest(
+    String url,
+    String token, {
     String method = 'GET',
     Map<String, dynamic>? body,
   }) async {
@@ -22,8 +25,10 @@ class CourseSelectionApi {
         'authorization': token,
         'content-type': 'application/json;charset=UTF-8',
         'referer': 'https://jwapp.ahu.edu.cn/uniapp/',
-        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
-        'sec-ch-ua': '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
+        'user-agent':
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+        'sec-ch-ua':
+            '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
         'sec-ch-ua-mobile': '?0',
         'sec-ch-ua-platform': '"Windows"',
         'usertoken': token,
@@ -32,21 +37,27 @@ class CourseSelectionApi {
 
       switch (method.toUpperCase()) {
         case 'GET':
-          response = await http.get(uri, headers: headers).timeout(const Duration(seconds: 10));
+          response = await http
+              .get(uri, headers: headers)
+              .timeout(const Duration(seconds: 10));
           break;
         case 'POST':
-          response = await http.post(
-            uri,
-            headers: headers,
-            body: body != null ? jsonEncode(body) : null,
-          ).timeout(const Duration(seconds: 10));
+          response = await http
+              .post(
+                uri,
+                headers: headers,
+                body: body != null ? jsonEncode(body) : null,
+              )
+              .timeout(const Duration(seconds: 10));
           break;
         case 'DELETE':
-          response = await http.delete(
-            uri,
-            headers: headers,
-            body: body != null ? jsonEncode(body) : null,
-          ).timeout(const Duration(seconds: 10));
+          response = await http
+              .delete(
+                uri,
+                headers: headers,
+                body: body != null ? jsonEncode(body) : null,
+              )
+              .timeout(const Duration(seconds: 10));
           break;
         default:
           throw UnsupportedError('HTTP method $method is not supported');
@@ -59,7 +70,10 @@ class CourseSelectionApi {
   }
 
   /// 获取可选课程列表
-  static Future<List<dynamic>> getAvailableCourses(String token, {String? semesterId}) async {
+  static Future<List<dynamic>> getAvailableCourses(
+    String token, {
+    String? semesterId,
+  }) async {
     // 根据实际抓取的API，获取选课轮次信息
     final turnsResponse = await _sendCourseSelectionRequest(
       '$_baseUrl/course-select/open-turns/122304',
@@ -81,7 +95,9 @@ class CourseSelectionApi {
     );
 
     if (studentResponse != null && studentResponse.statusCode == 200) {
-      final studentData = ApiResponseHandler.handleSimpleResponse(studentResponse);
+      final studentData = ApiResponseHandler.handleSimpleResponse(
+        studentResponse,
+      );
       if (studentData['data'] != null && studentData['data'] is List) {
         return studentData['data'] as List;
       }
@@ -91,7 +107,10 @@ class CourseSelectionApi {
   }
 
   /// 获取选课计划
-  static Future<Map<String, dynamic>> getSelectionPlan(String token, String semesterId) async {
+  static Future<Map<String, dynamic>> getSelectionPlan(
+    String token,
+    String semesterId,
+  ) async {
     final response = await _sendCourseSelectionRequest(
       '$_baseUrl/course-select/plan?semesterId=$semesterId',
       token,
@@ -100,7 +119,10 @@ class CourseSelectionApi {
   }
 
   /// 获取已选课程
-  static Future<List<dynamic>> getSelectedCourses(String token, {String? semesterId}) async {
+  static Future<List<dynamic>> getSelectedCourses(
+    String token, {
+    String? semesterId,
+  }) async {
     final response = await _sendCourseSelectionRequest(
       '$_baseUrl/course-select/selected${semesterId != null ? '?semesterId=$semesterId' : ''}',
       token,
@@ -117,7 +139,10 @@ class CourseSelectionApi {
   }
 
   /// 搜索课程
-  static Future<List<dynamic>> searchCourses(String token, Map<String, dynamic> searchParams) async {
+  static Future<List<dynamic>> searchCourses(
+    String token,
+    Map<String, dynamic> searchParams,
+  ) async {
     final response = await _sendCourseSelectionRequest(
       '$_baseUrl/course-select/search',
       token,
@@ -136,7 +161,10 @@ class CourseSelectionApi {
   }
 
   /// 获取课程详情
-  static Future<Map<String, dynamic>> getCourseDetails(String token, String courseId) async {
+  static Future<Map<String, dynamic>> getCourseDetails(
+    String token,
+    String courseId,
+  ) async {
     final response = await _sendCourseSelectionRequest(
       '$_baseUrl/course-select/course/$courseId',
       token,
@@ -145,7 +173,10 @@ class CourseSelectionApi {
   }
 
   /// 获取课程教学班列表
-  static Future<List<dynamic>> getCourseClasses(String token, String courseId) async {
+  static Future<List<dynamic>> getCourseClasses(
+    String token,
+    String courseId,
+  ) async {
     final response = await _sendCourseSelectionRequest(
       '$_baseUrl/course-select/course/$courseId/classes',
       token,
@@ -162,7 +193,10 @@ class CourseSelectionApi {
   }
 
   /// 选课
-  static Future<Map<String, dynamic>> selectCourse(String token, Map<String, dynamic> selectionData) async {
+  static Future<Map<String, dynamic>> selectCourse(
+    String token,
+    Map<String, dynamic> selectionData,
+  ) async {
     final response = await _sendCourseSelectionRequest(
       '$_baseUrl/course-select/select',
       token,
@@ -173,7 +207,10 @@ class CourseSelectionApi {
   }
 
   /// 退选
-  static Future<Map<String, dynamic>> dropCourse(String token, String selectionId) async {
+  static Future<Map<String, dynamic>> dropCourse(
+    String token,
+    String selectionId,
+  ) async {
     final response = await _sendCourseSelectionRequest(
       '$_baseUrl/course-select/drop/$selectionId',
       token,
@@ -183,7 +220,10 @@ class CourseSelectionApi {
   }
 
   /// 获取选课结果
-  static Future<Map<String, dynamic>> getSelectionResult(String token, String requestId) async {
+  static Future<Map<String, dynamic>> getSelectionResult(
+    String token,
+    String requestId,
+  ) async {
     final response = await _sendCourseSelectionRequest(
       '$_baseUrl/course-select/result/$requestId',
       token,
@@ -201,7 +241,10 @@ class CourseSelectionApi {
   }
 
   /// 获取选课统计信息
-  static Future<Map<String, dynamic>> getSelectionStats(String token, String semesterId) async {
+  static Future<Map<String, dynamic>> getSelectionStats(
+    String token,
+    String semesterId,
+  ) async {
     final response = await _sendCourseSelectionRequest(
       '$_baseUrl/course-select/stats/$semesterId',
       token,
@@ -210,7 +253,10 @@ class CourseSelectionApi {
   }
 
   /// 获取冲突检测
-  static Future<Map<String, dynamic>> checkScheduleConflict(String token, Map<String, dynamic> courseData) async {
+  static Future<Map<String, dynamic>> checkScheduleConflict(
+    String token,
+    Map<String, dynamic> courseData,
+  ) async {
     final response = await _sendCourseSelectionRequest(
       '$_baseUrl/course-select/conflict-check',
       token,
@@ -221,7 +267,10 @@ class CourseSelectionApi {
   }
 
   /// 获取先修课程检查
-  static Future<Map<String, dynamic>> checkPrerequisites(String token, String courseId) async {
+  static Future<Map<String, dynamic>> checkPrerequisites(
+    String token,
+    String courseId,
+  ) async {
     final response = await _sendCourseSelectionRequest(
       '$_baseUrl/course-select/prerequisite-check/$courseId',
       token,
@@ -247,7 +296,10 @@ class CourseSelectionApi {
   }
 
   /// 获取候补列表
-  static Future<List<dynamic>> getWaitingList(String token, String courseId) async {
+  static Future<List<dynamic>> getWaitingList(
+    String token,
+    String courseId,
+  ) async {
     final response = await _sendCourseSelectionRequest(
       '$_baseUrl/course-select/waiting-list/$courseId',
       token,
@@ -264,7 +316,10 @@ class CourseSelectionApi {
   }
 
   /// 加入候补
-  static Future<Map<String, dynamic>> joinWaitingList(String token, Map<String, dynamic> waitingData) async {
+  static Future<Map<String, dynamic>> joinWaitingList(
+    String token,
+    Map<String, dynamic> waitingData,
+  ) async {
     final response = await _sendCourseSelectionRequest(
       '$_baseUrl/course-select/waiting-list/join',
       token,
@@ -275,7 +330,10 @@ class CourseSelectionApi {
   }
 
   /// 退出候补
-  static Future<Map<String, dynamic>> leaveWaitingList(String token, String waitingId) async {
+  static Future<Map<String, dynamic>> leaveWaitingList(
+    String token,
+    String waitingId,
+  ) async {
     final response = await _sendCourseSelectionRequest(
       '$_baseUrl/course-select/waiting-list/leave/$waitingId',
       token,

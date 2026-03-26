@@ -6,7 +6,6 @@ import '../../globals.dart' as globals;
 
 /// 数据服务类 - 提供类型安全的数据获取和处理
 class DataService {
-
   /// 获取课表数据
   static Future<List<ScheduleModel>> getSchedules(String? date) async {
     final url = date != null
@@ -69,8 +68,9 @@ class DataService {
         if (event is Map<String, dynamic>) {
           try {
             // 对于列表格式，优先使用事件中的日期，否则使用当前日期
-            final dateKey = event['date']?.toString() ??
-                           DateTime.now().toString().substring(0, 10);
+            final dateKey =
+                event['date']?.toString() ??
+                DateTime.now().toString().substring(0, 10);
             final schedule = ScheduleModel.fromJson(event, dateKey);
             if (schedule.type == 1 && schedule.identification) {
               schedules.add(schedule);
@@ -87,7 +87,9 @@ class DataService {
   }
 
   /// 按日期分组课表数据
-  static Map<String, List<ScheduleModel>> groupSchedulesByDate(List<ScheduleModel> schedules) {
+  static Map<String, List<ScheduleModel>> groupSchedulesByDate(
+    List<ScheduleModel> schedules,
+  ) {
     final Map<String, List<ScheduleModel>> grouped = {};
 
     for (final schedule in schedules) {
@@ -114,7 +116,7 @@ class DataService {
   /// 按时间顺序排序各时间段
   static Map<String, List<ScheduleModel>> groupSchedulesByTimeSlot(
     List<ScheduleModel> schedules,
-    String targetDate
+    String targetDate,
   ) {
     final Map<String, List<ScheduleModel>> grouped = {};
     final Map<String, ScheduleModel> uniqueCourses = {};
@@ -137,11 +139,12 @@ class DataService {
     }
 
     // 按时间顺序排序各个时间段
-    final sortedKeys = grouped.keys.toList()..sort((a, b) {
-      final aTime = _extractStartTime(a);
-      final bTime = _extractStartTime(b);
-      return aTime.compareTo(bTime);
-    });
+    final sortedKeys = grouped.keys.toList()
+      ..sort((a, b) {
+        final aTime = _extractStartTime(a);
+        final bTime = _extractStartTime(b);
+        return aTime.compareTo(bTime);
+      });
 
     final Map<String, List<ScheduleModel>> sortedGrouped = {};
     for (final key in sortedKeys) {
@@ -169,10 +172,14 @@ class DataService {
   }
 
   /// 获取指定日期的课程数量
-  static int getClassesCountForDate(List<ScheduleModel> schedules, String targetDate) {
-    return groupSchedulesByTimeSlot(schedules, targetDate)
-        .values
-        .fold(0, (sum, courses) => sum + courses.length);
+  static int getClassesCountForDate(
+    List<ScheduleModel> schedules,
+    String targetDate,
+  ) {
+    return groupSchedulesByTimeSlot(
+      schedules,
+      targetDate,
+    ).values.fold(0, (sum, courses) => sum + courses.length);
   }
 
   /// 获取本周剩余课程数量
@@ -180,33 +187,35 @@ class DataService {
     final now = DateTime.now();
     final currentTime = now.hour * 100 + now.minute;
     final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    final endOfWeek = startOfWeek.add(const Duration(days: 6, hours: 23, minutes: 59, seconds: 59));
-    
-    return schedules
-        .where((schedule) {
-          final scheduleDate = DateTime.parse(schedule.date);
-          
-          // 只统计从现在到本周末的课程
-          if (scheduleDate.isBefore(startOfWeek) || scheduleDate.isAfter(endOfWeek)) {
-            return false;
-          }
-          
-          // 如果是今天的课程，需要检查时间是否还未开始
-          if (scheduleDate.year == now.year && 
-              scheduleDate.month == now.month && 
-              scheduleDate.day == now.day) {
-            // 解析课程开始时间
-            final timeParts = schedule.startTime.split(':');
-            if (timeParts.length == 2) {
-              final courseTime = int.parse(timeParts[0]) * 100 + int.parse(timeParts[1]);
-              return courseTime > currentTime;
-            }
-            return false;
-          }
-          
-          // 未来几天的课程都算入
-          return scheduleDate.isAfter(now);
-        })
-        .length;
+    final endOfWeek = startOfWeek.add(
+      const Duration(days: 6, hours: 23, minutes: 59, seconds: 59),
+    );
+
+    return schedules.where((schedule) {
+      final scheduleDate = DateTime.parse(schedule.date);
+
+      // 只统计从现在到本周末的课程
+      if (scheduleDate.isBefore(startOfWeek) ||
+          scheduleDate.isAfter(endOfWeek)) {
+        return false;
+      }
+
+      // 如果是今天的课程，需要检查时间是否还未开始
+      if (scheduleDate.year == now.year &&
+          scheduleDate.month == now.month &&
+          scheduleDate.day == now.day) {
+        // 解析课程开始时间
+        final timeParts = schedule.startTime.split(':');
+        if (timeParts.length == 2) {
+          final courseTime =
+              int.parse(timeParts[0]) * 100 + int.parse(timeParts[1]);
+          return courseTime > currentTime;
+        }
+        return false;
+      }
+
+      // 未来几天的课程都算入
+      return scheduleDate.isAfter(now);
+    }).length;
   }
 }

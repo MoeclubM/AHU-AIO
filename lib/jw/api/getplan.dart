@@ -6,7 +6,10 @@ import 'sendrequest.dart';
 /// 培养方案查询API
 class PlanApi {
   /// 获取培养方案完成情况
-  static Future<Map<String, dynamic>> getPlanCompletion(String token, {String code = '01'}) async {
+  static Future<Map<String, dynamic>> getPlanCompletion(
+    String token, {
+    String code = '01',
+  }) async {
     final response = await sendRequest(
       'https://jwapp.ahu.edu.cn/eams-micro-server/api/v1/plan/search/completion/info?code=$code',
       token,
@@ -32,7 +35,8 @@ class PlanApi {
           for (var module in data['modules']) {
             if (module is Map) {
               final typeName = module['type']?['nameZh']?.toString() ?? '';
-              final requiredCredits = module['requireInfo']?['requiredCredits'] ?? 0;
+              final requiredCredits =
+                  module['requireInfo']?['requiredCredits'] ?? 0;
               final passedCredits = module['passedCredits'] ?? 0;
 
               if (typeName.isNotEmpty) {
@@ -54,9 +58,14 @@ class PlanApi {
             'modules': modules,
             'planCreditsMap': planCreditsMap,
             'actualCreditsMap': actualCreditsMap,
-            'totalPlanCredits': (data['requireInfo']?['credits'] as num?)?.toInt() ?? 0,
-            'outOfPlanCompletion': _calculateOutOfPlanCompletion(data['outplanCourses'] ?? []),
-            'outOfPlanCredits': _calculateOutOfPlanCredits(data['outplanCourses'] ?? []),
+            'totalPlanCredits':
+                (data['requireInfo']?['credits'] as num?)?.toInt() ?? 0,
+            'outOfPlanCompletion': _calculateOutOfPlanCompletion(
+              data['outplanCourses'] ?? [],
+            ),
+            'outOfPlanCredits': _calculateOutOfPlanCredits(
+              data['outplanCourses'] ?? [],
+            ),
           };
         } else {
           // 如果没有modules数据，创建默认数据
@@ -64,7 +73,8 @@ class PlanApi {
             'modules': [],
             'planCreditsMap': {},
             'actualCreditsMap': {},
-            'totalPlanCredits': (data['requireInfo']?['credits'] as num?)?.toInt() ?? 0,
+            'totalPlanCredits':
+                (data['requireInfo']?['credits'] as num?)?.toInt() ?? 0,
             'outOfPlanCompletion': 0.0,
             'outOfPlanCredits': 0,
           };
@@ -79,14 +89,15 @@ class PlanApi {
     }
   }
 
-  
   /// 计算计划外完成情况
   static double _calculateOutOfPlanCompletion(List outplanCourses) {
     if (outplanCourses.isEmpty) return 0.0;
 
-    int passedCourses = outplanCourses.where((course) =>
-      course['result'] == '通过' || course['result'] == 'passed'
-    ).length;
+    int passedCourses = outplanCourses
+        .where(
+          (course) => course['result'] == '通过' || course['result'] == 'passed',
+        )
+        .length;
 
     return passedCourses / outplanCourses.length;
   }
@@ -135,7 +146,10 @@ class PlanApi {
   }
 
   /// 获取课程要求
-  static Future<List<dynamic>> getPlanRequirements(String token, String planId) async {
+  static Future<List<dynamic>> getPlanRequirements(
+    String token,
+    String planId,
+  ) async {
     final response = await sendRequest(
       'https://jwapp.ahu.edu.cn/eams-micro-server/api/v1/plan/search/requirements/$planId',
       token,
@@ -157,8 +171,10 @@ class PlanApi {
     if (score.isEmpty) return false;
 
     // 检查等级制成绩
-    if (score.contains('优秀') || score.contains('良好') ||
-        score.contains('中等') || score.contains('及格')) {
+    if (score.contains('优秀') ||
+        score.contains('良好') ||
+        score.contains('中等') ||
+        score.contains('及格')) {
       return true;
     }
 
@@ -177,7 +193,10 @@ class PlanApi {
   }
 
   /// 获取培养方案汇总
-  static Future<Map<String, dynamic>> getPlanSummary(String token, String planId) async {
+  static Future<Map<String, dynamic>> getPlanSummary(
+    String token,
+    String planId,
+  ) async {
     final response = await sendRequest(
       'https://jwapp.ahu.edu.cn/eams-micro-server/api/v1/plan/search/summary/$planId',
       token,

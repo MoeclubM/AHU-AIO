@@ -6,9 +6,10 @@ Future<List<dynamic>?> getClass(String token, {String? semesterId}) async {
   if (semesterId == null) {
     throw Exception('semesterId 参数不能为空，请传入实际的学期ID');
   }
-  
-  final url = 'https://jwapp.ahu.edu.cn/eams-micro-server/api/v1/lesson/student/course-table/$semesterId';
+
+  final url =
+      'https://jwapp.ahu.edu.cn/eams-micro-server/api/v1/lesson/student/course-table/$semesterId';
   final response = await sendRequest(url, token);
-  
+
   return ApiResponseHandler.handleStandardResponse(response);
 }

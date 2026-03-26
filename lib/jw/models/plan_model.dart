@@ -37,9 +37,13 @@ class PlanCompletionModel {
     }
 
     // 如果新数据结构不可用，尝试其他数据结构
-    if (planCreditsMap.isEmpty && json['planCredits'] != null && json['planCredits'] is Map) {
+    if (planCreditsMap.isEmpty &&
+        json['planCredits'] != null &&
+        json['planCredits'] is Map) {
       planCreditsMap = Map<String, dynamic>.from(json['planCredits']);
-    } else if (planCreditsMap.isEmpty && json['modules'] != null && json['modules'] is List) {
+    } else if (planCreditsMap.isEmpty &&
+        json['modules'] != null &&
+        json['modules'] is List) {
       // 处理modules分类数据 - 这是API实际返回的数据结构
       final modulesList = json['modules'] as List;
       print('处理 modules 数据，共 ${modulesList.length} 个模块');
@@ -64,10 +68,13 @@ class PlanCompletionModel {
 
             // 解析计划课程
             final List<CourseInfo> planCourses = [];
-            if (module['planCourses'] != null && module['planCourses'] is List) {
+            if (module['planCourses'] != null &&
+                module['planCourses'] is List) {
               for (var courseData in module['planCourses']) {
                 if (courseData is Map) {
-                  final course = _parseCourseInfo(Map<String, dynamic>.from(courseData));
+                  final course = _parseCourseInfo(
+                    Map<String, dynamic>.from(courseData),
+                  );
                   planCourses.add(course);
                 }
               }
@@ -78,7 +85,9 @@ class PlanCompletionModel {
             if (module['children'] != null && module['children'] is List) {
               for (var childData in module['children']) {
                 if (childData is Map) {
-                  final child = _parseModule(Map<String, dynamic>.from(childData));
+                  final child = _parseModule(
+                    Map<String, dynamic>.from(childData),
+                  );
                   children.add(child);
                 }
               }
@@ -104,14 +113,23 @@ class PlanCompletionModel {
           }
         }
       }
-    } else if (planCreditsMap.isEmpty && json['cultivateCategories'] != null && json['cultivateCategories'] is List) {
+    } else if (planCreditsMap.isEmpty &&
+        json['cultivateCategories'] != null &&
+        json['cultivateCategories'] is List) {
       // 处理旧的分类数据
       final modulesList = json['cultivateCategories'] as List;
       for (var module in modulesList) {
         if (module is Map) {
-          final name = module['name']?.toString() ?? module['categoryName']?.toString() ?? '';
+          final name =
+              module['name']?.toString() ??
+              module['categoryName']?.toString() ??
+              '';
           final required = module['requiredCredits'] ?? module['credits'] ?? 0;
-          final actual = module['actualCredits'] ?? module['passedCredits'] ?? module['completedCredits'] ?? 0;
+          final actual =
+              module['actualCredits'] ??
+              module['passedCredits'] ??
+              module['completedCredits'] ??
+              0;
 
           if (name.isNotEmpty) {
             planCreditsMap[name] = required;
@@ -119,16 +137,24 @@ class PlanCompletionModel {
           }
         }
       }
-    } else if (planCreditsMap.isEmpty && json['planCompletion'] != null && json['planCompletion'] is Map) {
+    } else if (planCreditsMap.isEmpty &&
+        json['planCompletion'] != null &&
+        json['planCompletion'] is Map) {
       // 处理计划完成情况
       final planCompletion = json['planCompletion'] as Map<String, dynamic>;
-      if (planCompletion['categoryList'] != null && planCompletion['categoryList'] is List) {
+      if (planCompletion['categoryList'] != null &&
+          planCompletion['categoryList'] is List) {
         final categoryList = planCompletion['categoryList'] as List;
         for (var category in categoryList) {
           if (category is Map) {
-            final name = category['categoryName']?.toString() ?? category['name']?.toString() ?? '';
-            final required = category['requiredCredits'] ?? category['credits'] ?? 0;
-            final actual = category['actualCredits'] ?? category['completedCredits'] ?? 0;
+            final name =
+                category['categoryName']?.toString() ??
+                category['name']?.toString() ??
+                '';
+            final required =
+                category['requiredCredits'] ?? category['credits'] ?? 0;
+            final actual =
+                category['actualCredits'] ?? category['completedCredits'] ?? 0;
 
             if (name.isNotEmpty) {
               planCreditsMap[name] = required;
@@ -139,8 +165,9 @@ class PlanCompletionModel {
       }
     }
 
-  
-    if (actualCreditsMap.isEmpty && json['actualCredits'] != null && json['actualCredits'] is Map) {
+    if (actualCreditsMap.isEmpty &&
+        json['actualCredits'] != null &&
+        json['actualCredits'] is Map) {
       actualCreditsMap = Map<String, dynamic>.from(json['actualCredits']);
     }
 
@@ -148,11 +175,13 @@ class PlanCompletionModel {
     if (planCreditsMap.isNotEmpty) {
       planCreditsMap.forEach((categoryName, requiredCredits) {
         final actualCredits = actualCreditsMap[categoryName] ?? 0;
-        categories.add(CourseCategory(
-          name: categoryName,
-          requiredCredits: _parseDouble(requiredCredits) ?? 0.0,
-          actualCredits: _parseDouble(actualCredits) ?? 0.0,
-        ));
+        categories.add(
+          CourseCategory(
+            name: categoryName,
+            requiredCredits: _parseDouble(requiredCredits) ?? 0.0,
+            actualCredits: _parseDouble(actualCredits) ?? 0.0,
+          ),
+        );
       });
       print('创建了 ${categories.length} 个分类');
     }
@@ -186,8 +215,10 @@ class PlanCompletionModel {
     }
 
     // 计算总学分 - 优先使用API返回的requireInfo.credits
-    int totalPlanCredits = _parseInt(json['totalPlanCredits']) ??
-                          _parseInt(json['requireInfo']?['credits']) ?? 0;
+    int totalPlanCredits =
+        _parseInt(json['totalPlanCredits']) ??
+        _parseInt(json['requireInfo']?['credits']) ??
+        0;
 
     if (totalPlanCredits == 0 && planCreditsMap.isNotEmpty) {
       totalPlanCredits = _calculateTotalRequiredCredits(planCreditsMap);
@@ -206,7 +237,9 @@ class PlanCompletionModel {
       modules: modules,
     );
 
-    print('PlanCompletionModel 创建完成: ${categories.length} 个分类, 总学分: ${model.totalCredits}, 已完成学分: $totalCompletedCredits');
+    print(
+      'PlanCompletionModel 创建完成: ${categories.length} 个分类, 总学分: ${model.totalCredits}, 已完成学分: $totalCompletedCredits',
+    );
     print('总完成率: ${(model.totalCompletionRate * 100).toStringAsFixed(1)}%');
     return model;
   }
@@ -228,7 +261,9 @@ class PlanCompletionModel {
   }
 
   /// 计算总已完成学分
-  static int _calculateTotalCompletedCredits(Map<String, dynamic> actualCreditsMap) {
+  static int _calculateTotalCompletedCredits(
+    Map<String, dynamic> actualCreditsMap,
+  ) {
     int total = 0;
     for (var entry in actualCreditsMap.entries) {
       final credits = _parseDouble(entry.value);
@@ -240,7 +275,9 @@ class PlanCompletionModel {
   }
 
   /// 计算总要求学分
-  static int _calculateTotalRequiredCredits(Map<String, dynamic> planCreditsMap) {
+  static int _calculateTotalRequiredCredits(
+    Map<String, dynamic> planCreditsMap,
+  ) {
     int total = 0;
     for (var entry in planCreditsMap.entries) {
       final credits = _parseDouble(entry.value);
@@ -254,14 +291,25 @@ class PlanCompletionModel {
   /// 计算总体完成率
   double get totalCompletionRate {
     if (totalCredits == 0) return 0.0;
-    return categories.fold(0.0, (sum, category) => sum + category.actualCredits) / totalCredits;
+    return categories.fold(
+          0.0,
+          (sum, category) => sum + category.actualCredits,
+        ) /
+        totalCredits;
   }
 
   /// 计算计划内完成率
   double get planCompletionRate {
-    final totalRequiredCredits = categories.fold(0.0, (sum, category) => sum + category.requiredCredits);
+    final totalRequiredCredits = categories.fold(
+      0.0,
+      (sum, category) => sum + category.requiredCredits,
+    );
     if (totalRequiredCredits == 0) return 0.0;
-    return categories.fold(0.0, (sum, category) => sum + category.actualCredits) / totalRequiredCredits;
+    return categories.fold(
+          0.0,
+          (sum, category) => sum + category.actualCredits,
+        ) /
+        totalRequiredCredits;
   }
 
   /// 解析课程信息
@@ -269,7 +317,8 @@ class PlanCompletionModel {
     final course = courseData['course'] ?? {};
 
     return CourseInfo(
-      name: course['nameZh']?.toString() ?? course['name']?.toString() ?? '未知课程',
+      name:
+          course['nameZh']?.toString() ?? course['name']?.toString() ?? '未知课程',
       nameEn: course['nameEn']?.toString() ?? '',
       code: course['code']?.toString() ?? '',
       credits: _parseDouble(course['credits']) ?? 0.0,
@@ -302,10 +351,13 @@ class PlanCompletionModel {
 
     // 解析计划课程
     final List<CourseInfo> planCourses = [];
-    if (moduleData['planCourses'] != null && moduleData['planCourses'] is List) {
+    if (moduleData['planCourses'] != null &&
+        moduleData['planCourses'] is List) {
       for (var courseData in moduleData['planCourses']) {
         if (courseData is Map) {
-          final course = _parseCourseInfo(Map<String, dynamic>.from(courseData));
+          final course = _parseCourseInfo(
+            Map<String, dynamic>.from(courseData),
+          );
           planCourses.add(course);
         }
       }
@@ -370,7 +422,8 @@ class CourseCategory {
   bool get isCompleted => actualCredits >= requiredCredits;
 
   /// 剩余学分
-  double get remainingCredits => (requiredCredits - actualCredits).clamp(0.0, double.infinity);
+  double get remainingCredits =>
+      (requiredCredits - actualCredits).clamp(0.0, double.infinity);
 }
 
 /// 课程模块详细信息模型
@@ -410,16 +463,20 @@ class CourseModule {
   }
 
   /// 剩余学分
-  double get remainingCredits => (requiredCredits - passedCredits).clamp(0.0, double.infinity);
+  double get remainingCredits =>
+      (requiredCredits - passedCredits).clamp(0.0, double.infinity);
 
   /// 获取通过的课程数
-  int get passedCoursesCount => planCourses.where((course) => course.isPassed).length;
+  int get passedCoursesCount =>
+      planCourses.where((course) => course.isPassed).length;
 
   /// 获取在读的课程数
-  int get takingCoursesCount => planCourses.where((course) => course.isTaking).length;
+  int get takingCoursesCount =>
+      planCourses.where((course) => course.isTaking).length;
 
   /// 获取未修的课程数
-  int get unreplicatedCoursesCount => planCourses.where((course) => course.isUnrepaired).length;
+  int get unreplicatedCoursesCount =>
+      planCourses.where((course) => course.isUnrepaired).length;
 }
 
 /// 课程详细信息模型

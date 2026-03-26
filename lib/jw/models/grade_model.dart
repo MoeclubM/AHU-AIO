@@ -24,24 +24,32 @@ class GradeModel {
 
   factory GradeModel.fromJson(Map<String, dynamic> json) {
     // 根据实际API响应数据结构解析
-    final semester = json['semester']?['nameZh']?.toString() ??
-                     json['semesterName']?.toString() ??
-                     json['semesterCode']?.toString() ?? '';
+    final semester =
+        json['semester']?['nameZh']?.toString() ??
+        json['semesterName']?.toString() ??
+        json['semesterCode']?.toString() ??
+        '';
 
-    final courseName = json['courseNameZh']?.toString() ??
-                      json['courseName']?.toString() ?? '';
+    final courseName =
+        json['courseNameZh']?.toString() ??
+        json['courseName']?.toString() ??
+        '';
 
     final courseCode = json['courseCode']?.toString() ?? '';
 
-    final courseType = json['courseType']?['nameZh']?.toString() ??
-                      json['courseType']?.toString() ?? '';
+    final courseType =
+        json['courseType']?['nameZh']?.toString() ??
+        json['courseType']?.toString() ??
+        '';
 
-    final requiredType = json['courseProperty']?['nameZh']?.toString() ??
-                        json['requiredType']?.toString() ??
-                        json['studyType']?['textZh']?.toString() ?? '';
+    final requiredType =
+        json['courseProperty']?['nameZh']?.toString() ??
+        json['requiredType']?.toString() ??
+        json['studyType']?['textZh']?.toString() ??
+        '';
 
-    final finalGrade = json['finalGrade']?.toString() ??
-                      json['score']?.toString() ?? '';
+    final finalGrade =
+        json['finalGrade']?.toString() ?? json['score']?.toString() ?? '';
 
     final credits = _parseDouble(json['credits']) ?? 0.0;
     final gp = _parseDouble(json['gp']) ?? 0.0;

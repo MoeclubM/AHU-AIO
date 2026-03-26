@@ -15,17 +15,25 @@ class ApiManager {
 
   // ============ 认证相关API ============
   /// 用户登录
-  static Future<Map<String, dynamic>> login(String username, String password) async {
+  static Future<Map<String, dynamic>> login(
+    String username,
+    String password,
+  ) async {
     // 注意：这里需要实现RSA加密，具体实现需要根据前端逻辑
     final url = '$_baseUrl/token/password/passwordLogin';
-    final response = await sendRequest(url, '', method: 'POST', body: {
-      'username': username,
-      'password': password, // 这里应该是RSA加密后的密码
-      'appId': 'APP_ID',
-      'deviceId': 'DEVICE_ID',
-      'osType': 'OS_TYPE',
-      'geo': 'GEO'
-    });
+    final response = await sendRequest(
+      url,
+      '',
+      method: 'POST',
+      body: {
+        'username': username,
+        'password': password, // 这里应该是RSA加密后的密码
+        'appId': 'APP_ID',
+        'deviceId': 'DEVICE_ID',
+        'osType': 'OS_TYPE',
+        'geo': 'GEO',
+      },
+    );
     return ApiResponseHandler.handleSimpleResponse(response);
   }
 
@@ -36,7 +44,10 @@ class ApiManager {
   }
 
   /// 获取用户配置
-  static Future<Map<String, dynamic>> getUserConfig(String token, {String type = ''}) async {
+  static Future<Map<String, dynamic>> getUserConfig(
+    String token, {
+    String type = '',
+  }) async {
     return UserInfoExtendedApi.getUserConfig(token, type: type);
   }
 
@@ -67,18 +78,34 @@ class ApiManager {
   }
 
   /// 获取当前周次信息
-  static Future<Map<String, dynamic>> getCurrentWeek(String token, int semesterId) async {
+  static Future<Map<String, dynamic>> getCurrentWeek(
+    String token,
+    int semesterId,
+  ) async {
     return SemesterApi.getCurrentWeek(token, semesterId);
   }
 
   /// 获取课程单元信息
-  static Future<List<dynamic>> getCourseUnits(String token, {int bizTypeId = 2, String? semesterId, String? campusId}) async {
-    return SemesterApi.getCourseUnits(token, bizTypeId: bizTypeId, semesterId: semesterId, campusId: campusId);
+  static Future<List<dynamic>> getCourseUnits(
+    String token, {
+    int bizTypeId = 2,
+    String? semesterId,
+    String? campusId,
+  }) async {
+    return SemesterApi.getCourseUnits(
+      token,
+      bizTypeId: bizTypeId,
+      semesterId: semesterId,
+      campusId: campusId,
+    );
   }
 
   // ============ 课表相关API ============
   /// 获取学生课表
-  static Future<List<dynamic>?> getStudentSchedule(String token, String semesterId) async {
+  static Future<List<dynamic>?> getStudentSchedule(
+    String token,
+    String semesterId,
+  ) async {
     return getClass(token, semesterId: semesterId);
   }
 
@@ -89,7 +116,10 @@ class ApiManager {
   }
 
   /// 获取指定学期成绩
-  static Future<List<dynamic>> getGradesBySemester(String token, int semesterId) async {
+  static Future<List<dynamic>> getGradesBySemester(
+    String token,
+    int semesterId,
+  ) async {
     return GradeApi.getGradesBySemester(token, semesterId);
   }
 
@@ -111,27 +141,39 @@ class ApiManager {
 
   /// 获取考试安排
   static Future<List<dynamic>> getExamSchedule(String token) async {
-    final response = await sendRequest('$_microServerBase/exam/student/schedule', token);
+    final response = await sendRequest(
+      '$_microServerBase/exam/student/schedule',
+      token,
+    );
     return ApiResponseHandler.handleListResponse(response);
   }
 
   // ============ 学籍信息相关API ============
   /// 获取学籍信息
   static Future<Map<String, dynamic>> getAcademicInfo(String token) async {
-    final response = await sendRequest('$_microServerBase/student/academic/info', token);
+    final response = await sendRequest(
+      '$_microServerBase/student/academic/info',
+      token,
+    );
     return ApiResponseHandler.handleSimpleResponse(response);
   }
 
   /// 获取专业信息
   static Future<Map<String, dynamic>> getProgramInfo(String token) async {
-    final response = await sendRequest('$_microServerBase/student/program/info', token);
+    final response = await sendRequest(
+      '$_microServerBase/student/program/info',
+      token,
+    );
     return ApiResponseHandler.handleSimpleResponse(response);
   }
 
   // ============ 其他功能API ============
   /// 获取日历信息
   static Future<Map<String, dynamic>> getCalendar(String token) async {
-    final response = await sendRequest('$_microServerBase/calendar/academic', token);
+    final response = await sendRequest(
+      '$_microServerBase/calendar/academic',
+      token,
+    );
     return ApiResponseHandler.handleSimpleResponse(response);
   }
 
@@ -143,7 +185,10 @@ class ApiManager {
 
   /// 获取培养方案
   static Future<Map<String, dynamic>> getPlan(String token) async {
-    final response = await sendRequest('$_microServerBase/plan/student/overview', token);
+    final response = await sendRequest(
+      '$_microServerBase/plan/student/overview',
+      token,
+    );
     return ApiResponseHandler.handleSimpleResponse(response);
   }
 

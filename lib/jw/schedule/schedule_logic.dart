@@ -15,14 +15,14 @@ class ScheduleLogic extends GetxController {
 
   // 防抖定时器
   Timer? _debounceTimer;
-  
+
   // 学期和周数选择
   var allSemesters = <SemesterInfo>[].obs;
   var selectedSemester = Rxn<SemesterInfo>();
   var currentSemesterInfo = Rxn<CurrentSemesterInfo>();
   var selectedWeek = 1.obs;
   var availableWeeks = <int>[].obs;
-  
+
   @override
   void onInit() {
     super.onInit();
@@ -34,13 +34,13 @@ class ScheduleLogic extends GetxController {
     _debounceTimer?.cancel();
     super.onClose();
   }
-  
+
   // 初始化数据
   Future<void> initializeData() async {
     await loadSemesterData();
     await loadScheduleData();
   }
-  
+
   // 加载学期数据
   Future<void> loadSemesterData() async {
     try {
@@ -58,7 +58,7 @@ class ScheduleLogic extends GetxController {
         // 只有在没有选中任何学期时，才设置默认选中当前学期
         if (selectedSemester.value == null) {
           final currentSemesterData = allSemesters.firstWhereOrNull(
-            (semester) => semester.id == currentSemester.id
+            (semester) => semester.id == currentSemester.id,
           );
           if (currentSemesterData != null) {
             selectedSemester.value = currentSemesterData;
@@ -89,7 +89,7 @@ class ScheduleLogic extends GetxController {
       errorMessage.value = e.toString();
     }
   }
-  
+
   // 加载课程数据
   Future<void> loadScheduleData() async {
     // 取消之前的防抖定时器
@@ -108,16 +108,14 @@ class ScheduleLogic extends GetxController {
       }
 
       // 构建课程数据结构
-      scheduleData.value = {
-        'classes': _scheduleService.classes ?? [],
-      };
+      scheduleData.value = {'classes': _scheduleService.classes ?? []};
     } catch (e) {
       errorMessage.value = e.toString();
     } finally {
       isLoading.value = false;
     }
   }
-  
+
   // 选择学期
   Future<void> selectSemester(SemesterInfo semester) async {
     selectedSemester.value = semester;
@@ -148,7 +146,7 @@ class ScheduleLogic extends GetxController {
     // 强制更新UI
     update();
   }
-  
+
   // 选择周数
   Future<void> selectWeek(int week) async {
     if (selectedWeek.value == week) {
@@ -159,12 +157,12 @@ class ScheduleLogic extends GetxController {
     // 不重新请求后端数据，直接刷新界面即可
     update();
   }
-  
+
   // 格式化时间
   String formatTime(int time) {
     return _scheduleService.formatTime(time);
   }
-  
+
   /// 处理课程数据，根据选择的周数过滤课程
   Map<int, List<ScheduleEntry>> processClasses() {
     int? currentWeekNumber;
@@ -182,7 +180,6 @@ class ScheduleLogic extends GetxController {
     );
   }
 
-    
   // 刷新数据
   Future<void> refreshData() async {
     // 重新加载学期数据和课程数据
@@ -194,13 +191,13 @@ class ScheduleLogic extends GetxController {
   int _getCurrentWeek(CurrentSemesterInfo semesterInfo) {
     final now = DateTime.now();
     final startDate = DateTime.parse(semesterInfo.startDate);
-    
+
     // 计算从学期开始到现在的天数
     final daysDifference = now.difference(startDate).inDays;
-    
+
     // 计算当前是第几周（从1开始）
     final currentWeek = (daysDifference / 7).floor() + 1;
-    
+
     // 确保周数在有效范围内
     if (semesterInfo.weekIndices.contains(currentWeek)) {
       return currentWeek;
@@ -212,8 +209,9 @@ class ScheduleLogic extends GetxController {
         return semesterInfo.weekIndices.last;
       } else {
         // 找到最接近的周数
-        return semesterInfo.weekIndices.reduce((a, b) => 
-          (currentWeek - a).abs() < (currentWeek - b).abs() ? a : b);
+        return semesterInfo.weekIndices.reduce(
+          (a, b) => (currentWeek - a).abs() < (currentWeek - b).abs() ? a : b,
+        );
       }
     }
   }
