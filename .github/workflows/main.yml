@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.get-version.outputs.version }}
+      build_number: ${{ steps.get-version.outputs.build_number }}
       tag: ${{ steps.get-version.outputs.tag }}
       changelog: ${{ steps.get-changelog.outputs.changelog }}
     steps:
@@ -27,7 +28,13 @@ jobs:
         id: get-version
         run: |
           VERSION="${{ github.ref_name }}"
-          echo "version=${VERSION#release-}" >> $GITHUB_OUTPUT
+          VERSION="${VERSION#release-}"
+          BUILD_NUMBER=$(echo "$VERSION" | sed 's/[^0-9]//g')
+          if [ -z "$BUILD_NUMBER" ]; then
+            BUILD_NUMBER=1
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "build_number=${BUILD_NUMBER}" >> $GITHUB_OUTPUT
           echo "tag=${VERSION}" >> $GITHUB_OUTPUT
 
       - name: Generate Changelog
@@ -115,7 +122,7 @@ jobs:
     - name: Build APK
       run: |
         flutter build apk --release --target-platform ${{ matrix.arch == 'arm64' && 'android-arm64' || 'android-x64' }} \
-          --build-number ${{ needs.get-version.outputs.version }}
+          --build-number ${{ needs.get-version.outputs.build_number }}
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
@@ -151,7 +158,7 @@ jobs:
       run: flutter config --enable-linux-desktop
 
     - name: Build Linux
-      run: flutter build linux --release --build-number ${{ needs.get-version.outputs.version }}
+      run: flutter build linux --release --build-number ${{ needs.get-version.outputs.build_number }}
 
     - name: Archive Linux Build
       run: |
@@ -187,7 +194,7 @@ jobs:
       run: flutter config --enable-windows-desktop
 
     - name: Build Windows
-      run: flutter build windows --release --build-number ${{ needs.get-version.outputs.version }}
+      run: flutter build windows --release --build-number ${{ needs.get-version.outputs.build_number }}
 
     - name: Archive Windows Build
       run: |
@@ -223,7 +230,7 @@ jobs:
       run: flutter config --enable-macos-desktop
 
     - name: Build macOS
-      run: flutter build macos --release --build-number ${{ needs.get-version.outputs.version }}
+      run: flutter build macos --release --build-number ${{ needs.get-version.outputs.build_number }}
 
     - name: Archive macOS Build
       run: |
