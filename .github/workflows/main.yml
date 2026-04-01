@@ -319,11 +319,12 @@ jobs:
     - name: Create Or Update Release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        REPO: ${{ github.repository }}
         TAG: ${{ needs.get-version.outputs.tag }}
       run: |
-        if gh release view "$TAG" >/dev/null 2>&1; then
-          gh release edit "$TAG" --title "Release $TAG" --notes-file release-body.md
-          gh release upload "$TAG" release/* --clobber
+        if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+          gh release edit "$TAG" --repo "$REPO" --title "Release $TAG" --notes-file release-body.md
+          gh release upload "$TAG" release/* --repo "$REPO" --clobber
         else
-          gh release create "$TAG" release/* --title "Release $TAG" --notes-file release-body.md
+          gh release create "$TAG" release/* --repo "$REPO" --title "Release $TAG" --notes-file release-body.md
         fi
