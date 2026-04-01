@@ -113,8 +113,6 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('教室课表'),
@@ -489,8 +487,6 @@ class _ClassroomScheduleDetailPageState
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       appBar: AppBar(title: Text('${widget.roomName} - 课表')),
       body: RefreshIndicator(

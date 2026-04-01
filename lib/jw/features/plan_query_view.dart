@@ -64,8 +64,6 @@ class _PlanQueryPageState extends State<PlanQueryPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('培养方案查询'),
