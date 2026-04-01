@@ -92,8 +92,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return ChangeNotifierProvider(
       create: (_) => HomePageLogic(),
       child: DefaultTabController(
