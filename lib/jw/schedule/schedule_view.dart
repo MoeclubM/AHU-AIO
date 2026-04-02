@@ -193,14 +193,18 @@ class _SchedulePageState extends State<SchedulePage> {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12),
       clipBehavior: Clip.antiAlias,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minWidth: MediaQuery.of(context).size.width - 32,
-          ),
-          child: Table(
-            defaultColumnWidth: const IntrinsicColumnWidth(),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final tableWidth = constraints.maxWidth;
+          const timeColumnWidth = 56.0;
+          final courseColumnWidth = (tableWidth - timeColumnWidth) / 7;
+
+          return Table(
+            columnWidths: {
+              0: const FixedColumnWidth(timeColumnWidth),
+              for (var index = 1; index <= 7; index++)
+                index: FixedColumnWidth(courseColumnWidth),
+            },
             border: TableBorder.all(
               color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
               width: 0.5,
@@ -213,8 +217,8 @@ class _SchedulePageState extends State<SchedulePage> {
                 (slot) => _buildTimeSlotRow(slot, scheduleByDay, theme, isDark),
               ),
             ],
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -284,7 +288,6 @@ class _SchedulePageState extends State<SchedulePage> {
           verticalAlignment: TableCellVerticalAlignment.middle,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-            width: 52,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -306,9 +309,8 @@ class _SchedulePageState extends State<SchedulePage> {
           if (matchingEntries.isEmpty) {
             return TableCell(
               child: Container(
-                width: 88,
-                height: 64,
-                padding: const EdgeInsets.all(2),
+                constraints: const BoxConstraints(minHeight: 88),
+                padding: const EdgeInsets.all(4),
               ),
             );
           }
@@ -328,9 +330,8 @@ class _SchedulePageState extends State<SchedulePage> {
     bool isDark,
   ) {
     return Container(
-      width: 88,
-      constraints: const BoxConstraints(minHeight: 64),
-      padding: const EdgeInsets.all(2),
+      constraints: const BoxConstraints(minHeight: 88),
+      padding: const EdgeInsets.all(4),
       child: Column(
         children: entries.map((entry) {
           final bgColor = isDark
@@ -365,10 +366,9 @@ class _SchedulePageState extends State<SchedulePage> {
                     fontWeight: FontWeight.w600,
                     fontSize: 11,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                  softWrap: true,
                 ),
-                const SizedBox(height: 1),
+                const SizedBox(height: 4),
                 // 教室
                 Text(
                   entry.roomName,
@@ -376,9 +376,9 @@ class _SchedulePageState extends State<SchedulePage> {
                     color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                     fontSize: 10,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  softWrap: true,
                 ),
+                const SizedBox(height: 2),
                 // 教师
                 Text(
                   entry.teacherName,
@@ -386,8 +386,7 @@ class _SchedulePageState extends State<SchedulePage> {
                     color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                     fontSize: 10,
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  softWrap: true,
                 ),
               ],
             ),
