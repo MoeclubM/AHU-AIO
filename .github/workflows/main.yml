@@ -126,6 +126,7 @@ jobs:
     - name: Build APK
       run: |
         flutter build apk --release --target-platform ${{ matrix.target_platform }} \
+          --build-name ${{ needs.get-version.outputs.version }} \
           --build-number ${{ needs.get-version.outputs.build_number }}
 
     - name: Upload APK
@@ -162,7 +163,7 @@ jobs:
       run: flutter config --enable-linux-desktop
 
     - name: Build Linux
-      run: flutter build linux --release --build-number ${{ needs.get-version.outputs.build_number }}
+      run: flutter build linux --release --build-name ${{ needs.get-version.outputs.version }} --build-number ${{ needs.get-version.outputs.build_number }}
 
     - name: Archive Linux Build
       run: |
@@ -198,7 +199,7 @@ jobs:
       run: flutter config --enable-windows-desktop
 
     - name: Build Windows
-      run: flutter build windows --release --build-number ${{ needs.get-version.outputs.build_number }}
+      run: flutter build windows --release --build-name ${{ needs.get-version.outputs.version }} --build-number ${{ needs.get-version.outputs.build_number }}
 
     - name: Archive Windows Build
       run: |
@@ -234,7 +235,7 @@ jobs:
       run: flutter config --enable-macos-desktop
 
     - name: Build macOS
-      run: flutter build macos --release --build-number ${{ needs.get-version.outputs.build_number }}
+      run: flutter build macos --release --build-name ${{ needs.get-version.outputs.version }} --build-number ${{ needs.get-version.outputs.build_number }}
 
     - name: Archive macOS Build
       run: |
