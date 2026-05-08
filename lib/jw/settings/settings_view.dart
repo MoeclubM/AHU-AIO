@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../login/login_service.dart';
 import '../login/login_view.dart';
 import '../api/getuserinfo.dart';
+import '../api/unauthorized_exception.dart';
+import '../../globals.dart' as globals;
 import '../../theme_manager.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -46,14 +49,42 @@ class _SettingsPageState extends State<SettingsPage> {
     final prefs = await SharedPreferences.getInstance();
     final String? idToken = prefs.getString('idToken');
 
-    if (idToken != null) {
-      try {
-        return await getUserInfo(idToken);
-      } catch (e) {
-        return null;
-      }
+    if (idToken == null) {
+      throw UnauthorizedException();
     }
-    return null;
+
+    try {
+      return await getUserInfo(idToken);
+    } catch (e) {
+      if (e.toString().contains('Unauthorized')) {
+        return await _tryRelogin(prefs);
+      }
+      rethrow;
+    }
+  }
+
+  /// 尝试用保存的账号密码重新登录，成功则重试 getUserInfo，失败抛出 UnauthorizedException
+  Future<Map<String, dynamic>?> _tryRelogin(SharedPreferences prefs) async {
+    final username = prefs.getString('username');
+    final password = prefs.getString('password');
+
+    if (username == null || password == null) {
+      throw UnauthorizedException();
+    }
+
+    try {
+      final newToken = await LoginService.login(
+        username: username,
+        password: password,
+      );
+      if (newToken == null) throw UnauthorizedException();
+
+      globals.idToken = newToken;
+      await prefs.setString('idToken', newToken);
+      return await getUserInfo(newToken);
+    } catch (_) {
+      throw UnauthorizedException();
+    }
   }
 
   Future<void> _logout(BuildContext context) async {
@@ -89,13 +120,22 @@ class _SettingsPageState extends State<SettingsPage> {
           }
 
           if (snapshot.hasError || snapshot.data == null) {
-            return const Center(
+            final isAuthError = snapshot.error is UnauthorizedException;
+            if (isAuthError) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) _showSessionExpiredDialog();
+              });
+            }
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error_outline, size: 48),
-                  SizedBox(height: 16),
-                  Text('无法获取用户信息'),
+                  Icon(
+                    isAuthError ? Icons.lock_outline : Icons.error_outline,
+                    size: 48,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(isAuthError ? '登录已过期' : '无法获取用户信息'),
                 ],
               ),
             );
@@ -185,6 +225,32 @@ class _SettingsPageState extends State<SettingsPage> {
           ],
         ),
       ),
+    );
+  }
+
+  void _showSessionExpiredDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('登录已过期'),
+          content: const Text('重新登录失败，请手动登录。'),
+          actions: [
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _logout(this.context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('退出登录'),
+            ),
+          ],
+        );
+      },
     );
   }
 
