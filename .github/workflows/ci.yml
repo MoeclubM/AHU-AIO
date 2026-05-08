@@ -64,14 +64,18 @@ jobs:
         run: flutter pub get
 
       - name: Decode Keystore
-        if: ${{ secrets.KEYSTORE_BASE64 != '' }}
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > android/app/release-key.jks
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > android/app/release-key.jks
+            echo "KEYSTORE_FILE=app/release-key.jks" >> $GITHUB_ENV
+          fi
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
 
       - name: Build APK
         run: flutter build apk --release --target-platform android-arm64
         env:
-          KEYSTORE_FILE: ${{ secrets.KEYSTORE_BASE64 != '' && 'app/release-key.jks' || '' }}
+          KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
 
       - name: Cleanup Keystore
