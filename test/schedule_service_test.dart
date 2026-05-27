@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:ahu_aio/jw/schedule/schedule_service.dart';
+import 'package:ahu_aio/jwapp/schedule/schedule_service.dart';
 
 void main() {
   group('ScheduleService.buildWeekSchedule', () {

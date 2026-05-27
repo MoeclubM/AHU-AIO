@@ -5,7 +5,9 @@ import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import 'dart:io';
-import 'jw/login/login_view.dart';
+import 'jwapp/login/login_view.dart';
+import 'jw/login/jw_login_view.dart';
+import 'finance/login/finance_login_view.dart';
 import 'theme_manager.dart';
 
 void main() async {
@@ -84,9 +86,21 @@ class HomePage extends StatelessWidget {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                ScaffoldMessenger.of(
+                Navigator.push(
                   context,
-                ).showSnackBar(const SnackBar(content: Text('缴费系统功能正在开发中...')));
+                  MaterialPageRoute(builder: (context) => const JwLoginPage()),
+                );
+              },
+              child: const Text('安大教务'),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const FinanceLoginPage()),
+                );
               },
               child: const Text('缴费系统'),
             ),

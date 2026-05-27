@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
-import 'package:ahu_aio/jw/api/getallsemesters.dart';
-import 'package:ahu_aio/jw/schedule/schedule_logic.dart';
+import 'package:ahu_aio/jwapp/api/getallsemesters.dart';
+import 'package:ahu_aio/jwapp/schedule/schedule_logic.dart';
 
 void main() {
   group('ScheduleLogic - Semester Selection', () {
