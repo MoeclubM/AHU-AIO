@@ -74,30 +74,29 @@ class _JwHomePageState extends State<JwHomePage> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(_error!),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                          onPressed: _loadData, child: const Text('重试')),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadData,
-                  child: ListView(
-                    padding: const EdgeInsets.all(16),
-                    children: [
-                      _buildTeachWeekCard(),
-                      const SizedBox(height: 16),
-                      _buildNoticeCard(),
-                      const SizedBox(height: 16),
-                      _buildFeatureGrid(),
-                    ],
-                  ),
-                ),
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(_error!),
+                  const SizedBox(height: 16),
+                  ElevatedButton(onPressed: _loadData, child: const Text('重试')),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _loadData,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _buildTeachWeekCard(),
+                  const SizedBox(height: 16),
+                  _buildNoticeCard(),
+                  const SizedBox(height: 16),
+                  _buildFeatureGrid(),
+                ],
+              ),
+            ),
     );
   }
 
@@ -119,7 +118,10 @@ class _JwHomePageState extends State<JwHomePage> {
             Text(
               '第 ${week['weekIndex'] ?? '?'} 周',
               style: const TextStyle(
-                  fontSize: 28, fontWeight: FontWeight.bold, color: Colors.blue),
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.blue,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
@@ -161,14 +163,46 @@ class _JwHomePageState extends State<JwHomePage> {
 
   Widget _buildFeatureGrid() {
     final features = [
-      _Feature('成绩查询', Icons.grade, () => _navigateTo('/student/for-std/grade/sheet')),
-      _Feature('我的课表', Icons.schedule, () => _navigateTo('/student/for-std/course-table')),
-      _Feature('考试安排', Icons.quiz, () => _navigateTo('/student/for-std/exam-arrange')),
-      _Feature('培养方案', Icons.menu_book, () => _navigateTo('/student/for-std/program-completion-preview')),
-      _Feature('学籍信息', Icons.badge, () => _navigateTo('/student/for-std/student-info')),
-      _Feature('空闲教室', Icons.meeting_room, () => _navigateTo('/student/for-std/room-free')),
-      _Feature('学业预警', Icons.warning, () => _navigateTo('/student/for-std/precaution')),
-      _Feature('选课系统', Icons.app_registration, () => _navigateTo('/student/for-std/course-select')),
+      _Feature(
+        '成绩查询',
+        Icons.grade,
+        () => _navigateTo('/student/for-std/grade/sheet'),
+      ),
+      _Feature(
+        '我的课表',
+        Icons.schedule,
+        () => _navigateTo('/student/for-std/course-table'),
+      ),
+      _Feature(
+        '考试安排',
+        Icons.quiz,
+        () => _navigateTo('/student/for-std/exam-arrange'),
+      ),
+      _Feature(
+        '培养方案',
+        Icons.menu_book,
+        () => _navigateTo('/student/for-std/program-completion-preview'),
+      ),
+      _Feature(
+        '学籍信息',
+        Icons.badge,
+        () => _navigateTo('/student/for-std/student-info'),
+      ),
+      _Feature(
+        '空闲教室',
+        Icons.meeting_room,
+        () => _navigateTo('/student/for-std/room-free'),
+      ),
+      _Feature(
+        '学业预警',
+        Icons.warning,
+        () => _navigateTo('/student/for-std/precaution'),
+      ),
+      _Feature(
+        '选课系统',
+        Icons.app_registration,
+        () => _navigateTo('/student/for-std/course-select'),
+      ),
     ];
 
     return GridView.builder(
@@ -195,7 +229,9 @@ class _JwHomePageState extends State<JwHomePage> {
                 Text(
                   f.title,
                   style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w600),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ),
@@ -207,9 +243,9 @@ class _JwHomePageState extends State<JwHomePage> {
 
   void _navigateTo(String path) {
     // TODO: 各功能页面的原生实现
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('功能开发中: $path')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('功能开发中: $path')));
   }
 }
 

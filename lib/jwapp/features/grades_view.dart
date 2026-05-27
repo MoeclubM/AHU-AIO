@@ -87,9 +87,7 @@ class _GradesPageState extends State<GradesPage> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('成绩查询'),
-      ),
+      appBar: AppBar(title: const Text('成绩查询')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

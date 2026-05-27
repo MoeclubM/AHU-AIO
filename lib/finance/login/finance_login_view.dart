@@ -35,8 +35,7 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
       body: Column(
         children: [
           if (_isLoading)
-            LinearProgressIndicator(
-                value: _progress < 1 ? _progress : null),
+            LinearProgressIndicator(value: _progress < 1 ? _progress : null),
           Expanded(
             child: InAppWebView(
               initialUrlRequest: URLRequest(url: WebUri(_loginUrl)),

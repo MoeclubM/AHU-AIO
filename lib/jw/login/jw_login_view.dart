@@ -133,12 +133,13 @@ class _JwLoginPageState extends State<JwLoginPage> {
                       prefixIcon: const Icon(Icons.lock),
                       border: const OutlineInputBorder(),
                       suffixIcon: IconButton(
-                        icon: Icon(_obscurePassword
-                            ? Icons.visibility_off
-                            : Icons.visibility),
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                        ),
                         onPressed: () {
-                          setState(
-                              () => _obscurePassword = !_obscurePassword);
+                          setState(() => _obscurePassword = !_obscurePassword);
                         },
                       ),
                     ),
@@ -173,8 +174,7 @@ class _JwLoginPageState extends State<JwLoginPage> {
                           ? const SizedBox(
                               height: 20,
                               width: 20,
-                              child:
-                                  CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Text('登录', style: TextStyle(fontSize: 16)),
                     ),

@@ -109,9 +109,7 @@ class _RoomPageState extends State<RoomPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('空闲教室查询'),
-      ),
+      appBar: AppBar(title: const Text('空闲教室查询')),
       body: Column(
         children: [
           _buildFilterSection(),

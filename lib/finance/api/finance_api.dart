@@ -13,16 +13,18 @@ class FinanceApi {
   String? _accessToken;
 
   FinanceApi._internal() {
-    _dio = Dio(BaseOptions(
-      baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 15),
-      headers: {
-        'Accept': 'application/json',
-        'User-Agent':
-            'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36',
-      },
-    ));
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: baseUrl,
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 15),
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent':
+              'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36',
+        },
+      ),
+    );
   }
 
   bool get loggedIn => _loggedIn;
@@ -37,10 +39,7 @@ class FinanceApi {
 
   /// 从 WebView 提取所有 cookies 后设置
   void setCookies(List<Cookie> cookies) {
-    _cookieJar.saveFromResponse(
-      Uri.parse(baseUrl),
-      cookies,
-    );
+    _cookieJar.saveFromResponse(Uri.parse(baseUrl), cookies);
     // 也从 cookies 中提取 access_token
     for (final cookie in cookies) {
       if (cookie.name == 'access_token' && cookie.value.isNotEmpty) {
@@ -82,15 +81,16 @@ class FinanceApi {
   }
 
   /// 通用 GET 请求
-  Future<Map<String, dynamic>> get(String path,
-      {Map<String, dynamic>? params}) async {
+  Future<Map<String, dynamic>> get(
+    String path, {
+    Map<String, dynamic>? params,
+  }) async {
     final resp = await _dio.get(path, queryParameters: params);
     return Map<String, dynamic>.from(resp.data);
   }
 
   /// 通用 POST 请求
-  Future<Map<String, dynamic>> post(String path,
-      {dynamic data}) async {
+  Future<Map<String, dynamic>> post(String path, {dynamic data}) async {
     final resp = await _dio.post(path, data: data);
     return Map<String, dynamic>.from(resp.data);
   }

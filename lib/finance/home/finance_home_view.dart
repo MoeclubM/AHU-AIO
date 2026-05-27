@@ -38,7 +38,8 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
           IconButton(
             icon: const Icon(Icons.home),
             onPressed: () => _controller?.loadUrl(
-                urlRequest: URLRequest(url: WebUri(_homeUrl))),
+              urlRequest: URLRequest(url: WebUri(_homeUrl)),
+            ),
             tooltip: '首页',
           ),
           IconButton(
@@ -51,8 +52,7 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
       body: Column(
         children: [
           if (_isLoading)
-            LinearProgressIndicator(
-                value: _progress < 1 ? _progress : null),
+            LinearProgressIndicator(value: _progress < 1 ? _progress : null),
           Expanded(
             child: InAppWebView(
               initialUrlRequest: URLRequest(url: WebUri(_homeUrl)),
@@ -129,31 +129,42 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
           children: [
             _navItem(Icons.home, '首页', () {
               _controller?.loadUrl(
-                  urlRequest: URLRequest(url: WebUri(_homeUrl)));
+                urlRequest: URLRequest(url: WebUri(_homeUrl)),
+              );
             }),
             _navItem(Icons.credit_card, '校园卡', () {
               _controller?.loadUrl(
-                  urlRequest: URLRequest(
-                      url: WebUri(
-                          'https://ycard.ahu.edu.cn/campus-card/?name=campusCard')));
+                urlRequest: URLRequest(
+                  url: WebUri(
+                    'https://ycard.ahu.edu.cn/campus-card/?name=campusCard',
+                  ),
+                ),
+              );
             }),
             _navItem(Icons.account_balance_wallet, '充值', () {
               _controller?.loadUrl(
-                  urlRequest: URLRequest(
-                      url: WebUri(
-                          'https://ycard.ahu.edu.cn/campus-card/?name=cardRecharge')));
+                urlRequest: URLRequest(
+                  url: WebUri(
+                    'https://ycard.ahu.edu.cn/campus-card/?name=cardRecharge',
+                  ),
+                ),
+              );
             }),
             _navItem(Icons.qr_code, '一码通', () {
               _controller?.loadUrl(
-                  urlRequest: URLRequest(
-                      url: WebUri(
-                          'https://ycard.ahu.edu.cn/plat?name=cardcode')));
+                urlRequest: URLRequest(
+                  url: WebUri('https://ycard.ahu.edu.cn/plat?name=cardcode'),
+                ),
+              );
             }),
             _navItem(Icons.receipt_long, '账单', () {
               _controller?.loadUrl(
-                  urlRequest: URLRequest(
-                      url: WebUri(
-                          'https://ycard.ahu.edu.cn/campus-card/?name=billList')));
+                urlRequest: URLRequest(
+                  url: WebUri(
+                    'https://ycard.ahu.edu.cn/campus-card/?name=billList',
+                  ),
+                ),
+              );
             }),
           ],
         ),

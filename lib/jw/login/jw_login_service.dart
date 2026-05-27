@@ -20,10 +20,7 @@ class JwLoginService {
     final hash = sha1.convert(bytes).toString();
 
     // 3. 提交登录
-    final result = await api.login(
-      username: username,
-      passwordHash: hash,
-    );
+    final result = await api.login(username: username, passwordHash: hash);
 
     if (result.success) {
       globals.jwLoggedIn = true;

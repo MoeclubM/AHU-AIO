@@ -13,17 +13,19 @@ class JwApi {
   String? studentId;
 
   JwApi._internal() {
-    _dio = Dio(BaseOptions(
-      baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 15),
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'User-Agent':
-            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
-      },
-    ));
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: baseUrl,
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 15),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'User-Agent':
+              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+        },
+      ),
+    );
     _cookieJar = CookieJar();
     _dio.interceptors.add(CookieManager(_cookieJar));
   }
@@ -75,8 +77,10 @@ class JwApi {
           return parts[i + 1];
         }
       }
-      final tableResp = await _dio.get('/student/for-std/course-table',
-          options: Options(followRedirects: true));
+      final tableResp = await _dio.get(
+        '/student/for-std/course-table',
+        options: Options(followRedirects: true),
+      );
       final html = tableResp.data.toString();
       final match = RegExp(r'dataId=(\d+)').firstMatch(html);
       if (match != null) return match.group(1);
@@ -116,8 +120,9 @@ class JwApi {
   // ============ 成绩 API ============
 
   Future<Map<String, dynamic>> getGradeSemesterIndex() async {
-    final resp = await _dio
-        .get('/student/for-std/grade/sheet/semester-index/$studentId');
+    final resp = await _dio.get(
+      '/student/for-std/grade/sheet/semester-index/$studentId',
+    );
     return Map<String, dynamic>.from(resp.data);
   }
 
@@ -130,8 +135,9 @@ class JwApi {
   }
 
   Future<List<dynamic>> getNotRetakeGradeIds() async {
-    final resp = await _dio
-        .get('/student/for-std/grade/sheet/get-not-retake-grade/$studentId');
+    final resp = await _dio.get(
+      '/student/for-std/grade/sheet/get-not-retake-grade/$studentId',
+    );
     final data = Map<String, dynamic>.from(resp.data);
     return data['notRetakeGradeIds'] ?? [];
   }
@@ -163,10 +169,7 @@ class JwApi {
   }) async {
     final resp = await _dio.get(
       '/student/for-std/course-table/semester/$semesterId/print-data',
-      queryParameters: {
-        'semesterId': semesterId,
-        'hasExperiment': 'false',
-      },
+      queryParameters: {'semesterId': semesterId, 'hasExperiment': 'false'},
     );
     return Map<String, dynamic>.from(resp.data);
   }
@@ -174,16 +177,18 @@ class JwApi {
   // ============ 考试 API ============
 
   Future<Map<String, dynamic>> getExamArrange() async {
-    final resp =
-        await _dio.get('/student/for-std/exam-arrange/info/$studentId');
+    final resp = await _dio.get(
+      '/student/for-std/exam-arrange/info/$studentId',
+    );
     return Map<String, dynamic>.from(resp.data);
   }
 
   // ============ 培养方案 API ============
 
   Future<Map<String, dynamic>> getProgramCompletion() async {
-    final resp = await _dio
-        .get('/student/for-std/program-completion-preview/info/$studentId');
+    final resp = await _dio.get(
+      '/student/for-std/program-completion-preview/info/$studentId',
+    );
     return Map<String, dynamic>.from(resp.data);
   }
 
@@ -208,8 +213,7 @@ class JwApi {
   // ============ 学业预警 API ============
 
   Future<Map<String, dynamic>> getPrecaution() async {
-    final resp =
-        await _dio.get('/student/precaution/index/$studentId');
+    final resp = await _dio.get('/student/precaution/index/$studentId');
     return Map<String, dynamic>.from(resp.data);
   }
 }
@@ -219,9 +223,5 @@ class LoginResult {
   final String? message;
   final bool needCaptcha;
 
-  LoginResult({
-    required this.success,
-    this.message,
-    this.needCaptcha = false,
-  });
+  LoginResult({required this.success, this.message, this.needCaptcha = false});
 }

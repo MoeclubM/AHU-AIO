@@ -99,7 +99,8 @@ class HomePage extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => const FinanceLoginPage()),
+                    builder: (context) => const FinanceLoginPage(),
+                  ),
                 );
               },
               child: const Text('缴费系统'),
