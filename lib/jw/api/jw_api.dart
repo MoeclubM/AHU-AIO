@@ -216,13 +216,22 @@ class JwApi {
   }
 
   /// 获取所有学期列表（从 grade sheet 推导）
+  /// 先尝试最新学期，若失败则尝试历史学期
   Future<List<Map<String, dynamic>>> getSemesters() async {
-    final raw = await getGrades(0);
-    final semesters = raw['semesters'] as List? ?? [];
-    return semesters
-        .whereType<Map>()
-        .map((s) => Map<String, dynamic>.from(s))
-        .toList();
+    // 尝试多个已知学期 ID（从新到旧）
+    for (final semId in [112, 92, 72, 52]) {
+      try {
+        final raw = await getGrades(semId);
+        final semesters = raw['semesters'] as List? ?? [];
+        if (semesters.isNotEmpty) {
+          return semesters
+              .whereType<Map>()
+              .map((s) => Map<String, dynamic>.from(s))
+              .toList();
+        }
+      } catch (_) {}
+    }
+    return [];
   }
 
   /// 获取非重修成绩ID列表

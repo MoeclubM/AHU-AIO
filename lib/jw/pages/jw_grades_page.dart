@@ -39,21 +39,23 @@ class _JwGradesPageState extends State<JwGradesPage> {
         });
         return;
       }
-      final raw = await _api.getGrades(0);
-      final semesters = <JwSemester>[];
-      final gradesMap = <int, List<GradeInfo>>{};
 
-      // 解析学期列表
-      final semList = raw['semesters'] as List?;
-      if (semList != null) {
-        for (final s in semList) {
-          if (s is Map<String, dynamic>) {
-            semesters.add(JwSemester.fromJson(s));
-          }
-        }
+      // 先获取学期列表（内部会调用 getGrades 有效学期 ID）
+      final semList = await _api.getSemesters();
+      final semesters = semList.map((s) => JwSemester.fromJson(s)).toList();
+
+      if (semesters.isEmpty) {
+        setState(() {
+          _error = '无法获取学期列表，请检查网络';
+          _isLoading = false;
+        });
+        return;
       }
 
-      // 解析成绩
+      // 加载最新学期的成绩
+      final firstSemId = semesters.first.id ?? 0;
+      final raw = await _api.getGrades(firstSemId);
+      final gradesMap = <int, List<GradeInfo>>{};
       final semGrades =
           raw['semesterId2studentGrades'] as Map<String, dynamic>?;
       if (semGrades != null) {
@@ -68,17 +70,10 @@ class _JwGradesPageState extends State<JwGradesPage> {
         }
       }
 
-      // 如果首次请求没有学期列表，逐个学期请求
-      if (semesters.isEmpty && gradesMap.isNotEmpty) {
-        for (final id in gradesMap.keys) {
-          semesters.add(JwSemester(id: id, nameZh: '学期 $id'));
-        }
-      }
-
       setState(() {
         _semesters = semesters;
         _gradesMap = gradesMap;
-        _selectedSemesterId = semesters.isNotEmpty ? semesters.first.id : null;
+        _selectedSemesterId = semesters.first.id;
         _isLoading = false;
       });
     } catch (e) {

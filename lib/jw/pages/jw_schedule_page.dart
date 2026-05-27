@@ -48,19 +48,14 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
       }
       // 降级：使用最大 ID 的学期（通常是最新的）
       semId ??= semList.isNotEmpty ? toInt(semList.last['id']) : null;
+      // 再降级：尝试已知的当前学期 ID
+      semId ??= 112;
 
-      if (semId != null) {
-        final raw = await _api.getCourseTablePrintData(semId);
-        setState(() {
-          _tableData = CourseTableData.fromJson(raw);
-          _isLoading = false;
-        });
-      } else {
-        setState(() {
-          _isLoading = false;
-          _error = '无法获取当前学期';
-        });
-      }
+      final raw = await _api.getCourseTablePrintData(semId);
+      setState(() {
+        _tableData = CourseTableData.fromJson(raw);
+        _isLoading = false;
+      });
     } catch (e) {
       setState(() {
         _error = '加载失败: $e';
