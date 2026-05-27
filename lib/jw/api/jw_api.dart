@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:path_provider/path_provider.dart' as path_provider;
+import '../models/jw_models.dart';
 
 /// 新教务系统 API 客户端 (jw.ahu.edu.cn)
 class JwApi {
@@ -215,23 +216,26 @@ class JwApi {
     return Map<String, dynamic>.from(resp.data);
   }
 
-  /// 获取所有学期列表（从 grade sheet 推导）
-  /// 先尝试最新学期，若失败则尝试历史学期
+  /// 获取所有学期列表（从多个 grade sheet 请求收集）
   Future<List<Map<String, dynamic>>> getSemesters() async {
-    // 尝试多个已知学期 ID（从新到旧）
+    final allSemesters = <int, Map<String, dynamic>>{};
     for (final semId in [112, 92, 72, 52]) {
       try {
         final raw = await getGrades(semId);
         final semesters = raw['semesters'] as List? ?? [];
-        if (semesters.isNotEmpty) {
-          return semesters
-              .whereType<Map>()
-              .map((s) => Map<String, dynamic>.from(s))
-              .toList();
+        for (final s in semesters) {
+          if (s is Map) {
+            final id = toInt(s['id']);
+            if (id != null) allSemesters[id] = Map<String, dynamic>.from(s);
+          }
         }
+        if (allSemesters.isNotEmpty) break;
       } catch (_) {}
     }
-    return [];
+    // 按 ID 降序排列（最新学期在前）
+    final sorted = allSemesters.values.toList()
+      ..sort((a, b) => (toInt(b['id']) ?? 0).compareTo(toInt(a['id']) ?? 0));
+    return sorted;
   }
 
   /// 获取非重修成绩ID列表
