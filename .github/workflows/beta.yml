@@ -1,0 +1,116 @@
+name: Beta Build
+
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: beta-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: '3.35.6'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
+jobs:
+  # 计算 Beta 版本号
+  get-version:
+    name: Compute Beta Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.compute.outputs.version }}
+      build_number: ${{ steps.compute.outputs.build_number }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Compute Beta Version
+        id: compute
+        run: |
+          # 获取最近的标签
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          LATEST_TAG="${LATEST_TAG#v}"
+
+          # 距离标签的提交数
+          COMMITS_SINCE=$(git rev-list --count ${LATEST_TAG}..HEAD 2>/dev/null || echo "0")
+
+          # 短哈希
+          SHORT_HASH=$(git rev-parse --short=7 HEAD)
+
+          # 读取 pubspec 获取基础版本号
+          BASE_VERSION=$(grep 'version:' pubspec.yaml | head -1 | sed 's/.*version: *//' | sed 's/+.*//')
+          BUILD_NUMBER=$(grep 'version:' pubspec.yaml | head -1 | sed 's/.*+//')
+
+          # Beta 版本号: pubspec_base-beta.commits.shortHash
+          BETA_VERSION="${BASE_VERSION}-beta.${COMMITS_SINCE}.${SHORT_HASH}"
+
+          echo "version=${BETA_VERSION}" >> $GITHUB_OUTPUT
+          echo "build_number=${BUILD_NUMBER}" >> $GITHUB_OUTPUT
+          echo "Base version: ${BASE_VERSION}, Tag: ${LATEST_TAG}, Commits since: ${COMMITS_SINCE}"
+          echo "Beta version: ${BETA_VERSION}"
+
+  android:
+    name: Build Android Beta
+    runs-on: ubuntu-latest
+    needs: get-version
+    strategy:
+      matrix:
+        include:
+          - arch: arm64
+            target_platform: android-arm64
+          - arch: x86_64
+            target_platform: android-x64
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v6
+
+      - name: Set Up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set Up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Decode Keystore
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > android/app/release-key.jks
+            echo "KEYSTORE_FILE=app/release-key.jks" >> $GITHUB_ENV
+            # 验证证书
+            keytool -list -v -keystore android/app/release-key.jks -storepass "$KEYSTORE_PASSWORD" -alias ahu-aio 2>/dev/null || true
+          fi
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+
+      - name: Build APK
+        run: |
+          flutter build apk --release \
+            --target-platform ${{ matrix.target_platform }} \
+            --build-name "${{ needs.get-version.outputs.version }}" \
+            --build-number "${{ needs.get-version.outputs.build_number }}"
+        env:
+          KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+
+      - name: Cleanup Keystore
+        if: always()
+        run: rm -f android/app/release-key.jks
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: ahu-aio-beta-android-${{ matrix.arch }}-${{ needs.get-version.outputs.version }}
+          path: build/app/outputs/flutter-apk/app-release.apk
