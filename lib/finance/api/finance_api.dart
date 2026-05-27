@@ -9,8 +9,8 @@ class FinanceApi {
   static const String baseUrl = 'https://ycard.ahu.edu.cn';
   late final Dio _dio;
   final CookieJar _cookieJar = CookieJar();
-  bool _loggedIn = false;
-  String? _accessToken;
+  bool loggedIn = false;
+  String? accessToken;
 
   FinanceApi._internal() {
     _dio = Dio(
@@ -27,14 +27,11 @@ class FinanceApi {
     );
   }
 
-  bool get loggedIn => _loggedIn;
-  set loggedIn(bool v) => _loggedIn = v;
   CookieJar get cookieJar => _cookieJar;
-  String? get accessToken => _accessToken;
 
   /// 设置 access_token
   void setAccessToken(String token) {
-    _accessToken = token;
+    accessToken = token;
     _dio.options.headers['Authorization'] = 'Bearer $token';
   }
 
@@ -86,8 +83,8 @@ class FinanceApi {
     try {
       await _dio.post('/berserker-base/login/logout');
     } catch (_) {}
-    _loggedIn = false;
-    _accessToken = null;
+    loggedIn = false;
+    accessToken = null;
     _dio.options.headers.remove('Authorization');
   }
 }
