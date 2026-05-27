@@ -127,7 +127,7 @@ jobs:
       run: |
         if [ -n "$KEYSTORE_BASE64" ]; then
           echo "$KEYSTORE_BASE64" | base64 -d > android/app/release-key.jks
-          echo "KEYSTORE_FILE=app/release-key.jks" >> $GITHUB_ENV
+          echo "KEYSTORE_FILE=release-key.jks" >> $GITHUB_ENV
         fi
       env:
         KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}

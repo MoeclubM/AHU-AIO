@@ -87,7 +87,7 @@ jobs:
         run: |
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "$KEYSTORE_BASE64" | base64 -d > android/app/release-key.jks
-            echo "KEYSTORE_FILE=app/release-key.jks" >> $GITHUB_ENV
+            echo "KEYSTORE_FILE=release-key.jks" >> $GITHUB_ENV
             # 验证证书
             keytool -list -v -keystore android/app/release-key.jks -storepass "$KEYSTORE_PASSWORD" -alias ahu-aio 2>/dev/null || true
           fi

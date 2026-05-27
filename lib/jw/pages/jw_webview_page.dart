@@ -28,15 +28,16 @@ class _JwWebViewPageState extends State<JwWebViewPage> {
   Future<void> _syncCookies() async {
     try {
       final api = JwApi();
+      await api.init();
       final cookies = await api.cookieJar.loadForRequest(
         Uri.parse(JwApi.baseUrl),
       );
       final cookieManager = CookieManager.instance();
-      // 先清除旧 cookies
       await cookieManager.deleteAllCookies();
       for (final c in cookies) {
+        // 设置 cookie，路径保持原始值（/student 或 /student/）
         await cookieManager.setCookie(
-          url: WebUri(JwApi.baseUrl),
+          url: WebUri('${JwApi.baseUrl}${c.path ?? '/'}'),
           name: c.name,
           value: c.value,
           domain: 'jw.ahu.edu.cn',
@@ -72,14 +73,12 @@ class _JwWebViewPageState extends State<JwWebViewPage> {
                     supportZoom: true,
                     builtInZoomControls: true,
                     displayZoomControls: false,
-                    // 允许跨域 cookie
                     thirdPartyCookiesEnabled: true,
                   ),
                   onWebViewCreated: (controller) {
                     _controller = controller;
                   },
                   onLoadStop: (controller, url) {
-                    // 注入 viewport meta 让页面适配移动端
                     controller.evaluateJavascript(
                       source: """
                       (function() {
@@ -90,14 +89,12 @@ class _JwWebViewPageState extends State<JwWebViewPage> {
                           meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes';
                           document.head.appendChild(meta);
                         }
-                        // 隐藏不需要的导航元素，优化移动端显示
                         var style = document.createElement('style');
                         style.textContent = 'body { font-size: 14px !important; } .page-header { display: none !important; }';
                         document.head.appendChild(style);
                       })();
                     """,
                     );
-                    // 检查是否重定向到了登录页
                     final urlStr = url?.toString() ?? '';
                     if (urlStr.contains('/login') &&
                         !widget.url.contains('/login')) {
@@ -141,11 +138,13 @@ class _JwWebViewPageState extends State<JwWebViewPage> {
                             ElevatedButton(
                               onPressed: () {
                                 setState(() => _hasError = false);
-                                _controller?.loadUrl(
-                                  urlRequest: URLRequest(
-                                    url: WebUri(widget.url),
-                                  ),
-                                );
+                                _syncCookies().then((_) {
+                                  _controller?.loadUrl(
+                                    urlRequest: URLRequest(
+                                      url: WebUri(widget.url),
+                                    ),
+                                  );
+                                });
                               },
                               child: const Text('重试'),
                             ),

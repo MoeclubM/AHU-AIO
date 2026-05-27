@@ -68,7 +68,12 @@ class JwApi {
         '/student/home/get-current-teach-week',
         options: Options(validateStatus: (s) => s != null && s < 500),
       );
-      return resp.statusCode == 200 && resp.data is Map;
+      if (resp.statusCode == 200 && resp.data is Map) {
+        // 会话有效，顺便恢复 studentId
+        studentId ??= await _fetchStudentId();
+        return true;
+      }
+      return false;
     } catch (_) {
       return false;
     }
@@ -138,7 +143,10 @@ class JwApi {
     try {
       final resp = await _dio.get(
         '/student/for-std/grade/sheet',
-        options: Options(followRedirects: false),
+        options: Options(
+          followRedirects: false,
+          validateStatus: (s) => s != null && s < 500,
+        ),
       );
       if (resp.statusCode == 302) {
         final loc = resp.headers.value('location') ?? '';
