@@ -1,9 +1,11 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'jw_login_service.dart';
+import '../api/jw_api.dart';
 import '../home/jw_home_view.dart';
 
-/// 新教务系统登录页面
 class JwLoginPage extends StatefulWidget {
   const JwLoginPage({super.key});
 
@@ -14,15 +16,19 @@ class JwLoginPage extends StatefulWidget {
 class _JwLoginPageState extends State<JwLoginPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _captchaController = TextEditingController();
   bool _isLoading = false;
   bool _savePassword = true;
   String? _error;
   bool _obscurePassword = true;
+  bool _needCaptcha = false;
+  Uint8List? _captchaImage;
 
   @override
   void initState() {
     super.initState();
     _loadSavedCredentials();
+    _tryAutoLogin();
   }
 
   Future<void> _loadSavedCredentials() async {
@@ -31,6 +37,39 @@ class _JwLoginPageState extends State<JwLoginPage> {
     final savedPassword = prefs.getString('jw_password');
     if (savedUsername != null) _usernameController.text = savedUsername;
     if (savedPassword != null) _passwordController.text = savedPassword;
+  }
+
+  Future<void> _tryAutoLogin() async {
+    try {
+      final api = JwApi();
+      await api.init();
+      final hasSession = await api.hasValidSession();
+      if (hasSession && mounted) {
+        final prefs = await SharedPreferences.getInstance();
+        final savedUser = prefs.getString('jw_username');
+        if (savedUser != null && savedUser.isNotEmpty) {
+          await api.fetchStudentIdDirect();
+          if (!mounted) return;
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const JwHomePage()),
+          );
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _loadCaptcha() async {
+    try {
+      final api = JwApi();
+      final data = await api.getLoginCaptcha();
+      final base64Str = data['originalImageBase64']?.toString() ?? '';
+      if (base64Str.isNotEmpty && mounted) {
+        setState(() {
+          _captchaImage = base64Decode(base64Str);
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _login() async {
@@ -51,7 +90,10 @@ class _JwLoginPageState extends State<JwLoginPage> {
       final result = await JwLoginService.login(
         username: username,
         password: password,
+        captchaToken: _captchaController.text.trim(),
       );
+
+      if (!mounted) return;
 
       if (result.success) {
         final prefs = await SharedPreferences.getInstance();
@@ -69,12 +111,18 @@ class _JwLoginPageState extends State<JwLoginPage> {
           MaterialPageRoute(builder: (context) => const JwHomePage()),
         );
       } else {
+        final needCaptcha = result.needCaptcha;
         setState(() {
           _error = result.message ?? '登录失败';
           _isLoading = false;
+          _needCaptcha = needCaptcha;
         });
+        if (needCaptcha) {
+          _loadCaptcha();
+        }
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = '登录失败: $e';
         _isLoading = false;
@@ -86,13 +134,14 @@ class _JwLoginPageState extends State<JwLoginPage> {
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
+    _captchaController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('新教务系统登录')),
+      appBar: AppBar(title: const Text('教务系统')),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -145,6 +194,28 @@ class _JwLoginPageState extends State<JwLoginPage> {
                     ),
                     onSubmitted: (_) => _login(),
                   ),
+                  if (_needCaptcha) ...[
+                    const SizedBox(height: 16),
+                    if (_captchaImage != null)
+                      GestureDetector(
+                        onTap: _loadCaptcha,
+                        child: Image.memory(
+                          _captchaImage!,
+                          height: 50,
+                          fit: BoxFit.contain,
+                        ),
+                      ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _captchaController,
+                      decoration: const InputDecoration(
+                        labelText: '验证码（点击图片刷新）',
+                        prefixIcon: Icon(Icons.verified),
+                        border: OutlineInputBorder(),
+                      ),
+                      onSubmitted: (_) => _login(),
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   Row(
                     children: [

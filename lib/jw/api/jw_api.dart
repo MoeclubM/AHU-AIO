@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
+import 'package:path_provider/path_provider.dart' as path_provider;
 
 /// 新教务系统 API 客户端 (jw.ahu.edu.cn)
 class JwApi {
@@ -9,8 +10,9 @@ class JwApi {
 
   static const String baseUrl = 'https://jw.ahu.edu.cn';
   late final Dio _dio;
-  late final CookieJar _cookieJar;
+  late final PersistCookieJar _cookieJar;
   String? studentId;
+  bool _initialized = false;
 
   JwApi._internal() {
     _dio = Dio(
@@ -28,13 +30,51 @@ class JwApi {
         },
       ),
     );
-    _cookieJar = CookieJar();
-    _dio.interceptors.add(CookieManager(_cookieJar));
   }
 
-  CookieJar get cookieJar => _cookieJar;
+  Future<void> init() async {
+    if (_initialized) return;
+    final dir = await path_provider.getApplicationDocumentsDirectory();
+    _cookieJar = PersistCookieJar(
+      storage: FileStorage('${dir.path}/jw_cookies'),
+    );
+    _dio.interceptors.add(CookieManager(_cookieJar));
+    _initialized = true;
+  }
 
-  /// 获取登录盐值 (GET /student/login-salt)
+  PersistCookieJar get cookieJar {
+    if (!_initialized) {
+      throw StateError('JwApi not initialized. Call init() first.');
+    }
+    return _cookieJar;
+  }
+
+  Future<void> deleteAllCookies() async {
+    if (!_initialized) return;
+    try {
+      await _cookieJar.deleteAll();
+    } catch (_) {}
+  }
+
+  Future<bool> hasValidSession() async {
+    if (!_initialized) return false;
+    try {
+      final cookies = await _cookieJar.loadForRequest(Uri.parse(baseUrl));
+      final hasSession = cookies.any(
+        (c) => c.name == 'SESSION' || c.name == '__pstsid__',
+      );
+      if (!hasSession) return false;
+      final resp = await _dio.get(
+        '/student/home/get-current-teach-week',
+        options: Options(validateStatus: (s) => s != null && s < 500),
+      );
+      return resp.statusCode == 200 && resp.data is Map;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// 获取登录盐值
   Future<String> getLoginSalt() async {
     final resp = await _dio.get(
       '/student/login-salt',
@@ -46,30 +86,44 @@ class JwApi {
     return resp.data.toString().trim();
   }
 
-  /// 登录 (POST /student/login)
+  /// 访问登录页面建立 session cookie（必须在 getLoginSalt 之前调用）
+  Future<void> prepareLogin() async {
+    try {
+      await _dio.get('/student/login');
+    } catch (_) {}
+  }
+
+  /// 获取登录验证码图片 (GET /student/login-captcha)
+  /// 返回 {"code":"0000","originalImageBase64":"iVBOR..."}
+  Future<Map<String, dynamic>> getLoginCaptcha() async {
+    final resp = await _dio.get('/student/login-captcha');
+    return Map<String, dynamic>.from(resp.data);
+  }
+
+  /// 登录
   Future<LoginResult> login({
     required String username,
     required String passwordHash,
     String captchaToken = '',
   }) async {
     try {
-      final resp = await _dio.post(
-        '/student/login',
-        data: {
-          'username': username,
-          'password': passwordHash,
-          'captchaToken': captchaToken,
-        },
-      );
-      final data = resp.data;
-      if (data is Map && data['result'] == true) {
+      final data = <String, dynamic>{
+        'username': username,
+        'password': passwordHash,
+      };
+      if (captchaToken.isNotEmpty) {
+        data['captchaToken'] = captchaToken;
+      }
+      final resp = await _dio.post('/student/login', data: data);
+      final body = resp.data;
+      if (body is Map && body['result'] == true) {
         studentId = await _fetchStudentId();
         return LoginResult(success: true);
       }
       return LoginResult(
         success: false,
-        message: data['message']?.toString() ?? '登录失败',
-        needCaptcha: data['needCaptcha'] == true,
+        message: body['message']?.toString() ?? '登录失败',
+        needCaptcha: body['needCaptcha'] == true,
       );
     } on DioException catch (e) {
       return LoginResult(
@@ -79,10 +133,9 @@ class JwApi {
     }
   }
 
-  /// 登录后获取学生ID
+  /// 从 grade/sheet 重定向提取 studentId
   Future<String?> _fetchStudentId() async {
     try {
-      // 从首页获取学生ID
       final resp = await _dio.get(
         '/student/for-std/grade/sheet',
         options: Options(followRedirects: false),
@@ -96,20 +149,17 @@ class JwApi {
           }
         }
       }
-      // 备用方法
-      final tableResp = await _dio.get(
-        '/student/for-std/course-table',
-        options: Options(followRedirects: true),
-      );
-      final html = tableResp.data.toString();
-      final match = RegExp(r'dataId=(\d+)').firstMatch(html);
-      if (match != null) return match.group(1);
     } catch (_) {}
     return null;
   }
 
+  Future<void> fetchStudentIdDirect() async {
+    studentId = await _fetchStudentId();
+  }
+
   // ============ 首页 API ============
 
+  /// {"currentSemester":"2025-2026-2","dayIndex":-86,"weekIndex":13,"isInSemester":true}
   Future<Map<String, dynamic>> getCurrentTeachWeek() async {
     final resp = await _dio.get('/student/home/get-current-teach-week');
     return Map<String, dynamic>.from(resp.data);
@@ -120,7 +170,8 @@ class JwApi {
     return List<dynamic>.from(resp.data);
   }
 
-  Future<Map<String, dynamic>> getNotices() async {
+  /// 通知数量 {"notices":[],"noticeCount":{"notificationCount":4,"noReadCount":0,"readCount":4}}
+  Future<Map<String, dynamic>> getNoticeCounts() async {
     final resp = await _dio.get(
       '/student/my-notification/get-notices',
       queryParameters: {
@@ -132,19 +183,44 @@ class JwApi {
     return Map<String, dynamic>.from(resp.data);
   }
 
-  // ============ 成绩 API ============
-
-  Future<Map<String, dynamic>> getGradeSemesterIndex() async {
+  /// 分页通知列表
+  Future<Map<String, dynamic>> getNotifications({
+    int page = 1,
+    int pageSize = 20,
+  }) async {
     final resp = await _dio.get(
-      '/student/for-std/grade/sheet/semester-index/$studentId',
+      '/student/my-notification/get-notifications',
+      queryParameters: {'_current_page_': page, '_page_size_': pageSize},
     );
     return Map<String, dynamic>.from(resp.data);
   }
 
+  // ============ 成绩 API ============
+
+  /// 获取成绩（含学期列表）
+  /// 返回 {"semesterId2studentGrades":{"92":[gradeItems...]},"semesters":[semesterList],"id2semesters":{}}
   Future<Map<String, dynamic>> getGrades(int semesterId) async {
     final resp = await _dio.get(
       '/student/for-std/grade/sheet/info/$studentId',
       queryParameters: {'semester': semesterId},
+    );
+    return Map<String, dynamic>.from(resp.data);
+  }
+
+  /// 获取所有学期列表（从 grade sheet 推导）
+  Future<List<Map<String, dynamic>>> getSemesters() async {
+    final raw = await getGrades(0);
+    final semesters = raw['semesters'] as List? ?? [];
+    return semesters
+        .whereType<Map>()
+        .map((s) => Map<String, dynamic>.from(s))
+        .toList();
+  }
+
+  /// 获取非重修成绩ID列表
+  Future<Map<String, dynamic>> getNotRetakeGrades() async {
+    final resp = await _dio.get(
+      '/student/for-std/grade/sheet/get-not-retake-grade/$studentId',
     );
     return Map<String, dynamic>.from(resp.data);
   }
@@ -156,6 +232,7 @@ class JwApi {
     return Map<String, dynamic>.from(resp.data);
   }
 
+  /// 课表详细数据（lessons数组 + scheduleText）
   Future<Map<String, dynamic>> getCourseTable({
     required int semesterId,
     int bizTypeId = 2,
@@ -171,39 +248,40 @@ class JwApi {
     return Map<String, dynamic>.from(resp.data);
   }
 
-  // ============ 考试 API ============
-
-  Future<Map<String, dynamic>> getExamArrange() async {
+  /// 课表打印数据（结构化活动: weekday, startUnit, endUnit, weekIndexes）
+  /// 返回 {"studentTableVms":[{"id":122304,"name":"...","code":"P...","activities":[...]}]}
+  Future<Map<String, dynamic>> getCourseTablePrintData(int semesterId) async {
     final resp = await _dio.get(
-      '/student/for-std/exam-arrange/info/$studentId',
+      '/student/for-std/course-table/semester/$semesterId/print-data',
+      queryParameters: {'semesterId': semesterId, 'hasExperiment': 'false'},
     );
     return Map<String, dynamic>.from(resp.data);
   }
 
   // ============ 培养方案 API ============
 
-  Future<Map<String, dynamic>> getProgramCompletion() async {
+  /// 获取培养方案课程模块
+  Future<Map<String, dynamic>> getProgramModules(int programId) async {
     final resp = await _dio.get(
-      '/student/for-std/program-completion-preview/info/$studentId',
+      '/student/for-std/credit-certification-apply/other_apply/get-all-course-module',
+      queryParameters: {'programId': programId},
     );
     return Map<String, dynamic>.from(resp.data);
   }
 
-  // ============ 学籍 API ============
-
-  Future<Map<String, dynamic>> getStudentInfo() async {
-    final resp = await _dio.get(
-      '/student/for-std/student-info/info/$studentId',
-      queryParameters: {'baseURI': '/for-std/student-info'},
-    );
-    return Map<String, dynamic>.from(resp.data);
-  }
-
-  // ============ 学业预警 API ============
-
-  Future<Map<String, dynamic>> getPrecaution() async {
-    final resp = await _dio.get('/student/precaution/index/$studentId');
-    return Map<String, dynamic>.from(resp.data);
+  /// 从培养方案页面 HTML 提取 programId
+  Future<int?> fetchProgramId() async {
+    try {
+      final resp = await _dio.get(
+        '/student/for-std/program-completion-preview/info/$studentId',
+        options: Options(responseType: ResponseType.plain),
+      );
+      final html = resp.data.toString();
+      // 匹配 programId=3007 或 programId: 3007
+      final match = RegExp(r'programId[=:]\s*(\d+)').firstMatch(html);
+      if (match != null) return int.tryParse(match.group(1)!);
+    } catch (_) {}
+    return null;
   }
 }
 

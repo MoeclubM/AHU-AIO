@@ -2,6 +2,14 @@ import 'package:flutter/material.dart';
 import '../api/jw_api.dart';
 import '../login/jw_login_service.dart';
 import '../login/jw_login_view.dart';
+import '../pages/jw_grades_page.dart';
+import '../pages/jw_schedule_page.dart';
+import '../pages/jw_exam_page.dart';
+import '../pages/jw_program_page.dart';
+import '../pages/jw_student_info_page.dart';
+import '../pages/jw_precaution_page.dart';
+import '../pages/jw_course_select_page.dart';
+import '../pages/jw_notice_page.dart';
 
 /// 新教务系统首页
 class JwHomePage extends StatefulWidget {
@@ -21,6 +29,13 @@ class _JwHomePageState extends State<JwHomePage> {
   @override
   void initState() {
     super.initState();
+    _initAndLoad();
+  }
+
+  Future<void> _initAndLoad() async {
+    try {
+      await _api.init();
+    } catch (_) {}
     _loadData();
   }
 
@@ -33,7 +48,7 @@ class _JwHomePageState extends State<JwHomePage> {
     try {
       final results = await Future.wait([
         _api.getCurrentTeachWeek(),
-        _api.getNotices(),
+        _api.getNoticeCounts(),
       ]);
 
       setState(() {
@@ -49,8 +64,8 @@ class _JwHomePageState extends State<JwHomePage> {
     }
   }
 
-  void _logout() {
-    JwLoginService.logout();
+  void _logout() async {
+    await JwLoginService.logout();
     if (!mounted) return;
     Navigator.pushReplacement(
       context,
@@ -157,52 +172,60 @@ class _JwHomePageState extends State<JwHomePage> {
         title: const Text('通知公告'),
         subtitle: Text('未读 $noReadCount 条'),
         trailing: const Icon(Icons.chevron_right),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const JwNoticePage()),
+          );
+        },
       ),
     );
   }
 
   Widget _buildFeatureGrid() {
     final features = [
-      _Feature(
-        '成绩查询',
-        Icons.grade,
-        () => _navigateTo('/student/for-std/grade/sheet'),
-      ),
-      _Feature(
-        '我的课表',
-        Icons.schedule,
-        () => _navigateTo('/student/for-std/course-table'),
-      ),
-      _Feature(
-        '考试安排',
-        Icons.quiz,
-        () => _navigateTo('/student/for-std/exam-arrange'),
-      ),
-      _Feature(
-        '培养方案',
-        Icons.menu_book,
-        () => _navigateTo('/student/for-std/program-completion-preview'),
-      ),
-      _Feature(
-        '学籍信息',
-        Icons.badge,
-        () => _navigateTo('/student/for-std/student-info'),
-      ),
-      _Feature(
-        '空闲教室',
-        Icons.meeting_room,
-        () => _navigateTo('/student/for-std/room-free'),
-      ),
-      _Feature(
-        '学业预警',
-        Icons.warning,
-        () => _navigateTo('/student/for-std/precaution'),
-      ),
-      _Feature(
-        '选课系统',
-        Icons.app_registration,
-        () => _navigateTo('/student/for-std/course-select'),
-      ),
+      _Feature('成绩查询', Icons.grade, () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const JwGradesPage()),
+        );
+      }),
+      _Feature('我的课表', Icons.schedule, () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const JwSchedulePage()),
+        );
+      }),
+      _Feature('考试安排', Icons.quiz, () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const JwExamPage()),
+        );
+      }),
+      _Feature('培养方案', Icons.menu_book, () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const JwProgramPage()),
+        );
+      }),
+      _Feature('学籍信息', Icons.badge, () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const JwStudentInfoPage()),
+        );
+      }),
+      _Feature('学业预警', Icons.warning, () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const JwPrecautionPage()),
+        );
+      }),
+      _Feature('选课系统', Icons.app_registration, () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const JwCourseSelectPage()),
+        );
+      }),
     ];
 
     return GridView.builder(
@@ -239,13 +262,6 @@ class _JwHomePageState extends State<JwHomePage> {
         );
       },
     );
-  }
-
-  void _navigateTo(String path) {
-    // TODO: 各功能页面的原生实现
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text('功能开发中: $path')));
   }
 }
 

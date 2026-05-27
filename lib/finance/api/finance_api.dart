@@ -1,5 +1,8 @@
 import 'package:dio/dio.dart';
+import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
+import 'package:path_provider/path_provider.dart' as path_provider;
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// 财务系统 API 客户端 (ycard.ahu.edu.cn)
 class FinanceApi {
@@ -8,9 +11,10 @@ class FinanceApi {
 
   static const String baseUrl = 'https://ycard.ahu.edu.cn';
   late final Dio _dio;
-  final CookieJar _cookieJar = CookieJar();
+  late PersistCookieJar _cookieJar;
   bool loggedIn = false;
   String? accessToken;
+  bool _initialized = false;
 
   FinanceApi._internal() {
     _dio = Dio(
@@ -27,17 +31,62 @@ class FinanceApi {
     );
   }
 
-  CookieJar get cookieJar => _cookieJar;
+  Future<void> init() async {
+    if (_initialized) return;
+    final dir = await path_provider.getApplicationDocumentsDirectory();
+    _cookieJar = PersistCookieJar(
+      storage: FileStorage('${dir.path}/finance_cookies'),
+    );
+    _dio.interceptors.add(CookieManager(_cookieJar));
+    _initialized = true;
 
-  /// 设置 access_token
+    // 恢复 token
+    final prefs = await SharedPreferences.getInstance();
+    final savedToken = prefs.getString('finance_access_token');
+    if (savedToken != null && savedToken.isNotEmpty) {
+      setAccessToken(savedToken);
+      loggedIn = true;
+    }
+  }
+
+  PersistCookieJar get cookieJar => _cookieJar;
+
   void setAccessToken(String token) {
     accessToken = token;
     _dio.options.headers['Authorization'] = 'Bearer $token';
+    // 持久化 token
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.setString('finance_access_token', token);
+    });
+  }
+
+  void clearAuth() {
+    loggedIn = false;
+    accessToken = null;
+    _dio.options.headers.remove('Authorization');
+    _cookieJar.deleteAll();
+    SharedPreferences.getInstance().then((prefs) {
+      prefs.remove('finance_access_token');
+    });
+  }
+
+  /// 验证当前 session 是否有效
+  Future<bool> hasValidSession() async {
+    if (!loggedIn || accessToken == null) return false;
+    try {
+      final resp = await getUserInfo();
+      return resp['code'] == 200 && resp['success'] == true;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// 获取用户信息
   Future<Map<String, dynamic>> getUserInfo() async {
-    final resp = await _dio.get('/berserker-base/user');
+    final resp = await _dio.get(
+      '/berserker-base/user',
+      queryParameters: {'synAccessSource': 'h5'},
+    );
     return Map<String, dynamic>.from(resp.data);
   }
 
@@ -63,28 +112,63 @@ class FinanceApi {
     return Map<String, dynamic>.from(resp.data);
   }
 
+  /// 获取通知
+  Future<Map<String, dynamic>> getNotices() async {
+    final resp = await _dio.get(
+      '/berserker-app/notice/page',
+      queryParameters: {
+        'isPublish': '1',
+        'sendType': '2',
+        'current': '1',
+        'size': '10',
+        'synAccessSource': 'h5',
+      },
+    );
+    return Map<String, dynamic>.from(resp.data);
+  }
+
+  /// 获取日程/待办数量
+  Future<Map<String, dynamic>> getScheduleCount() async {
+    final resp = await _dio.get(
+      '/berserker-schedule/schedule/info/count',
+      queryParameters: {
+        'dateCondition': '1',
+        'overdue': '2',
+        'synAccessSource': 'h5',
+      },
+    );
+    return Map<String, dynamic>.from(resp.data);
+  }
+
   /// 通用 GET
   Future<Map<String, dynamic>> get(
     String path, {
     Map<String, dynamic>? params,
   }) async {
+    params ??= {};
+    params.putIfAbsent('synAccessSource', () => 'h5');
     final resp = await _dio.get(path, queryParameters: params);
     return Map<String, dynamic>.from(resp.data);
   }
 
   /// 通用 POST
   Future<Map<String, dynamic>> post(String path, {dynamic data}) async {
-    final resp = await _dio.post(path, data: data);
+    final resp = await _dio.post(
+      path,
+      data: data,
+      queryParameters: {'synAccessSource': 'h5'},
+    );
     return Map<String, dynamic>.from(resp.data);
   }
 
   /// 登出
   Future<void> logout() async {
     try {
-      await _dio.post('/berserker-base/login/logout');
+      await _dio.post(
+        '/berserker-base/login/logout',
+        queryParameters: {'synAccessSource': 'h5'},
+      );
     } catch (_) {}
-    loggedIn = false;
-    accessToken = null;
-    _dio.options.headers.remove('Authorization');
+    clearAuth();
   }
 }

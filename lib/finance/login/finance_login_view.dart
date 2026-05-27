@@ -6,7 +6,6 @@ import '../api/finance_api.dart';
 import '../home/finance_home_view.dart';
 
 /// 财务系统登录页 - CAS SSO WebView
-/// 加载学校统一身份认证页面完成登录后提取 token
 class FinanceLoginPage extends StatefulWidget {
   const FinanceLoginPage({super.key});
 
@@ -19,6 +18,7 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
   bool _isLoading = true;
   double _progress = 0;
   bool _didNavigate = false;
+  bool _checkingSession = true;
 
   static const String _casUrl =
       'https://ycard.ahu.edu.cn/berserker-auth/cas/redirect/neusoftCas'
@@ -27,14 +27,39 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
   @override
   void initState() {
     super.initState();
-    // 清除旧 cookie 确保干净会话
-    CookieManager.instance().deleteAllCookies();
+    _initAndCheck();
+  }
+
+  Future<void> _initAndCheck() async {
+    final api = FinanceApi();
+    await api.init();
+
+    // 尝试自动登录（已有持久化 token）
+    if (api.accessToken != null) {
+      final valid = await api.hasValidSession();
+      if (valid && mounted) {
+        api.loggedIn = true;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const FinanceHomePage()),
+        );
+        return;
+      }
+    }
+
+    // 清除旧 cookie，开始 CAS 登录
+    await CookieManager.instance().deleteAllCookies();
+    if (mounted) setState(() => _checkingSession = false);
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_checkingSession) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
-      appBar: AppBar(title: const Text('缴费系统登录')),
+      appBar: AppBar(title: const Text('缴费系统')),
       body: Column(
         children: [
           if (_isLoading)
@@ -50,7 +75,6 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
               onWebViewCreated: (c) => _controller = c,
               onLoadStart: (controller, url) {
                 setState(() => _isLoading = true);
-                _checkSuccess(url?.toString() ?? '');
               },
               onLoadStop: (controller, url) async {
                 setState(() {
@@ -71,31 +95,43 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
 
   void _checkSuccess(String url) {
     if (_didNavigate) return;
-    // CAS 登录成功后最终会重定向到 ycard 的 plat 页面
     if (url.contains('ycard.ahu.edu.cn/plat/') &&
         !url.contains('/login') &&
         !url.contains('/cas')) {
       _didNavigate = true;
-      _extractTokenAndNavigate();
+      _waitForTokenAndNavigate();
     }
   }
 
-  Future<void> _extractTokenAndNavigate() async {
+  Future<void> _waitForTokenAndNavigate() async {
+    String? token;
+
+    // 轮询 sessionStorage 等待 OAuth token
+    for (int i = 0; i < 20; i++) {
+      try {
+        final result = await _controller?.evaluateJavascript(
+          source: 'sessionStorage.getItem("access_token")',
+        );
+        if (result != null &&
+            result is String &&
+            result.isNotEmpty &&
+            result != 'null' &&
+            result.length > 20) {
+          token = result;
+          break;
+        }
+      } catch (_) {}
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+
+    final api = FinanceApi();
+
+    if (token != null) {
+      api.setAccessToken(token);
+    }
+
+    // 提取 cookies
     try {
-      final api = FinanceApi();
-
-      // 从 WebView 的 sessionStorage 提取 access_token
-      final token = await _controller?.evaluateJavascript(
-        source: 'sessionStorage.getItem("access_token")',
-      );
-      if (token != null &&
-          token is String &&
-          token.isNotEmpty &&
-          token != 'null') {
-        api.setAccessToken(token);
-      }
-
-      // 同时提取 cookies 给 Dio
       final cookies = await CookieManager.instance().getCookies(
         url: WebUri('https://ycard.ahu.edu.cn'),
       );
@@ -110,11 +146,9 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
         Uri.parse('https://ycard.ahu.edu.cn'),
         cookieList,
       );
+    } catch (_) {}
 
-      api.loggedIn = true;
-    } catch (_) {
-      FinanceApi().loggedIn = true;
-    }
+    api.loggedIn = true;
 
     if (!mounted) return;
     Navigator.pushReplacement(

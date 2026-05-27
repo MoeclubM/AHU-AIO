@@ -1,8 +1,10 @@
+import 'package:cookie_jar/cookie_jar.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../api/finance_api.dart';
 import '../login/finance_login_view.dart';
 
-/// 财务系统首页 - 原生UI
+/// 财务系统首页
 class FinanceHomePage extends StatefulWidget {
   const FinanceHomePage({super.key});
 
@@ -15,7 +17,7 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
   bool _isLoading = true;
   String? _error;
   Map<String, dynamic>? _userInfo;
-  List<dynamic>? _menuItems;
+  List<dynamic> _menuItems = [];
 
   @override
   void initState() {
@@ -30,6 +32,7 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
     });
 
     try {
+      await _api.init();
       final results = await Future.wait([
         _api.getUserInfo(),
         _api.getAppScheme(),
@@ -53,14 +56,16 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
       if (structure == null) return [];
       final menus = <Map<String, dynamic>>[];
       void walk(dynamic node) {
+        if (node is! Map) return;
         if (node['combinedMenuList'] is List) {
           for (final m in node['combinedMenuList']) {
-            if (m['name'] != null &&
+            if (m is Map &&
+                m['name'] != null &&
                 m['name'].toString().isNotEmpty &&
                 m['parentNodeId'] == 0) {
-              menus.add(m);
+              menus.add(Map<String, dynamic>.from(m));
             }
-            if (m['combinedMenuList'] is List) walk(m);
+            walk(m);
           }
         }
       }
@@ -78,6 +83,23 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const FinanceLoginPage()),
+    );
+  }
+
+  void _openWebView(String title, String path) {
+    final fullUrl = path.startsWith('http')
+        ? path
+        : '${FinanceApi.baseUrl}$path';
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FinanceInnerWebView(
+          title: title,
+          url: fullUrl,
+          accessToken: _api.accessToken,
+          cookies: _api.cookieJar,
+        ),
+      ),
     );
   }
 
@@ -108,7 +130,10 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
                     color: Colors.red.shade400,
                   ),
                   const SizedBox(height: 16),
-                  Text(_error!, textAlign: TextAlign.center),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: Text(_error!, textAlign: TextAlign.center),
+                  ),
                   const SizedBox(height: 16),
                   ElevatedButton(onPressed: _loadData, child: const Text('重试')),
                 ],
@@ -121,12 +146,7 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
                 children: [
                   _buildUserCard(),
                   const SizedBox(height: 16),
-                  _buildBalanceCard(),
-                  const SizedBox(height: 16),
-                  _buildQuickActions(),
-                  const SizedBox(height: 16),
-                  if (_menuItems != null && _menuItems!.isNotEmpty)
-                    _buildMenuGrid(),
+                  _buildMenuGrid(),
                 ],
               ),
             ),
@@ -134,7 +154,7 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
   }
 
   Widget _buildUserCard() {
-    final userData = _userInfo?['data'] ?? {};
+    final data = _userInfo?['data'] ?? {};
     return Card(
       elevation: 2,
       child: Padding(
@@ -142,12 +162,17 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
         child: Row(
           children: [
             CircleAvatar(
-              radius: 24,
+              radius: 28,
               backgroundColor: Colors.orange.shade100,
-              child: Icon(
-                Icons.person,
-                color: Colors.orange.shade700,
-                size: 28,
+              child: Text(
+                (data['name']?.toString() ?? '?').isNotEmpty
+                    ? data['name'].toString()[0]
+                    : '?',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange.shade700,
+                ),
               ),
             ),
             const SizedBox(width: 16),
@@ -156,7 +181,7 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    userData['name']?.toString() ?? '加载中...',
+                    data['name']?.toString() ?? '-',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -164,7 +189,7 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '学号: ${userData['sno']?.toString() ?? '-'}',
+                    '学号: ${data['sno']?.toString() ?? data['account']?.toString() ?? '-'}',
                     style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
                   ),
                 ],
@@ -176,90 +201,177 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
     );
   }
 
-  Widget _buildBalanceCard() {
-    return Card(
-      elevation: 4,
-      color: Colors.orange.shade50,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            Text(
-              '一卡通余额',
-              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '加载中...',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Colors.orange.shade800,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickActions() {
-    final actions = [
-      _ActionItem(Icons.credit_card, '校园卡', () {}),
-      _ActionItem(Icons.add_card, '充值', () {}),
-      _ActionItem(Icons.qr_code, '一码通', () {}),
-      _ActionItem(Icons.receipt_long, '账单', () {}),
-      _ActionItem(Icons.electrical_services, '电费', () {}),
-      _ActionItem(Icons.water_drop, '水费', () {}),
-    ];
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        crossAxisSpacing: 12,
-        mainAxisSpacing: 12,
-        childAspectRatio: 1.1,
-      ),
-      itemCount: actions.length,
-      itemBuilder: (_, i) {
-        final a = actions[i];
-        return Card(
-          child: InkWell(
-            onTap: a.onTap,
-            borderRadius: BorderRadius.circular(12),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(a.icon, size: 28, color: Colors.orange.shade700),
-                const SizedBox(height: 8),
-                Text(
-                  a.label,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   Widget _buildMenuGrid() {
-    return Text(
-      '功能菜单 (${_menuItems!.length}项)',
-      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+    if (_menuItems.isEmpty) {
+      return const Card(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Center(child: Text('暂无可用功能')),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '功能菜单 (${_menuItems.length}项)',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 1.0,
+          ),
+          itemCount: _menuItems.length,
+          itemBuilder: (_, i) {
+            final item = _menuItems[i];
+            final name = item['name']?.toString() ?? '';
+            final iconWhole = item['iconWhole']?.toString();
+            final websize = item['websize']?.toString() ?? '';
+
+            return Card(
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: websize.isNotEmpty
+                    ? () => _openWebView(name, websize)
+                    : null,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    iconWhole != null && iconWhole.startsWith('http')
+                        ? Image.network(
+                            iconWhole,
+                            width: 32,
+                            height: 32,
+                            errorBuilder: (ctx, err, stack) => Icon(
+                              Icons.apps,
+                              size: 32,
+                              color: Colors.orange.shade700,
+                            ),
+                          )
+                        : Icon(
+                            Icons.apps,
+                            size: 32,
+                            color: Colors.orange.shade700,
+                          ),
+                    const SizedBox(height: 8),
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }
 
-class _ActionItem {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  _ActionItem(this.icon, this.label, this.onTap);
+/// 缴费系统内部 WebView（共享 token 和 cookies）
+class FinanceInnerWebView extends StatefulWidget {
+  final String title;
+  final String url;
+  final String? accessToken;
+  final PersistCookieJar cookies;
+
+  const FinanceInnerWebView({
+    super.key,
+    required this.title,
+    required this.url,
+    this.accessToken,
+    required this.cookies,
+  });
+
+  @override
+  State<FinanceInnerWebView> createState() => _FinanceInnerWebViewState();
+}
+
+class _FinanceInnerWebViewState extends State<FinanceInnerWebView> {
+  bool _ready = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _syncAuth();
+  }
+
+  Future<void> _syncAuth() async {
+    final cookieManager = CookieManager.instance();
+    await cookieManager.deleteAllCookies();
+
+    // 同步 Dio cookies 到 WebView
+    try {
+      final cookies = await widget.cookies.loadForRequest(
+        Uri.parse(FinanceApi.baseUrl),
+      );
+      for (final c in cookies) {
+        await cookieManager.setCookie(
+          url: WebUri(FinanceApi.baseUrl),
+          name: c.name,
+          value: c.value,
+          domain: 'ycard.ahu.edu.cn',
+          path: c.path ?? '/',
+          isSecure: true,
+        );
+      }
+    } catch (_) {}
+
+    if (mounted) setState(() => _ready = true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text(widget.title)),
+      body: _ready
+          ? InAppWebView(
+              initialUrlRequest: URLRequest(url: WebUri(widget.url)),
+              initialSettings: InAppWebViewSettings(
+                javaScriptEnabled: true,
+                useWideViewPort: true,
+                supportZoom: true,
+                thirdPartyCookiesEnabled: true,
+                userAgent:
+                    'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36',
+              ),
+              onLoadStop: (controller, url) async {
+                // 注入 viewport
+                controller.evaluateJavascript(
+                  source: """
+                  var meta = document.querySelector('meta[name="viewport"]');
+                  if (!meta) {
+                    meta = document.createElement('meta');
+                    meta.name = 'viewport';
+                    meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=3.0';
+                    document.head.appendChild(meta);
+                  }
+                """,
+                );
+                // 注入 access_token 到 sessionStorage
+                if (widget.accessToken != null) {
+                  controller.evaluateJavascript(
+                    source:
+                        'sessionStorage.setItem("access_token", "${widget.accessToken}");',
+                  );
+                }
+              },
+            )
+          : const Center(child: CircularProgressIndicator()),
+    );
+  }
 }
