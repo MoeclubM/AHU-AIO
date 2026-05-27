@@ -261,7 +261,7 @@ class _SchedulePageState extends State<SchedulePage> {
       children: weekdays.map((day) {
         return TableCell(
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
             alignment: Alignment.center,
             child: Text(day, style: headerStyle),
           ),
@@ -287,7 +287,7 @@ class _SchedulePageState extends State<SchedulePage> {
         TableCell(
           verticalAlignment: TableCellVerticalAlignment.middle,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -309,8 +309,8 @@ class _SchedulePageState extends State<SchedulePage> {
           if (matchingEntries.isEmpty) {
             return TableCell(
               child: Container(
-                constraints: const BoxConstraints(minHeight: 88),
-                padding: const EdgeInsets.all(4),
+                constraints: const BoxConstraints(minHeight: 64),
+                padding: const EdgeInsets.all(2),
               ),
             );
           }
@@ -330,8 +330,8 @@ class _SchedulePageState extends State<SchedulePage> {
     bool isDark,
   ) {
     return Container(
-      constraints: const BoxConstraints(minHeight: 88),
-      padding: const EdgeInsets.all(4),
+      constraints: const BoxConstraints(minHeight: 64),
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
       child: Column(
         children: entries.map((entry) {
           final bgColor = isDark
@@ -345,9 +345,9 @@ class _SchedulePageState extends State<SchedulePage> {
           return Container(
             width: double.infinity,
             margin: entries.length > 1
-                ? const EdgeInsets.only(bottom: 2)
+                ? const EdgeInsets.only(bottom: 1)
                 : null,
-            padding: const EdgeInsets.all(4),
+            padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
             decoration: BoxDecoration(
               color: bgColor,
               borderRadius: BorderRadius.circular(6),
@@ -368,7 +368,7 @@ class _SchedulePageState extends State<SchedulePage> {
                   ),
                   softWrap: true,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 // 教室
                 Text(
                   entry.roomName,

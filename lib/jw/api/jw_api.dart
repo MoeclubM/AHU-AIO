@@ -19,8 +19,10 @@ class JwApi {
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 15),
         headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
+          'Accept': 'application/json, text/plain, */*',
+          'Content-Type': 'application/json;charset=UTF-8',
+          'Referer': 'https://jw.ahu.edu.cn/student/login',
+          'Origin': 'https://jw.ahu.edu.cn',
           'User-Agent':
               'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
         },
@@ -32,51 +34,69 @@ class JwApi {
 
   CookieJar get cookieJar => _cookieJar;
 
-  /// 获取登录盐值
+  /// 获取登录盐值 (GET /student/login-salt)
   Future<String> getLoginSalt() async {
-    final resp = await _dio.get('/student/login-salt');
-    return resp.data.toString();
+    final resp = await _dio.get(
+      '/student/login-salt',
+      options: Options(
+        contentType: 'text/plain',
+        responseType: ResponseType.plain,
+      ),
+    );
+    return resp.data.toString().trim();
   }
 
-  /// 登录
+  /// 登录 (POST /student/login)
   Future<LoginResult> login({
     required String username,
     required String passwordHash,
     String captchaToken = '',
   }) async {
-    final resp = await _dio.post(
-      '/student/login',
-      data: {
-        'username': username,
-        'password': passwordHash,
-        'captchaToken': captchaToken,
-      },
-    );
-    final data = resp.data;
-    if (data['result'] == true) {
-      studentId = await _fetchStudentId();
-      return LoginResult(success: true);
+    try {
+      final resp = await _dio.post(
+        '/student/login',
+        data: {
+          'username': username,
+          'password': passwordHash,
+          'captchaToken': captchaToken,
+        },
+      );
+      final data = resp.data;
+      if (data is Map && data['result'] == true) {
+        studentId = await _fetchStudentId();
+        return LoginResult(success: true);
+      }
+      return LoginResult(
+        success: false,
+        message: data['message']?.toString() ?? '登录失败',
+        needCaptcha: data['needCaptcha'] == true,
+      );
+    } on DioException catch (e) {
+      return LoginResult(
+        success: false,
+        message: '服务器错误(${e.response?.statusCode}): ${e.message}',
+      );
     }
-    return LoginResult(
-      success: false,
-      message: data['message']?.toString() ?? '登录失败',
-      needCaptcha: data['needCaptcha'] == true,
-    );
   }
 
   /// 登录后获取学生ID
   Future<String?> _fetchStudentId() async {
     try {
-      final resp = await _dio.get('/student/for-std/grade/sheet');
-      final location = resp.redirects.isNotEmpty
-          ? resp.redirects.last.location.toString()
-          : resp.realUri.toString();
-      final parts = location.split('/');
-      for (int i = 0; i < parts.length; i++) {
-        if (parts[i] == 'semester-index' && i + 1 < parts.length) {
-          return parts[i + 1];
+      // 从首页获取学生ID
+      final resp = await _dio.get(
+        '/student/for-std/grade/sheet',
+        options: Options(followRedirects: false),
+      );
+      if (resp.statusCode == 302) {
+        final loc = resp.headers.value('location') ?? '';
+        final parts = loc.split('/');
+        for (int i = 0; i < parts.length; i++) {
+          if (parts[i] == 'semester-index' && i + 1 < parts.length) {
+            return parts[i + 1];
+          }
         }
       }
+      // 备用方法
       final tableResp = await _dio.get(
         '/student/for-std/course-table',
         options: Options(followRedirects: true),
@@ -112,11 +132,6 @@ class JwApi {
     return Map<String, dynamic>.from(resp.data);
   }
 
-  Future<Map<String, dynamic>> getNotifications() async {
-    final resp = await _dio.get('/student/my-notification/get-notifications');
-    return Map<String, dynamic>.from(resp.data);
-  }
-
   // ============ 成绩 API ============
 
   Future<Map<String, dynamic>> getGradeSemesterIndex() async {
@@ -132,14 +147,6 @@ class JwApi {
       queryParameters: {'semester': semesterId},
     );
     return Map<String, dynamic>.from(resp.data);
-  }
-
-  Future<List<dynamic>> getNotRetakeGradeIds() async {
-    final resp = await _dio.get(
-      '/student/for-std/grade/sheet/get-not-retake-grade/$studentId',
-    );
-    final data = Map<String, dynamic>.from(resp.data);
-    return data['notRetakeGradeIds'] ?? [];
   }
 
   // ============ 课表 API ============
@@ -164,16 +171,6 @@ class JwApi {
     return Map<String, dynamic>.from(resp.data);
   }
 
-  Future<Map<String, dynamic>> getCourseTablePrintData({
-    required int semesterId,
-  }) async {
-    final resp = await _dio.get(
-      '/student/for-std/course-table/semester/$semesterId/print-data',
-      queryParameters: {'semesterId': semesterId, 'hasExperiment': 'false'},
-    );
-    return Map<String, dynamic>.from(resp.data);
-  }
-
   // ============ 考试 API ============
 
   Future<Map<String, dynamic>> getExamArrange() async {
@@ -188,14 +185,6 @@ class JwApi {
   Future<Map<String, dynamic>> getProgramCompletion() async {
     final resp = await _dio.get(
       '/student/for-std/program-completion-preview/info/$studentId',
-    );
-    return Map<String, dynamic>.from(resp.data);
-  }
-
-  Future<Map<String, dynamic>> getCourseModules(int programId) async {
-    final resp = await _dio.get(
-      '/student/for-std/credit-certification-apply/other_apply/get-all-course-module',
-      queryParameters: {'programId': programId},
     );
     return Map<String, dynamic>.from(resp.data);
   }

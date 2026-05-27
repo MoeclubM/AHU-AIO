@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import '../api/finance_api.dart';
+import '../login/finance_login_view.dart';
 
-/// 财务系统 - WebView 主页面
-/// 登录后直接加载 ycard H5 首页，所有功能通过 WebView 内嵌实现
+/// 财务系统首页 - 原生UI
 class FinanceHomePage extends StatefulWidget {
   const FinanceHomePage({super.key});
 
@@ -11,182 +11,255 @@ class FinanceHomePage extends StatefulWidget {
 }
 
 class _FinanceHomePageState extends State<FinanceHomePage> {
-  InAppWebViewController? _controller;
+  final _api = FinanceApi();
   bool _isLoading = true;
-  double _progress = 0;
-  String _title = '缴费系统';
+  String? _error;
+  Map<String, dynamic>? _userInfo;
+  List<dynamic>? _menuItems;
 
-  static const String _homeUrl = 'https://ycard.ahu.edu.cn/plat/home';
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final results = await Future.wait([
+        _api.getUserInfo(),
+        _api.getAppScheme(),
+      ]);
+
+      _userInfo = results[0];
+      _menuItems = _extractMenu(results[1]);
+
+      setState(() => _isLoading = false);
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  List<dynamic> _extractMenu(Map<String, dynamic> scheme) {
+    try {
+      final structure = scheme['data']?['schemeInfo']?['structureInfo'];
+      if (structure == null) return [];
+      final menus = <Map<String, dynamic>>[];
+      void walk(dynamic node) {
+        if (node['combinedMenuList'] is List) {
+          for (final m in node['combinedMenuList']) {
+            if (m['name'] != null &&
+                m['name'].toString().isNotEmpty &&
+                m['parentNodeId'] == 0) {
+              menus.add(m);
+            }
+            if (m['combinedMenuList'] is List) walk(m);
+          }
+        }
+      }
+
+      walk(structure);
+      return menus;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  void _logout() async {
+    await _api.logout();
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const FinanceLoginPage()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_title),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () async {
-            if (_controller != null && await _controller!.canGoBack()) {
-              _controller!.goBack();
-            } else if (mounted) {
-              // ignore: use_build_context_synchronously
-              Navigator.of(context).pop();
-            }
-          },
-        ),
+        title: const Text('缴费系统'),
         actions: [
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
           IconButton(
-            icon: const Icon(Icons.home),
-            onPressed: () => _controller?.loadUrl(
-              urlRequest: URLRequest(url: WebUri(_homeUrl)),
-            ),
-            tooltip: '首页',
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => _controller?.reload(),
-            tooltip: '刷新',
+            icon: const Icon(Icons.logout),
+            onPressed: _logout,
+            tooltip: '退出',
           ),
         ],
       ),
-      body: Column(
-        children: [
-          if (_isLoading)
-            LinearProgressIndicator(value: _progress < 1 ? _progress : null),
-          Expanded(
-            child: InAppWebView(
-              initialUrlRequest: URLRequest(url: WebUri(_homeUrl)),
-              initialSettings: InAppWebViewSettings(
-                javaScriptEnabled: true,
-                useOnLoadResource: true,
-                userAgent:
-                    'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36',
-                supportZoom: false,
-                builtInZoomControls: false,
-                transparentBackground: true,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Colors.red.shade400,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(_error!, textAlign: TextAlign.center),
+                  const SizedBox(height: 16),
+                  ElevatedButton(onPressed: _loadData, child: const Text('重试')),
+                ],
               ),
-              onWebViewCreated: (controller) {
-                _controller = controller;
-              },
-              onLoadStart: (controller, url) {
-                setState(() {
-                  _isLoading = true;
-                });
-              },
-              onLoadStop: (controller, url) async {
-                setState(() {
-                  _isLoading = false;
-                  _progress = 1.0;
-                });
-                // 获取页面标题
-                final title = await controller.getTitle();
-                if (title != null && title.isNotEmpty && mounted) {
-                  setState(() => _title = title);
-                }
-              },
-              onProgressChanged: (controller, progress) {
-                setState(() => _progress = progress / 100.0);
-              },
-              onTitleChanged: (controller, title) {
-                if (title != null && title.isNotEmpty) {
-                  setState(() => _title = title);
-                }
-              },
-              shouldOverrideUrlLoading: (controller, navigationAction) async {
-                final url = navigationAction.request.url.toString();
-                // 允许 ycard 域名的请求
-                if (url.contains('ycard.ahu.edu.cn') ||
-                    url.contains('xzxpay.com') ||
-                    url.contains('supwisdom.com')) {
-                  return NavigationActionPolicy.ALLOW;
-                }
-                // 阻止跳转到外部浏览器
-                return NavigationActionPolicy.CANCEL;
-              },
+            )
+          : RefreshIndicator(
+              onRefresh: _loadData,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                children: [
+                  _buildUserCard(),
+                  const SizedBox(height: 16),
+                  _buildBalanceCard(),
+                  const SizedBox(height: 16),
+                  _buildQuickActions(),
+                  const SizedBox(height: 16),
+                  if (_menuItems != null && _menuItems!.isNotEmpty)
+                    _buildMenuGrid(),
+                ],
+              ),
+            ),
+    );
+  }
+
+  Widget _buildUserCard() {
+    final userData = _userInfo?['data'] ?? {};
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 24,
+              backgroundColor: Colors.orange.shade100,
+              child: Icon(
+                Icons.person,
+                color: Colors.orange.shade700,
+                size: 28,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    userData['name']?.toString() ?? '加载中...',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '学号: ${userData['sno']?.toString() ?? '-'}',
+                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBalanceCard() {
+    return Card(
+      elevation: 4,
+      color: Colors.orange.shade50,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            Text(
+              '一卡通余额',
+              style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '加载中...',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: Colors.orange.shade800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActions() {
+    final actions = [
+      _ActionItem(Icons.credit_card, '校园卡', () {}),
+      _ActionItem(Icons.add_card, '充值', () {}),
+      _ActionItem(Icons.qr_code, '一码通', () {}),
+      _ActionItem(Icons.receipt_long, '账单', () {}),
+      _ActionItem(Icons.electrical_services, '电费', () {}),
+      _ActionItem(Icons.water_drop, '水费', () {}),
+    ];
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 12,
+        mainAxisSpacing: 12,
+        childAspectRatio: 1.1,
+      ),
+      itemCount: actions.length,
+      itemBuilder: (_, i) {
+        final a = actions[i];
+        return Card(
+          child: InkWell(
+            onTap: a.onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(a.icon, size: 28, color: Colors.orange.shade700),
+                const SizedBox(height: 8),
+                Text(
+                  a.label,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
-      ),
-      bottomNavigationBar: _buildQuickNav(),
+        );
+      },
     );
   }
 
-  Widget _buildQuickNav() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 4,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _navItem(Icons.home, '首页', () {
-              _controller?.loadUrl(
-                urlRequest: URLRequest(url: WebUri(_homeUrl)),
-              );
-            }),
-            _navItem(Icons.credit_card, '校园卡', () {
-              _controller?.loadUrl(
-                urlRequest: URLRequest(
-                  url: WebUri(
-                    'https://ycard.ahu.edu.cn/campus-card/?name=campusCard',
-                  ),
-                ),
-              );
-            }),
-            _navItem(Icons.account_balance_wallet, '充值', () {
-              _controller?.loadUrl(
-                urlRequest: URLRequest(
-                  url: WebUri(
-                    'https://ycard.ahu.edu.cn/campus-card/?name=cardRecharge',
-                  ),
-                ),
-              );
-            }),
-            _navItem(Icons.qr_code, '一码通', () {
-              _controller?.loadUrl(
-                urlRequest: URLRequest(
-                  url: WebUri('https://ycard.ahu.edu.cn/plat?name=cardcode'),
-                ),
-              );
-            }),
-            _navItem(Icons.receipt_long, '账单', () {
-              _controller?.loadUrl(
-                urlRequest: URLRequest(
-                  url: WebUri(
-                    'https://ycard.ahu.edu.cn/campus-card/?name=billList',
-                  ),
-                ),
-              );
-            }),
-          ],
-        ),
-      ),
+  Widget _buildMenuGrid() {
+    return Text(
+      '功能菜单 (${_menuItems!.length}项)',
+      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
     );
   }
+}
 
-  Widget _navItem(IconData icon, String label, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 22, color: Colors.orange.shade700),
-            const SizedBox(height: 2),
-            Text(label, style: const TextStyle(fontSize: 11)),
-          ],
-        ),
-      ),
-    );
-  }
+class _ActionItem {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  _ActionItem(this.icon, this.label, this.onTap);
 }

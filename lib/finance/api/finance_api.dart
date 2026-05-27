@@ -28,38 +28,24 @@ class FinanceApi {
   }
 
   bool get loggedIn => _loggedIn;
+  set loggedIn(bool v) => _loggedIn = v;
   CookieJar get cookieJar => _cookieJar;
   String? get accessToken => _accessToken;
 
-  /// 从 WebView 提取 access_token 后设置
+  /// 设置 access_token
   void setAccessToken(String token) {
     _accessToken = token;
     _dio.options.headers['Authorization'] = 'Bearer $token';
   }
 
-  /// 从 WebView 提取所有 cookies 后设置
-  void setCookies(List<Cookie> cookies) {
-    _cookieJar.saveFromResponse(Uri.parse(baseUrl), cookies);
-    // 也从 cookies 中提取 access_token
-    for (final cookie in cookies) {
-      if (cookie.name == 'access_token' && cookie.value.isNotEmpty) {
-        setAccessToken(cookie.value);
-      }
-    }
-  }
-
   /// 获取用户信息
   Future<Map<String, dynamic>> getUserInfo() async {
-    try {
-      final resp = await _dio.get('/berserker-base/user');
-      return Map<String, dynamic>.from(resp.data);
-    } catch (e) {
-      return {'code': 401, 'message': '获取用户信息失败: $e'};
-    }
+    final resp = await _dio.get('/berserker-base/user');
+    return Map<String, dynamic>.from(resp.data);
   }
 
-  /// 获取一卡通应用信息（含菜单、余额等入口）
-  Future<Map<String, dynamic>> getEcardInfo() async {
+  /// 获取一卡通应用方案（含菜单结构）
+  Future<Map<String, dynamic>> getAppScheme() async {
     final resp = await _dio.get(
       '/berserker-app/appScheme/info',
       queryParameters: {
@@ -80,7 +66,7 @@ class FinanceApi {
     return Map<String, dynamic>.from(resp.data);
   }
 
-  /// 通用 GET 请求
+  /// 通用 GET
   Future<Map<String, dynamic>> get(
     String path, {
     Map<String, dynamic>? params,
@@ -89,7 +75,7 @@ class FinanceApi {
     return Map<String, dynamic>.from(resp.data);
   }
 
-  /// 通用 POST 请求
+  /// 通用 POST
   Future<Map<String, dynamic>> post(String path, {dynamic data}) async {
     final resp = await _dio.post(path, data: data);
     return Map<String, dynamic>.from(resp.data);
