@@ -34,8 +34,7 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
     final api = FinanceApi();
     await api.init();
 
-    // 尝试自动登录（已有持久化 token）
-    if (api.accessToken != null) {
+    if (api.loggedIn || api.accessToken != null) {
       final valid = await api.hasValidSession();
       if (valid && mounted) {
         api.loggedIn = true;
@@ -47,7 +46,6 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
       }
     }
 
-    // 清除旧 cookie，开始 CAS 登录
     await CookieManager.instance().deleteAllCookies();
     if (mounted) setState(() => _checkingSession = false);
   }
@@ -83,7 +81,7 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
                 });
                 _checkSuccess(url?.toString() ?? '');
               },
-              onProgressChanged: (controller, progress) {
+              onProgressChanged: (_, progress) {
                 setState(() => _progress = progress / 100.0);
               },
             ),
@@ -95,53 +93,38 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
 
   void _checkSuccess(String url) {
     if (_didNavigate) return;
-    if (url.contains('ycard.ahu.edu.cn/plat/') &&
-        !url.contains('/login') &&
-        !url.contains('/cas')) {
+    if (url.contains('ycard.ahu.edu.cn/plat/')) {
       _didNavigate = true;
-      _waitForTokenAndNavigate();
+      _waitForTokenAndNavigate(url);
     }
   }
 
-  Future<void> _waitForTokenAndNavigate() async {
-    String? token;
+  Future<void> _waitForTokenAndNavigate(String latestUrl) async {
+    String? token = _extractTokenFromUrl(latestUrl);
 
-    // 轮询 sessionStorage 和 localStorage 等待 OAuth token
-    for (int i = 0; i < 30; i++) {
+    for (int i = 0; i < 30 && token == null; i++) {
       try {
-        // 先查 sessionStorage
         final ssResult = await _controller?.evaluateJavascript(
           source: 'sessionStorage.getItem("access_token")',
         );
         if (_isValidToken(ssResult)) {
-          token = ssResult.toString();
+          token = ssResult.toString().replaceAll('"', '');
           break;
         }
-        // 再查 localStorage
         final lsResult = await _controller?.evaluateJavascript(
           source: 'localStorage.getItem("access_token")',
         );
         if (_isValidToken(lsResult)) {
-          token = lsResult.toString();
+          token = lsResult.toString().replaceAll('"', '');
           break;
         }
-      } catch (_) {}
-      await Future.delayed(const Duration(milliseconds: 500));
-    }
-
-    // 降级：尝试从 refreshObj 中提取 refresh_token
-    if (token == null) {
-      try {
         final refreshObj = await _controller?.evaluateJavascript(
           source: 'sessionStorage.getItem("refreshObj")',
         );
-        if (refreshObj is String && refreshObj.contains('access_token')) {
-          final match = RegExp(
-            r'"access_token":"([^"]+)"',
-          ).firstMatch(refreshObj);
-          if (match != null) token = match.group(1);
-        }
+        token = _extractTokenFromRefreshObj(refreshObj);
+        if (token != null) break;
       } catch (_) {}
+      await Future.delayed(const Duration(milliseconds: 300));
     }
 
     final api = FinanceApi();
@@ -149,7 +132,6 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
       api.setAccessToken(token);
     }
 
-    // 提取 cookies
     try {
       final cookies = await CookieManager.instance().getCookies(
         url: WebUri('https://ycard.ahu.edu.cn'),
@@ -167,8 +149,17 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
       );
     } catch (_) {}
 
-    api.loggedIn = true;
+    final valid = await api.hasValidSession();
+    if (!valid) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('登录态校验失败，请重试')));
+      setState(() => _didNavigate = false);
+      return;
+    }
 
+    api.loggedIn = true;
     if (!mounted) return;
     Navigator.pushReplacement(
       context,
@@ -176,9 +167,30 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
     );
   }
 
+  String? _extractTokenFromUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+      final token =
+          uri.queryParameters['synjones-auth'] ??
+          uri.queryParameters['access_token'];
+      if (token != null && token.isNotEmpty) {
+        return token;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  String? _extractTokenFromRefreshObj(dynamic value) {
+    if (value == null || value is! String || value.isEmpty) return null;
+    final match = RegExp(r'"access_token"\s*:\s*"([^"]+)"').firstMatch(value);
+    return match?.group(1);
+  }
+
   bool _isValidToken(dynamic value) {
-    if (value == null) return false;
-    if (value is! String) return false;
-    return value.isNotEmpty && value != 'null' && value.length > 20;
+    if (value == null || value is! String) return false;
+    final normalized = value.replaceAll('"', '');
+    return normalized.isNotEmpty &&
+        normalized != 'null' &&
+        normalized.length > 20;
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import '../api/jw_api.dart';
 import '../models/jw_models.dart';
@@ -78,6 +80,10 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('我的课表')),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: _isLoading || _tableData == null
+          ? null
+          : _buildFloatingWeekSelector(),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null && _tableData == null
@@ -104,7 +110,6 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
 
     return Column(
       children: [
-        _buildWeekSelector(),
         _buildStudentInfo(),
         Expanded(child: _buildGrid(activities)),
       ],
@@ -136,34 +141,96 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
     );
   }
 
-  Widget _buildWeekSelector() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      color: Theme.of(context).colorScheme.primaryContainer,
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left, size: 20),
-            onPressed: _currentWeek > 1
-                ? () => setState(() => _currentWeek--)
-                : null,
-          ),
-          Expanded(
-            child: Text(
-              '第 $_currentWeek 周',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+  Widget _buildFloatingWeekSelector() {
+    return SafeArea(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+          child: Container(
+            height: 52,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.22),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.35),
+                width: 0.8,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left),
+                  color: Colors.white,
+                  onPressed: _currentWeek > 1
+                      ? () => setState(() => _currentWeek--)
+                      : null,
+                ),
+                GestureDetector(
+                  onTap: _showWeekPicker,
+                  child: Container(
+                    constraints: const BoxConstraints(minWidth: 96),
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    alignment: Alignment.center,
+                    child: Text(
+                      '第 $_currentWeek 周',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right),
+                  color: Colors.white,
+                  onPressed: _currentWeek < 20
+                      ? () => setState(() => _currentWeek++)
+                      : null,
+                ),
+              ],
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right, size: 20),
-            onPressed: _currentWeek < 20
-                ? () => setState(() => _currentWeek++)
-                : null,
-          ),
-        ],
+        ),
       ),
     );
+  }
+
+  Future<void> _showWeekPicker() async {
+    final selectedWeek = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final bottomPadding = MediaQuery.of(ctx).viewPadding.bottom;
+        return Container(
+          padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomPadding),
+          decoration: BoxDecoration(
+            color: Theme.of(ctx).colorScheme.surface.withValues(alpha: 0.95),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+          ),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: List.generate(20, (index) {
+              final week = index + 1;
+              final isSelected = week == _currentWeek;
+              return ChoiceChip(
+                label: Text('第$week周'),
+                selected: isSelected,
+                onSelected: (_) => Navigator.pop(ctx, week),
+              );
+            }),
+          ),
+        );
+      },
+    );
+
+    if (selectedWeek != null && mounted) {
+      setState(() => _currentWeek = selectedWeek);
+    }
   }
 
   Widget _buildGrid(List<CourseActivity> weekActivities) {

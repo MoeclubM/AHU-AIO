@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import '../api/jw_api.dart';
+import '../utils/jw_webview_auth.dart';
 
 /// 通用 WebView 页面，共享 Dio 的认证 cookies
 class JwWebViewPage extends StatefulWidget {
@@ -18,35 +18,36 @@ class _JwWebViewPageState extends State<JwWebViewPage> {
   bool _hasError = false;
   String? _errorMsg;
   InAppWebViewController? _controller;
+  int _authRetryCount = 0;
 
   @override
   void initState() {
     super.initState();
-    _syncCookies();
+    _prepareWebView();
   }
 
-  Future<void> _syncCookies() async {
+  Future<void> _prepareWebView() async {
     try {
-      final api = JwApi();
-      await api.init();
-      final cookies = await api.cookieJar.loadForRequest(
-        Uri.parse(JwApi.baseUrl),
-      );
-      final cookieManager = CookieManager.instance();
-      await cookieManager.deleteAllCookies();
-      for (final c in cookies) {
-        // 设置 cookie，路径保持原始值（/student 或 /student/）
-        await cookieManager.setCookie(
-          url: WebUri('${JwApi.baseUrl}${c.path ?? '/'}'),
-          name: c.name,
-          value: c.value,
-          domain: 'jw.ahu.edu.cn',
-          path: c.path ?? '/',
-          isSecure: true,
-        );
-      }
+      await JwWebViewAuth.syncCookies(widget.url);
     } catch (_) {}
     if (mounted) setState(() => _ready = true);
+  }
+
+  Future<void> _handlePossibleAuthExpiry(String? currentUrl) async {
+    if (!JwWebViewAuth.isLoginRedirect(currentUrl, widget.url)) return;
+    if (_authRetryCount >= 1) {
+      if (mounted) {
+        setState(() {
+          _hasError = true;
+          _errorMsg = '登录已过期，请返回重新登录教务系统';
+        });
+      }
+      return;
+    }
+
+    _authRetryCount++;
+    await JwWebViewAuth.syncCookies(widget.url);
+    await _controller?.loadUrl(urlRequest: URLRequest(url: WebUri(widget.url)));
   }
 
   @override
@@ -57,7 +58,14 @@ class _JwWebViewPageState extends State<JwWebViewPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh),
-            onPressed: () => _controller?.reload(),
+            onPressed: () async {
+              setState(() {
+                _hasError = false;
+                _authRetryCount = 0;
+              });
+              await JwWebViewAuth.syncCookies(widget.url);
+              await _controller?.reload();
+            },
             tooltip: '刷新',
           ),
         ],
@@ -78,7 +86,7 @@ class _JwWebViewPageState extends State<JwWebViewPage> {
                   onWebViewCreated: (controller) {
                     _controller = controller;
                   },
-                  onLoadStop: (controller, url) {
+                  onLoadStop: (controller, url) async {
                     controller.evaluateJavascript(
                       source: """
                       (function() {
@@ -95,15 +103,12 @@ class _JwWebViewPageState extends State<JwWebViewPage> {
                       })();
                     """,
                     );
+
                     final urlStr = url?.toString() ?? '';
-                    if (urlStr.contains('/login') &&
-                        !widget.url.contains('/login')) {
-                      if (mounted) {
-                        setState(() {
-                          _hasError = true;
-                          _errorMsg = '登录已过期，请重新登录';
-                        });
-                      }
+                    if (JwWebViewAuth.isLoginRedirect(urlStr, widget.url)) {
+                      await _handlePossibleAuthExpiry(urlStr);
+                    } else if (_hasError && mounted) {
+                      setState(() => _hasError = false);
                     }
                   },
                   onReceivedError: (controller, request, error) {
@@ -136,15 +141,17 @@ class _JwWebViewPageState extends State<JwWebViewPage> {
                             ),
                             const SizedBox(height: 16),
                             ElevatedButton(
-                              onPressed: () {
-                                setState(() => _hasError = false);
-                                _syncCookies().then((_) {
-                                  _controller?.loadUrl(
-                                    urlRequest: URLRequest(
-                                      url: WebUri(widget.url),
-                                    ),
-                                  );
+                              onPressed: () async {
+                                setState(() {
+                                  _hasError = false;
+                                  _authRetryCount = 0;
                                 });
+                                await _prepareWebView();
+                                await _controller?.loadUrl(
+                                  urlRequest: URLRequest(
+                                    url: WebUri(widget.url),
+                                  ),
+                                );
                               },
                               child: const Text('重试'),
                             ),

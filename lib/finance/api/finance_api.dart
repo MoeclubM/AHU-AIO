@@ -45,6 +45,16 @@ class FinanceApi {
           options.queryParameters.putIfAbsent('synAccessSource', () => 'h5');
           handler.next(options);
         },
+        onError: (error, handler) {
+          final status = error.response?.statusCode;
+          final code = error.response?.data is Map
+              ? error.response?.data['code']
+              : null;
+          if (status == 401 || code == 401) {
+            loggedIn = false;
+          }
+          handler.next(error);
+        },
       ),
     );
     _initialized = true;
@@ -61,11 +71,24 @@ class FinanceApi {
   PersistCookieJar get cookieJar => _cookieJar;
 
   void setAccessToken(String token) {
-    accessToken = token;
-    _dio.options.headers['synjones-auth'] = 'bearer $token';
+    final normalized = _normalizeToken(token);
+    accessToken = normalized;
+    _dio.options.headers['synjones-auth'] = 'bearer $normalized';
     SharedPreferences.getInstance().then((prefs) {
-      prefs.setString('finance_access_token', token);
+      prefs.setString('finance_access_token', normalized);
     });
+  }
+
+  static String _normalizeToken(String token) {
+    var value = token.trim();
+    if (value.startsWith('"') && value.endsWith('"')) {
+      value = value.substring(1, value.length - 1);
+    }
+    final lower = value.toLowerCase();
+    if (lower.startsWith('bearer ')) {
+      value = value.substring(7).trim();
+    }
+    return value;
   }
 
   void clearAuth() {

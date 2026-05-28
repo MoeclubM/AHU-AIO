@@ -1,3 +1,5 @@
+import 'dart:io' as io;
+
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
@@ -43,8 +45,14 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
 
       setState(() => _isLoading = false);
     } catch (e) {
+      final message = e.toString();
+      final unauthorized =
+          message.contains('401') || message.contains('鉴权') || !_api.loggedIn;
+      if (unauthorized) {
+        _api.clearAuth();
+      }
       setState(() {
-        _error = e.toString();
+        _error = unauthorized ? '登录已过期，请重新登录' : message;
         _isLoading = false;
       });
     }
@@ -135,7 +143,10 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
                     child: Text(_error!, textAlign: TextAlign.center),
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton(onPressed: _loadData, child: const Text('重试')),
+                  ElevatedButton(
+                    onPressed: _error == '登录已过期，请重新登录' ? _logout : _loadData,
+                    child: Text(_error == '登录已过期，请重新登录' ? '重新登录' : '重试'),
+                  ),
                 ],
               ),
             )
@@ -314,19 +325,28 @@ class _FinanceInnerWebViewState extends State<FinanceInnerWebView> {
     final cookieManager = CookieManager.instance();
     await cookieManager.deleteAllCookies();
 
-    // 同步 Dio cookies 到 WebView
     try {
-      final cookies = await widget.cookies.loadForRequest(
+      final requestUris = <Uri>{
         Uri.parse(FinanceApi.baseUrl),
-      );
-      for (final c in cookies) {
+        Uri.parse(widget.url),
+      };
+      final merged = <String, io.Cookie>{};
+      for (final uri in requestUris) {
+        final cookies = await widget.cookies.loadForRequest(uri);
+        for (final c in cookies) {
+          merged['${c.name}@${c.path ?? '/'}'] = c;
+        }
+      }
+      for (final c in merged.values) {
+        final path = c.path ?? '/';
         await cookieManager.setCookie(
-          url: WebUri(FinanceApi.baseUrl),
+          url: WebUri('${FinanceApi.baseUrl}$path'),
           name: c.name,
           value: c.value,
           domain: 'ycard.ahu.edu.cn',
-          path: c.path ?? '/',
+          path: path,
           isSecure: true,
+          isHttpOnly: c.httpOnly,
         );
       }
     } catch (_) {}
@@ -362,11 +382,14 @@ class _FinanceInnerWebViewState extends State<FinanceInnerWebView> {
                   }
                 """,
                 );
-                // 注入 access_token 到 sessionStorage
                 if (widget.accessToken != null) {
+                  final token = widget.accessToken!.replaceAll('"', r'\"');
                   controller.evaluateJavascript(
                     source:
-                        'sessionStorage.setItem("access_token", "${widget.accessToken}");',
+                        '''
+                      sessionStorage.setItem("access_token", "$token");
+                      localStorage.setItem("access_token", "$token");
+                    ''',
                   );
                 }
               },
