@@ -23,7 +23,7 @@ class FinanceApi {
         connectTimeout: const Duration(seconds: 15),
         receiveTimeout: const Duration(seconds: 15),
         headers: {
-          'Accept': 'application/json',
+          'Accept': 'application/json, text/plain, */*',
           'User-Agent':
               'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36',
         },
@@ -38,6 +38,15 @@ class FinanceApi {
       storage: FileStorage('${dir.path}/finance_cookies'),
     );
     _dio.interceptors.add(CookieManager(_cookieJar));
+    // 添加拦截器：确保所有请求带 synAccessSource
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          options.queryParameters.putIfAbsent('synAccessSource', () => 'h5');
+          handler.next(options);
+        },
+      ),
+    );
     _initialized = true;
 
     // 恢复 token
