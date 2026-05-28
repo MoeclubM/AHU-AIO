@@ -229,10 +229,8 @@ class JwApi {
             if (id != null) allSemesters[id] = Map<String, dynamic>.from(s);
           }
         }
-        if (allSemesters.isNotEmpty) break;
       } catch (_) {}
     }
-    // 按 ID 降序排列（最新学期在前）
     final sorted = allSemesters.values.toList()
       ..sort((a, b) => (toInt(b['id']) ?? 0).compareTo(toInt(a['id']) ?? 0));
     return sorted;

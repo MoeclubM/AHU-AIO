@@ -69,6 +69,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
     return _tableData!.activities.where((a) {
       if (a.weekday != weekday) return false;
       if (a.startUnit == null || a.endUnit == null) return false;
+      if (!a.weekIndexes.contains(_currentWeek)) return false;
       return a.startUnit! <= slot && a.endUnit! >= slot;
     }).toList();
   }
@@ -253,7 +254,6 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
   }
 
   Widget _buildActivityCard(CourseActivity a) {
-    // 根据课程名生成不同颜色
     final colors = [
       Colors.blue.shade50,
       Colors.green.shade50,
@@ -264,37 +264,86 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
     ];
     final colorIdx = a.courseName.hashCode.abs() % colors.length;
 
-    return Container(
-      margin: const EdgeInsets.all(1),
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        color: colors[colorIdx],
-        borderRadius: BorderRadius.circular(4),
+    return GestureDetector(
+      onTap: () => _showCourseDetail(a),
+      child: Container(
+        margin: const EdgeInsets.all(1),
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          color: colors[colorIdx],
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              a.courseName ?? '',
+              style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w600),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (a.room != null)
+              Text(
+                a.room!,
+                style: const TextStyle(fontSize: 7, color: Colors.grey),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            if (a.teacherStr.isNotEmpty)
+              Text(
+                a.teacherStr,
+                style: const TextStyle(fontSize: 7, color: Colors.grey),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+          ],
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            a.courseName ?? '',
-            style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w600),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  void _showCourseDetail(CourseActivity a) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(a.courseName ?? '课程详情'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _detailRow('课程代码', a.courseCode),
+            _detailRow('教师', a.teacherStr.isNotEmpty ? a.teacherStr : null),
+            _detailRow('教室', a.room),
+            _detailRow('校区', a.campus),
+            _detailRow('上课时间', '${a.weekdayStr} ${a.slotRange}'),
+            _detailRow('周次', a.weeksStr ?? a.weekIndexes.join(', ')),
+            if (a.credits != null)
+              _detailRow('学分', a.credits!.toStringAsFixed(1)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('关闭'),
           ),
-          if (a.room != null)
-            Text(
-              a.room!,
-              style: const TextStyle(fontSize: 7, color: Colors.grey),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          if (a.teacherStr.isNotEmpty)
-            Text(
-              a.teacherStr,
-              style: const TextStyle(fontSize: 7, color: Colors.grey),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _detailRow(String label, String? value) {
+    if (value == null || value.isEmpty) return const SizedBox();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 70,
+            child: Text('$label:', style: const TextStyle(color: Colors.grey)),
+          ),
+          Expanded(child: Text(value)),
         ],
       ),
     );

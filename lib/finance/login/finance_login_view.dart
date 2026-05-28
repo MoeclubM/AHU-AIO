@@ -106,26 +106,45 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
   Future<void> _waitForTokenAndNavigate() async {
     String? token;
 
-    // 轮询 sessionStorage 等待 OAuth token
-    for (int i = 0; i < 20; i++) {
+    // 轮询 sessionStorage 和 localStorage 等待 OAuth token
+    for (int i = 0; i < 30; i++) {
       try {
-        final result = await _controller?.evaluateJavascript(
+        // 先查 sessionStorage
+        final ssResult = await _controller?.evaluateJavascript(
           source: 'sessionStorage.getItem("access_token")',
         );
-        if (result != null &&
-            result is String &&
-            result.isNotEmpty &&
-            result != 'null' &&
-            result.length > 20) {
-          token = result;
+        if (_isValidToken(ssResult)) {
+          token = ssResult.toString();
+          break;
+        }
+        // 再查 localStorage
+        final lsResult = await _controller?.evaluateJavascript(
+          source: 'localStorage.getItem("access_token")',
+        );
+        if (_isValidToken(lsResult)) {
+          token = lsResult.toString();
           break;
         }
       } catch (_) {}
       await Future.delayed(const Duration(milliseconds: 500));
     }
 
-    final api = FinanceApi();
+    // 降级：尝试从 refreshObj 中提取 refresh_token
+    if (token == null) {
+      try {
+        final refreshObj = await _controller?.evaluateJavascript(
+          source: 'sessionStorage.getItem("refreshObj")',
+        );
+        if (refreshObj is String && refreshObj.contains('access_token')) {
+          final match = RegExp(
+            r'"access_token":"([^"]+)"',
+          ).firstMatch(refreshObj);
+          if (match != null) token = match.group(1);
+        }
+      } catch (_) {}
+    }
 
+    final api = FinanceApi();
     if (token != null) {
       api.setAccessToken(token);
     }
@@ -155,5 +174,11 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
       context,
       MaterialPageRoute(builder: (_) => const FinanceHomePage()),
     );
+  }
+
+  bool _isValidToken(dynamic value) {
+    if (value == null) return false;
+    if (value is! String) return false;
+    return value.isNotEmpty && value != 'null' && value.length > 20;
   }
 }
