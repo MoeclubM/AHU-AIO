@@ -62,8 +62,7 @@ class FinanceApi {
 
   void setAccessToken(String token) {
     accessToken = token;
-    _dio.options.headers['Authorization'] = 'Bearer $token';
-    // 持久化 token
+    _dio.options.headers['synjones-auth'] = 'bearer $token';
     SharedPreferences.getInstance().then((prefs) {
       prefs.setString('finance_access_token', token);
     });
@@ -72,7 +71,7 @@ class FinanceApi {
   void clearAuth() {
     loggedIn = false;
     accessToken = null;
-    _dio.options.headers.remove('Authorization');
+    _dio.options.headers.remove('synjones-auth');
     _cookieJar.deleteAll();
     SharedPreferences.getInstance().then((prefs) {
       prefs.remove('finance_access_token');
@@ -81,7 +80,7 @@ class FinanceApi {
 
   /// 验证当前 session 是否有效
   Future<bool> hasValidSession() async {
-    if (!loggedIn || accessToken == null) return false;
+    if (!loggedIn) return false;
     try {
       final resp = await getUserInfo();
       return resp['code'] == 200 && resp['success'] == true;
