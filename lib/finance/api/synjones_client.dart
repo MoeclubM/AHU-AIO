@@ -1,7 +1,5 @@
 library;
 
-import 'dart:convert';
-import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
@@ -358,1012 +356,425 @@ class SynjonesClient {
   }
 
   // ============================================================
-  // CAS Triple-DES Encryption (strEnc)
+  // CAS strEnc: direct port of CAS des.js
+  // Each char → 16-bit Unicode block, custom IP/FP/E permutations.
   // ============================================================
 
   /// Matches `strEnc(data, key1, key2, key3)` from CAS `des.js`.
-  /// Splits data into 8-byte chunks and encrypts each with rotating keys.
-  static String _strEnc(String data, String k1, String k2, String k3) {
-    final dataBytes = utf8.encode(data);
-    final keys = [k1, k2, k3];
-    final encrypted = <int>[];
-    for (var i = 0; i < dataBytes.length; i += 8) {
-      final chunk = dataBytes.sublist(i, (i + 8).clamp(0, dataBytes.length));
-      final key = keys[(i ~/ 8) % 3];
-      final keyBytes = Uint8List(8);
-      for (var j = 0; j < 8; j++) {
-        keyBytes[j] = j < key.length ? key.codeUnitAt(j) : 0;
-      }
-      encrypted.addAll(_desEncryptBlock(chunk, keyBytes));
+  static String _strEnc(
+    String data,
+    String firstKey,
+    String secondKey,
+    String thirdKey,
+  ) {
+    final dataBts = _strToBt(data);
+    final firstKeyBts = _getKeyBytes(firstKey);
+    final secondKeyBts = _getKeyBytes(secondKey);
+    final thirdKeyBts = _getKeyBytes(thirdKey);
+
+    var encBt = dataBts;
+    for (final kb in firstKeyBts) {
+      encBt = _desEnc(encBt, kb);
     }
-    return encrypted
-        .map((b) => b.toRadixString(16).padLeft(2, '0'))
-        .join()
-        .toUpperCase();
+    for (final kb in secondKeyBts) {
+      encBt = _desEnc(encBt, kb);
+    }
+    for (final kb in thirdKeyBts) {
+      encBt = _desEnc(encBt, kb);
+    }
+
+    return _bt64ToHex(encBt);
   }
 
-  // ============================================================
-  // Pure Dart DES (ECB, no padding) — matches des.js `enc()`
-  // ============================================================
-
-  static List<int> _desEncryptBlock(List<int> data, Uint8List key) {
-    final block = Uint8List(8);
-    for (var i = 0; i < data.length && i < 8; i++) {
-      block[i] = data[i];
-    }
-    final subKeys = _desGenerateSubkeys(key);
-    return _desProcessBlock(block, subKeys);
-  }
-
-  static List<int> _desProcessBlock(Uint8List block, List<Uint8List> subKeys) {
-    // Initial Permutation
-    var bits = _bytesToBits(block);
-    bits = _permute(bits, _ip);
-    var l = bits.sublist(0, 32);
-    var r = bits.sublist(32, 64);
-    for (var round = 0; round < 16; round++) {
-      final newR = _xor(l, _feistel(r, subKeys[round]));
-      l = r;
-      r = newR;
-    }
-    final combined = [...r, ...l]; // swap before final perm
-    final output = _permute(combined, _fp);
-    return _bitsToBytes(output);
-  }
-
-  static List<int> _feistel(List<int> r, Uint8List subKey) {
-    final expanded = _permute(r, _e);
-    final keyBits = _bytesToBits(subKey);
-    final xored = _xor(expanded, keyBits);
-    final substituted = <int>[];
-    for (var i = 0; i < 8; i++) {
-      final group = xored.sublist(i * 6, i * 6 + 6);
-      final row = (group[0] << 1) | group[5];
-      final col =
-          (group[1] << 3) | (group[2] << 2) | (group[3] << 1) | group[4];
-      var val = _sBoxes[i][row * 16 + col];
-      substituted.addAll([
-        (val >> 3) & 1,
-        (val >> 2) & 1,
-        (val >> 1) & 1,
-        val & 1,
-      ]);
-    }
-    return _permute(substituted, _p);
-  }
-
-  static List<Uint8List> _desGenerateSubkeys(Uint8List key) {
-    final keyBits = _bytesToBits(key);
-    final permuted = _permute(keyBits, _pc1);
-    var c = permuted.sublist(0, 28);
-    var d = permuted.sublist(28, 56);
-    final subKeys = <Uint8List>[];
-    for (var round = 0; round < 16; round++) {
-      c = _rotateLeft(c, _shiftSchedule[round]);
-      d = _rotateLeft(d, _shiftSchedule[round]);
-      final cd = [...c, ...d];
-      final subKeyBits = _permute(cd, _pc2);
-      subKeys.add(_bitsToBytes(subKeyBits));
-    }
-    return subKeys;
-  }
-
-  // Bit helpers
-  static List<int> _bytesToBits(List<int> bytes) {
-    final bits = <int>[];
-    for (final b in bytes) {
-      for (var i = 7; i >= 0; i--) {
-        bits.add((b >> i) & 1);
+  /// String → 64-bit array (16 bits per char, ≤4 chars).
+  static List<int> _strToBt(String str) {
+    final bt = List<int>.filled(64, 0);
+    final len = str.length;
+    final limit = len < 4 ? len : 4;
+    for (var i = 0; i < limit; i++) {
+      var k = str.codeUnitAt(i);
+      for (var j = 0; j < 16; j++) {
+        var pow = 1;
+        for (var m = 15; m > j; m--) {
+          pow *= 2;
+        }
+        bt[16 * i + j] = (k ~/ pow) % 2;
       }
     }
-    return bits;
+    return bt;
   }
 
-  static Uint8List _bitsToBytes(List<int> bits) {
-    final bytes = <int>[];
-    for (var i = 0; i < bits.length; i += 8) {
-      var b = 0;
-      for (var j = 0; j < 8 && i + j < bits.length; j++) {
-        b = (b << 1) | bits[i + j];
-      }
-      bytes.add(b);
+  /// Key string → list of 64-bit key arrays (split every 4 chars).
+  static List<List<int>> _getKeyBytes(String key) {
+    final keyBytes = <List<int>>[];
+    final leng = key.length;
+    final iterator = leng ~/ 4;
+    final remainder = leng % 4;
+    for (var i = 0; i < iterator; i++) {
+      keyBytes.add(_strToBt(key.substring(i * 4, i * 4 + 4)));
     }
-    return Uint8List.fromList(bytes);
+    if (remainder > 0) {
+      keyBytes.add(_strToBt(key.substring(iterator * 4)));
+    }
+    return keyBytes;
   }
 
-  static List<int> _permute(List<int> bits, List<int> table) {
-    return table.map((i) => bits[i]).toList();
+  /// 64-bit array → hex string.
+  static String _bt64ToHex(List<int> byteData) {
+    final hex = StringBuffer();
+    for (var i = 0; i < 16; i++) {
+      var binary = '';
+      for (var j = 0; j < 4; j++) {
+        binary += byteData[i * 4 + j].toString();
+      }
+      hex.write(_bt4ToHex(binary));
+    }
+    return hex.toString();
+  }
+
+  static String _bt4ToHex(String binary) {
+    const map = {
+      '0000': '0',
+      '0001': '1',
+      '0010': '2',
+      '0011': '3',
+      '0100': '4',
+      '0101': '5',
+      '0110': '6',
+      '0111': '7',
+      '1000': '8',
+      '1001': '9',
+      '1010': 'A',
+      '1011': 'B',
+      '1100': 'C',
+      '1101': 'D',
+      '1110': 'E',
+      '1111': 'F',
+    };
+    return map[binary] ?? '0';
+  }
+
+  // ---- DES core (custom permutations from des.js) ----
+
+  static List<int> _desEnc(List<int> dataByte, List<int> keyByte) {
+    final keys = _generateKeys(keyByte);
+    final ipByte = _initPermute(dataByte);
+    final ipLeft = List<int>.filled(32, 0);
+    final ipRight = List<int>.filled(32, 0);
+    final tempLeft = List<int>.filled(32, 0);
+    for (var k = 0; k < 32; k++) {
+      ipLeft[k] = ipByte[k];
+      ipRight[k] = ipByte[32 + k];
+    }
+    for (var i = 0; i < 16; i++) {
+      for (var j = 0; j < 32; j++) {
+        tempLeft[j] = ipLeft[j];
+        ipLeft[j] = ipRight[j];
+      }
+      final key = List<int>.filled(48, 0);
+      for (var m = 0; m < 48; m++) {
+        key[m] = keys[i][m];
+      }
+      final tempRight = _xor(
+        _pPermute(_sBoxPermute(_xor(_expandPermute(ipRight), key))),
+        tempLeft,
+      );
+      for (var n = 0; n < 32; n++) {
+        ipRight[n] = tempRight[n];
+      }
+    }
+    final finalData = List<int>.filled(64, 0);
+    for (var i = 0; i < 32; i++) {
+      finalData[i] = ipRight[i];
+      finalData[32 + i] = ipLeft[i];
+    }
+    return _finallyPermute(finalData);
   }
 
   static List<int> _xor(List<int> a, List<int> b) {
-    return List.generate(a.length, (i) => a[i] ^ b[i]);
+    final result = List<int>.filled(a.length, 0);
+    for (var i = 0; i < a.length; i++) {
+      result[i] = a[i] ^ b[i];
+    }
+    return result;
   }
 
-  static List<int> _rotateLeft(List<int> bits, int n) {
-    return [...bits.sublist(n), ...bits.sublist(0, n)];
+  static List<int> _initPermute(List<int> originalData) {
+    final ipByte = List<int>.filled(64, 0);
+    var m = 1, n = 0;
+    for (var i = 0; i < 4; i++, m += 2, n += 2) {
+      var k = 0;
+      for (var j = 7; j >= 0; j--, k++) {
+        ipByte[i * 8 + k] = originalData[j * 8 + m];
+        ipByte[i * 8 + k + 32] = originalData[j * 8 + n];
+      }
+    }
+    return ipByte;
   }
 
-  // DES Tables
-  static const _ip = [
-    57,
-    49,
-    41,
-    33,
-    25,
-    17,
-    9,
-    1,
-    59,
-    51,
-    43,
-    35,
-    27,
-    19,
-    11,
-    3,
-    61,
-    53,
-    45,
-    37,
-    29,
-    21,
-    13,
-    5,
-    63,
-    55,
-    47,
-    39,
-    31,
-    23,
-    15,
-    7,
-    56,
-    48,
-    40,
-    32,
-    24,
-    16,
-    8,
-    0,
-    58,
-    50,
-    42,
-    34,
-    26,
-    18,
-    10,
-    2,
-    60,
-    52,
-    44,
-    36,
-    28,
-    20,
-    12,
-    4,
-    62,
-    54,
-    46,
-    38,
-    30,
-    22,
-    14,
-    6,
-  ];
-  static const _fp = [
-    39,
-    7,
-    47,
-    15,
-    55,
-    23,
-    63,
-    31,
-    38,
-    6,
-    46,
-    14,
-    54,
-    22,
-    62,
-    30,
-    37,
-    5,
-    45,
-    13,
-    53,
-    21,
-    61,
-    29,
-    36,
-    4,
-    44,
-    12,
-    52,
-    20,
-    60,
-    28,
-    35,
-    3,
-    43,
-    11,
-    51,
-    19,
-    59,
-    27,
-    34,
-    2,
-    42,
-    10,
-    50,
-    18,
-    58,
-    26,
-    33,
-    1,
-    41,
-    9,
-    49,
-    17,
-    57,
-    25,
-    32,
-    0,
-    40,
-    8,
-    48,
-    16,
-    56,
-    24,
-  ];
-  static const _e = [
-    31,
-    0,
-    1,
-    2,
-    3,
-    4,
-    3,
-    4,
-    5,
-    6,
-    7,
-    8,
-    7,
-    8,
-    9,
-    10,
-    11,
-    12,
-    11,
-    12,
-    13,
-    14,
-    15,
-    16,
-    15,
-    16,
-    17,
-    18,
-    19,
-    20,
-    19,
-    20,
-    21,
-    22,
-    23,
-    24,
-    23,
-    24,
-    25,
-    26,
-    27,
-    28,
-    27,
-    28,
-    29,
-    30,
-    31,
-    0,
-  ];
-  static const _p = [
-    15,
-    6,
-    19,
-    20,
-    28,
-    11,
-    27,
-    16,
-    0,
-    14,
-    22,
-    25,
-    4,
-    17,
-    30,
-    9,
-    1,
-    7,
-    23,
-    13,
-    31,
-    26,
-    2,
-    8,
-    18,
-    12,
-    29,
-    5,
-    21,
-    10,
-    3,
-    24,
-  ];
-  static const _pc1 = [
-    56,
-    48,
-    40,
-    32,
-    24,
-    16,
-    8,
-    0,
-    57,
-    49,
-    41,
-    33,
-    25,
-    17,
-    9,
-    1,
-    58,
-    50,
-    42,
-    34,
-    26,
-    18,
-    10,
-    2,
-    59,
-    51,
-    43,
-    35,
-    62,
-    54,
-    46,
-    38,
-    30,
-    22,
-    14,
-    6,
-    61,
-    53,
-    45,
-    37,
-    29,
-    21,
-    13,
-    5,
-    60,
-    52,
-    44,
-    36,
-    28,
-    20,
-    12,
-    4,
-    27,
-    19,
-    11,
-    3,
-  ];
-  static const _pc2 = [
-    13,
-    16,
-    10,
-    23,
-    0,
-    4,
-    2,
-    27,
-    14,
-    5,
-    20,
-    9,
-    22,
-    18,
-    11,
-    3,
-    25,
-    7,
-    15,
-    6,
-    26,
-    19,
-    12,
-    1,
-    40,
-    51,
-    30,
-    36,
-    46,
-    54,
-    29,
-    39,
-    50,
-    44,
-    32,
-    47,
-    43,
-    48,
-    38,
-    55,
-    33,
-    52,
-    45,
-    41,
-    49,
-    35,
-    28,
-    31,
-  ];
-  static const _shiftSchedule = [
-    1,
-    1,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    1,
-    2,
-    2,
-    2,
-    2,
-    2,
-    2,
-    1,
-  ];
-  static const _sBoxes = [
-    // S1
-    [
-      14,
-      4,
-      13,
-      1,
-      2,
-      15,
-      11,
-      8,
-      3,
-      10,
-      6,
-      12,
-      5,
-      9,
-      0,
-      7,
-      0,
-      15,
-      7,
-      4,
-      14,
-      2,
-      13,
-      1,
-      10,
-      6,
-      12,
-      11,
-      9,
-      5,
-      3,
-      8,
-      4,
-      1,
-      14,
-      8,
-      13,
-      6,
-      2,
-      11,
-      15,
-      12,
-      9,
-      7,
-      3,
-      10,
-      5,
-      0,
-      15,
-      12,
-      8,
-      2,
-      4,
-      9,
-      1,
-      7,
-      5,
-      11,
-      3,
-      14,
-      10,
-      0,
-      6,
-      13,
-    ],
-    // S2
-    [
-      15,
-      1,
-      8,
-      14,
-      6,
-      11,
-      3,
-      4,
-      9,
-      7,
-      2,
-      13,
-      12,
-      0,
-      5,
-      10,
-      3,
-      13,
-      4,
-      7,
-      15,
-      2,
-      8,
-      14,
-      12,
-      0,
-      1,
-      10,
-      6,
-      9,
-      11,
-      5,
-      0,
-      14,
-      7,
-      11,
-      10,
-      4,
-      13,
-      1,
-      5,
-      8,
-      12,
-      6,
-      9,
-      3,
-      2,
-      15,
-      13,
-      8,
-      10,
-      1,
-      3,
-      15,
-      4,
-      2,
-      11,
-      6,
-      7,
-      12,
-      0,
-      5,
-      14,
-      9,
-    ],
-    // S3
-    [
-      10,
-      0,
-      9,
-      14,
-      6,
-      3,
-      15,
-      5,
-      1,
-      13,
-      12,
-      7,
-      11,
-      4,
-      2,
-      8,
-      13,
-      7,
-      0,
-      9,
-      3,
-      4,
-      6,
-      10,
-      2,
-      8,
-      5,
-      14,
-      12,
-      11,
-      15,
-      1,
-      13,
-      6,
-      4,
-      9,
-      8,
-      15,
-      3,
-      0,
-      11,
-      1,
-      2,
-      12,
-      5,
-      10,
-      14,
-      7,
-      1,
-      10,
-      13,
-      0,
-      6,
-      9,
-      8,
-      7,
-      4,
-      15,
-      14,
-      3,
-      11,
-      5,
-      2,
-      12,
-    ],
-    // S4
-    [
-      7,
-      13,
-      14,
-      3,
-      0,
-      6,
-      9,
-      10,
-      1,
-      2,
-      8,
-      5,
-      11,
-      12,
-      4,
-      15,
-      13,
-      8,
-      11,
-      5,
-      6,
-      15,
-      0,
-      3,
-      4,
-      7,
-      2,
-      12,
-      1,
-      10,
-      14,
-      9,
-      10,
-      6,
-      9,
-      0,
-      12,
-      11,
-      7,
-      13,
-      15,
-      1,
-      3,
-      14,
-      5,
-      2,
-      8,
-      4,
-      3,
-      15,
-      0,
-      6,
-      10,
-      1,
-      13,
-      8,
-      9,
-      4,
-      5,
-      11,
-      12,
-      7,
-      2,
-      14,
-    ],
-    // S5
-    [
-      2,
-      12,
-      4,
-      1,
-      7,
-      10,
-      11,
-      6,
-      8,
-      5,
-      3,
-      15,
-      13,
-      0,
-      14,
-      9,
-      14,
-      11,
-      2,
-      12,
-      4,
-      7,
-      13,
-      1,
-      5,
-      0,
-      15,
-      10,
-      3,
-      9,
-      8,
-      6,
-      4,
-      2,
-      1,
-      11,
-      10,
-      13,
-      7,
-      8,
-      15,
-      9,
-      12,
-      5,
-      6,
-      3,
-      0,
-      14,
-      9,
-      14,
-      15,
-      5,
-      2,
-      8,
-      12,
-      3,
-      7,
-      0,
-      4,
-      10,
-      1,
-      13,
-      11,
-      6,
-    ],
-    // S6
-    [
-      4,
-      2,
-      1,
-      11,
-      10,
-      13,
-      7,
-      8,
-      15,
-      9,
-      12,
-      5,
-      6,
-      3,
-      0,
-      14,
-      0,
-      12,
-      7,
-      11,
-      10,
-      1,
-      13,
-      14,
-      5,
-      8,
-      15,
-      6,
-      2,
-      3,
-      9,
-      4,
-      1,
-      14,
-      4,
-      11,
-      8,
-      12,
-      6,
-      2,
-      15,
-      9,
-      7,
-      3,
-      10,
-      5,
-      0,
-      13,
-      6,
-      1,
-      13,
-      8,
-      11,
-      4,
-      2,
-      7,
-      15,
-      10,
-      9,
-      5,
-      3,
-      14,
-      12,
-      0,
-    ],
-    // S7
-    [
-      13,
-      2,
-      8,
-      4,
-      6,
-      15,
-      11,
-      1,
-      10,
-      9,
-      3,
-      14,
-      5,
-      0,
-      12,
-      7,
-      1,
-      15,
-      13,
-      8,
-      10,
-      3,
-      7,
-      4,
-      12,
-      5,
-      6,
-      11,
-      0,
-      14,
-      9,
-      2,
-      7,
-      11,
-      4,
-      1,
-      9,
-      12,
-      14,
-      2,
-      0,
-      6,
-      10,
-      13,
-      15,
-      3,
-      5,
-      8,
-      2,
-      1,
-      14,
-      7,
-      4,
-      10,
-      8,
-      13,
-      15,
-      12,
-      9,
-      0,
-      3,
-      5,
-      6,
-      11,
-    ],
-    // S8
-    [
-      1,
-      15,
-      13,
-      8,
-      10,
-      3,
-      7,
-      4,
-      12,
-      5,
-      6,
-      11,
-      0,
-      14,
-      9,
-      2,
-      7,
-      11,
-      4,
-      1,
-      9,
-      12,
-      14,
-      2,
-      0,
-      6,
-      10,
-      13,
-      15,
-      3,
-      5,
-      8,
-      4,
-      1,
-      14,
-      8,
-      13,
-      6,
-      2,
-      11,
-      15,
-      12,
-      9,
-      7,
-      3,
-      10,
-      5,
-      0,
-      15,
-      12,
-      8,
-      2,
-      4,
-      9,
-      1,
-      7,
-      5,
-      11,
-      3,
-      14,
-      10,
-      0,
-      6,
-      13,
-    ],
-  ];
+  static List<int> _expandPermute(List<int> rightData) {
+    final epByte = List<int>.filled(48, 0);
+    for (var i = 0; i < 8; i++) {
+      epByte[i * 6 + 0] = i == 0 ? rightData[31] : rightData[i * 4 - 1];
+      epByte[i * 6 + 1] = rightData[i * 4 + 0];
+      epByte[i * 6 + 2] = rightData[i * 4 + 1];
+      epByte[i * 6 + 3] = rightData[i * 4 + 2];
+      epByte[i * 6 + 4] = rightData[i * 4 + 3];
+      epByte[i * 6 + 5] = i == 7 ? rightData[0] : rightData[i * 4 + 4];
+    }
+    return epByte;
+  }
+
+  static List<int> _sBoxPermute(List<int> expandByte) {
+    final sBoxByte = List<int>.filled(32, 0);
+    const s1 = [
+      [14, 4, 13, 1, 2, 15, 11, 8, 3, 10, 6, 12, 5, 9, 0, 7],
+      [0, 15, 7, 4, 14, 2, 13, 1, 10, 6, 12, 11, 9, 5, 3, 8],
+      [4, 1, 14, 8, 13, 6, 2, 11, 15, 12, 9, 7, 3, 10, 5, 0],
+      [15, 12, 8, 2, 4, 9, 1, 7, 5, 11, 3, 14, 10, 0, 6, 13],
+    ];
+    const s2 = [
+      [15, 1, 8, 14, 6, 11, 3, 4, 9, 7, 2, 13, 12, 0, 5, 10],
+      [3, 13, 4, 7, 15, 2, 8, 14, 12, 0, 1, 10, 6, 9, 11, 5],
+      [0, 14, 7, 11, 10, 4, 13, 1, 5, 8, 12, 6, 9, 3, 2, 15],
+      [13, 8, 10, 1, 3, 15, 4, 2, 11, 6, 7, 12, 0, 5, 14, 9],
+    ];
+    const s3 = [
+      [10, 0, 9, 14, 6, 3, 15, 5, 1, 13, 12, 7, 11, 4, 2, 8],
+      [13, 7, 0, 9, 3, 4, 6, 10, 2, 8, 5, 14, 12, 11, 15, 1],
+      [13, 6, 4, 9, 8, 15, 3, 0, 11, 1, 2, 12, 5, 10, 14, 7],
+      [1, 10, 13, 0, 6, 9, 8, 7, 4, 15, 14, 3, 11, 5, 2, 12],
+    ];
+    const s4 = [
+      [7, 13, 14, 3, 0, 6, 9, 10, 1, 2, 8, 5, 11, 12, 4, 15],
+      [13, 8, 11, 5, 6, 15, 0, 3, 4, 7, 2, 12, 1, 10, 14, 9],
+      [10, 6, 9, 0, 12, 11, 7, 13, 15, 1, 3, 14, 5, 2, 8, 4],
+      [3, 15, 0, 6, 10, 1, 13, 8, 9, 4, 5, 11, 12, 7, 2, 14],
+    ];
+    const s5 = [
+      [2, 12, 4, 1, 7, 10, 11, 6, 8, 5, 3, 15, 13, 0, 14, 9],
+      [14, 11, 2, 12, 4, 7, 13, 1, 5, 0, 15, 10, 3, 9, 8, 6],
+      [4, 2, 1, 11, 10, 13, 7, 8, 15, 9, 12, 5, 6, 3, 0, 14],
+      [9, 14, 15, 5, 2, 8, 12, 3, 7, 0, 4, 10, 1, 13, 11, 6],
+    ];
+    const s6 = [
+      [4, 2, 1, 11, 10, 13, 7, 8, 15, 9, 12, 5, 6, 3, 0, 14],
+      [0, 12, 7, 11, 10, 1, 13, 14, 5, 8, 15, 6, 2, 3, 9, 4],
+      [1, 14, 4, 11, 8, 12, 6, 2, 15, 9, 7, 3, 10, 5, 0, 13],
+      [6, 1, 13, 8, 11, 4, 2, 7, 15, 10, 9, 5, 3, 14, 12, 0],
+    ];
+    const s7 = [
+      [13, 2, 8, 4, 6, 15, 11, 1, 10, 9, 3, 14, 5, 0, 12, 7],
+      [1, 15, 13, 8, 10, 3, 7, 4, 12, 5, 6, 11, 0, 14, 9, 2],
+      [7, 11, 4, 1, 9, 12, 14, 2, 0, 6, 10, 13, 15, 3, 5, 8],
+      [2, 1, 14, 7, 4, 10, 8, 13, 15, 12, 9, 0, 3, 5, 6, 11],
+    ];
+    const s8 = [
+      [1, 15, 13, 8, 10, 3, 7, 4, 12, 5, 6, 11, 0, 14, 9, 2],
+      [7, 11, 4, 1, 9, 12, 14, 2, 0, 6, 10, 13, 15, 3, 5, 8],
+      [4, 1, 14, 8, 13, 6, 2, 11, 15, 12, 9, 7, 3, 10, 5, 0],
+      [15, 12, 8, 2, 4, 9, 1, 7, 5, 11, 3, 14, 10, 0, 6, 13],
+    ];
+    const sboxes = [s1, s2, s3, s4, s5, s6, s7, s8];
+
+    for (var m = 0; m < 8; m++) {
+      final i = expandByte[m * 6 + 0] * 2 + expandByte[m * 6 + 5];
+      final j =
+          expandByte[m * 6 + 1] * 8 +
+          expandByte[m * 6 + 2] * 4 +
+          expandByte[m * 6 + 3] * 2 +
+          expandByte[m * 6 + 4];
+      final val = sboxes[m][i][j];
+      sBoxByte[m * 4 + 0] = (val ~/ 8) % 2;
+      sBoxByte[m * 4 + 1] = (val ~/ 4) % 2;
+      sBoxByte[m * 4 + 2] = (val ~/ 2) % 2;
+      sBoxByte[m * 4 + 3] = val % 2;
+    }
+    return sBoxByte;
+  }
+
+  static List<int> _pPermute(List<int> sBoxByte) {
+    return [
+      sBoxByte[15],
+      sBoxByte[6],
+      sBoxByte[19],
+      sBoxByte[20],
+      sBoxByte[28],
+      sBoxByte[11],
+      sBoxByte[27],
+      sBoxByte[16],
+      sBoxByte[0],
+      sBoxByte[14],
+      sBoxByte[22],
+      sBoxByte[25],
+      sBoxByte[4],
+      sBoxByte[17],
+      sBoxByte[30],
+      sBoxByte[9],
+      sBoxByte[1],
+      sBoxByte[7],
+      sBoxByte[23],
+      sBoxByte[13],
+      sBoxByte[31],
+      sBoxByte[26],
+      sBoxByte[2],
+      sBoxByte[8],
+      sBoxByte[18],
+      sBoxByte[12],
+      sBoxByte[29],
+      sBoxByte[5],
+      sBoxByte[21],
+      sBoxByte[10],
+      sBoxByte[3],
+      sBoxByte[24],
+    ];
+  }
+
+  static List<int> _finallyPermute(List<int> endByte) {
+    return [
+      endByte[39],
+      endByte[7],
+      endByte[47],
+      endByte[15],
+      endByte[55],
+      endByte[23],
+      endByte[63],
+      endByte[31],
+      endByte[38],
+      endByte[6],
+      endByte[46],
+      endByte[14],
+      endByte[54],
+      endByte[22],
+      endByte[62],
+      endByte[30],
+      endByte[37],
+      endByte[5],
+      endByte[45],
+      endByte[13],
+      endByte[53],
+      endByte[21],
+      endByte[61],
+      endByte[29],
+      endByte[36],
+      endByte[4],
+      endByte[44],
+      endByte[12],
+      endByte[52],
+      endByte[20],
+      endByte[60],
+      endByte[28],
+      endByte[35],
+      endByte[3],
+      endByte[43],
+      endByte[11],
+      endByte[51],
+      endByte[19],
+      endByte[59],
+      endByte[27],
+      endByte[34],
+      endByte[2],
+      endByte[42],
+      endByte[10],
+      endByte[50],
+      endByte[18],
+      endByte[58],
+      endByte[26],
+      endByte[33],
+      endByte[1],
+      endByte[41],
+      endByte[9],
+      endByte[49],
+      endByte[17],
+      endByte[57],
+      endByte[25],
+      endByte[32],
+      endByte[0],
+      endByte[40],
+      endByte[8],
+      endByte[48],
+      endByte[16],
+      endByte[56],
+      endByte[24],
+    ];
+  }
+
+  static List<List<int>> _generateKeys(List<int> keyByte) {
+    final key = List<int>.filled(56, 0);
+    final keys = List.generate(16, (_) => List<int>.filled(48, 0));
+    const loop = [1, 1, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 1];
+
+    for (var i = 0; i < 7; i++) {
+      var k = 7;
+      for (var j = 0; j < 8; j++, k--) {
+        key[i * 8 + j] = keyByte[8 * k + i];
+      }
+    }
+
+    for (var i = 0; i < 16; i++) {
+      for (var j = 0; j < loop[i]; j++) {
+        final tempLeft = key[0];
+        final tempRight = key[28];
+        for (var k = 0; k < 27; k++) {
+          key[k] = key[k + 1];
+          key[28 + k] = key[29 + k];
+        }
+        key[27] = tempLeft;
+        key[55] = tempRight;
+      }
+      keys[i] = [
+        key[13],
+        key[16],
+        key[10],
+        key[23],
+        key[0],
+        key[4],
+        key[2],
+        key[27],
+        key[14],
+        key[5],
+        key[20],
+        key[9],
+        key[22],
+        key[18],
+        key[11],
+        key[3],
+        key[25],
+        key[7],
+        key[15],
+        key[6],
+        key[26],
+        key[19],
+        key[12],
+        key[1],
+        key[40],
+        key[51],
+        key[30],
+        key[36],
+        key[46],
+        key[54],
+        key[29],
+        key[39],
+        key[50],
+        key[44],
+        key[32],
+        key[47],
+        key[43],
+        key[48],
+        key[38],
+        key[55],
+        key[33],
+        key[52],
+        key[45],
+        key[41],
+        key[49],
+        key[35],
+        key[28],
+        key[31],
+      ];
+    }
+    return keys;
+  }
 }
 
 class LoginResult {
