@@ -1,6 +1,6 @@
 {
-    "name": "ahu_aio",
-    "short_name": "ahu_aio",
+    "name": "AHU AIO",
+    "short_name": "AHU AIO",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

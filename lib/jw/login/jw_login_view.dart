@@ -43,20 +43,52 @@ class _JwLoginPageState extends State<JwLoginPage> {
     try {
       final api = JwApi();
       await api.init();
+
+      final prefs = await SharedPreferences.getInstance();
+      final savedUser = prefs.getString('jw_username');
+      final savedPass = prefs.getString('jw_password');
+
+      // 1) 已有有效会话，直接进入
       final hasSession = await api.hasValidSession();
-      if (hasSession && mounted) {
-        final prefs = await SharedPreferences.getInstance();
-        final savedUser = prefs.getString('jw_username');
-        if (savedUser != null && savedUser.isNotEmpty) {
-          await api.fetchStudentIdDirect();
-          if (!mounted) return;
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const JwHomePage()),
-          );
-        }
+      if (hasSession && savedUser != null && savedUser.isNotEmpty) {
+        await api.fetchStudentIdDirect();
+        _goHome();
+        return;
       }
-    } catch (_) {}
+
+      // 2) 会话失效但已保存账号密码，使用密码自动登录
+      if (savedUser != null &&
+          savedUser.isNotEmpty &&
+          savedPass != null &&
+          savedPass.isNotEmpty) {
+        if (mounted) setState(() => _isLoading = true);
+        final result = await JwLoginService.login(
+          username: savedUser,
+          password: savedPass,
+        );
+        if (!mounted) return;
+        if (result.success) {
+          _goHome();
+          return;
+        }
+        // 自动登录失败（如需要验证码），回退到手动登录
+        setState(() {
+          _isLoading = false;
+          _needCaptcha = result.needCaptcha;
+        });
+        if (result.needCaptcha) _loadCaptcha();
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _goHome() {
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const JwHomePage()),
+    );
   }
 
   Future<void> _loadCaptcha() async {

@@ -19,6 +19,7 @@ class _JwWebViewPageState extends State<JwWebViewPage> {
   String? _errorMsg;
   InAppWebViewController? _controller;
   int _authRetryCount = 0;
+  int _blankRetryCount = 0;
 
   @override
   void initState() {
@@ -50,6 +51,41 @@ class _JwWebViewPageState extends State<JwWebViewPage> {
     await _controller?.loadUrl(urlRequest: URLRequest(url: WebUri(widget.url)));
   }
 
+  /// 检测页面是否白屏（SPA 渲染失败 / 空内容），并自动重试一次。
+  Future<void> _scheduleBlankCheck(String loadedUrl) async {
+    // 给 SPA 留出渲染时间
+    await Future.delayed(const Duration(milliseconds: 1800));
+    if (!mounted || _controller == null || _hasError) return;
+
+    try {
+      final result = await _controller!.evaluateJavascript(
+        source: 'document.body ? document.body.innerText.trim().length : 0',
+      );
+      final len = result is num ? result.toInt() : int.tryParse('$result') ?? 0;
+      if (len > 0) {
+        _blankRetryCount = 0;
+        return;
+      }
+
+      final current = (await _controller!.getUrl())?.toString() ?? loadedUrl;
+      if (JwWebViewAuth.isLoginRedirect(current, widget.url)) return;
+
+      if (_blankRetryCount < 1) {
+        // 重新同步 Cookie 后再加载一次
+        _blankRetryCount++;
+        await JwWebViewAuth.syncCookies(widget.url);
+        await _controller?.loadUrl(
+          urlRequest: URLRequest(url: WebUri(widget.url)),
+        );
+      } else if (mounted) {
+        setState(() {
+          _hasError = true;
+          _errorMsg = '页面加载为空白，请点击重试或稍后再试';
+        });
+      }
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -62,6 +98,7 @@ class _JwWebViewPageState extends State<JwWebViewPage> {
               setState(() {
                 _hasError = false;
                 _authRetryCount = 0;
+                _blankRetryCount = 0;
               });
               await JwWebViewAuth.syncCookies(widget.url);
               await _controller?.reload();
@@ -77,6 +114,10 @@ class _JwWebViewPageState extends State<JwWebViewPage> {
                   initialUrlRequest: URLRequest(url: WebUri(widget.url)),
                   initialSettings: InAppWebViewSettings(
                     javaScriptEnabled: true,
+                    // 考试安排等页面为 SPA，依赖 DOM Storage，
+                    // Android WebView 默认未开启会导致白屏。
+                    domStorageEnabled: true,
+                    databaseEnabled: true,
                     useWideViewPort: true,
                     supportZoom: true,
                     builtInZoomControls: true,
@@ -107,8 +148,11 @@ class _JwWebViewPageState extends State<JwWebViewPage> {
                     final urlStr = url?.toString() ?? '';
                     if (JwWebViewAuth.isLoginRedirect(urlStr, widget.url)) {
                       await _handlePossibleAuthExpiry(urlStr);
-                    } else if (_hasError && mounted) {
-                      setState(() => _hasError = false);
+                    } else {
+                      if (_hasError && mounted) {
+                        setState(() => _hasError = false);
+                      }
+                      _scheduleBlankCheck(urlStr);
                     }
                   },
                   onReceivedError: (controller, request, error) {
@@ -145,6 +189,7 @@ class _JwWebViewPageState extends State<JwWebViewPage> {
                                 setState(() {
                                   _hasError = false;
                                   _authRetryCount = 0;
+                                  _blankRetryCount = 0;
                                 });
                                 await _prepareWebView();
                                 await _controller?.loadUrl(

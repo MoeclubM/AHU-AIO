@@ -58,31 +58,58 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
     }
   }
 
-  List<dynamic> _extractMenu(Map<String, dynamic> scheme) {
-    try {
-      final structure = scheme['data']?['schemeInfo']?['structureInfo'];
-      if (structure == null) return [];
-      final menus = <Map<String, dynamic>>[];
-      void walk(dynamic node) {
-        if (node is! Map) return;
-        if (node['combinedMenuList'] is List) {
-          for (final m in node['combinedMenuList']) {
-            if (m is Map &&
-                m['name'] != null &&
-                m['name'].toString().isNotEmpty &&
-                m['parentNodeId'] == 0) {
-              menus.add(Map<String, dynamic>.from(m));
-            }
-            walk(m);
-          }
-        }
-      }
+  /// 从菜单项中解析可跳转的链接（不同字段命名兼容）
+  static String _menuLink(Map item) {
+    final link =
+        item['websize'] ??
+        item['webSize'] ??
+        item['appUrl'] ??
+        item['url'] ??
+        item['h5Url'] ??
+        item['linkUrl'] ??
+        '';
+    return link.toString();
+  }
 
-      walk(structure);
-      return menus;
-    } catch (_) {
-      return [];
+  /// 递归遍历整棵方案树，收集所有“带名称且带链接”的菜单叶子。
+  /// 兼容 structureInfo 为对象或数组、菜单层级嵌套、parentNodeId 非 0 等情况。
+  List<dynamic> _extractMenu(Map<String, dynamic> scheme) {
+    final menus = <Map<String, dynamic>>[];
+    final seen = <String>{};
+
+    void addIfMenu(Map node) {
+      final name = node['name']?.toString() ?? '';
+      final link = _menuLink(node);
+      if (name.isNotEmpty && link.isNotEmpty && seen.add('$name|$link')) {
+        menus.add(Map<String, dynamic>.from(node));
+      }
     }
+
+    void walk(dynamic node) {
+      if (node is List) {
+        for (final n in node) {
+          walk(n);
+        }
+        return;
+      }
+      if (node is! Map) return;
+
+      // 当前节点本身可能就是一个菜单叶子
+      addIfMenu(node);
+
+      // 继续深入子节点（combinedMenuList / children / 任意嵌套结构）
+      node.forEach((_, value) {
+        if (value is List || value is Map) walk(value);
+      });
+    }
+
+    try {
+      final structure =
+          scheme['data']?['schemeInfo']?['structureInfo'] ?? scheme['data'];
+      walk(structure);
+    } catch (_) {}
+
+    return menus;
   }
 
   void _logout() async {
@@ -244,7 +271,7 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
             final item = _menuItems[i];
             final name = item['name']?.toString() ?? '';
             final iconWhole = item['iconWhole']?.toString();
-            final websize = item['websize']?.toString() ?? '';
+            final websize = _menuLink(item);
 
             return Card(
               child: InkWell(

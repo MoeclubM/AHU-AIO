@@ -38,7 +38,7 @@ class MyApp extends StatelessWidget {
       animation: themeManager,
       builder: (context, child) {
         return GetMaterialApp(
-          title: 'AHU All In One',
+          title: 'AHU AIO',
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
@@ -69,7 +69,7 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('AHU All In One')),
+      appBar: AppBar(title: const Text('AHU AIO')),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
