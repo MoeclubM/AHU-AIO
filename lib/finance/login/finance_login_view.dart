@@ -127,12 +127,12 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
     if (savedPass.isEmpty) return;
 
     try {
-      await _controller?.evaluateJavascript(
-        source:
-            'document.getElementById("un")?.value="${_savedUser}";'
-            'document.getElementById("pd")?.value="$savedPass";'
-            'if(typeof initPassWordEvent==="function")initPassWordEvent();',
-      );
+      final js =
+          'document.getElementById("un")?.value="${_savedUser}";'
+          'document.getElementById("pd")?.value="$savedPass";'
+          'if(typeof initPassWordEvent==="function")initPassWordEvent();';
+      // ignore: unnecessary_brace_in_string_interps
+      await _controller?.evaluateJavascript(source: js);
       // 自动点击登录（CAS 的 login.js 需 device 预检通过）
       await _controller?.evaluateJavascript(
         source:
