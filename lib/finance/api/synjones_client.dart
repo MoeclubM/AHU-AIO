@@ -3,6 +3,7 @@ library;
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
+import 'package:meta/meta.dart';
 import 'package:path_provider/path_provider.dart' as path_provider;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -361,6 +362,14 @@ class SynjonesClient {
   // ============================================================
 
   /// Matches `strEnc(data, key1, key2, key3)` from CAS `des.js`.
+  @visibleForTesting
+  static String strEncForTest(
+    String data,
+    String firstKey,
+    String secondKey,
+    String thirdKey,
+  ) => _strEnc(data, firstKey, secondKey, thirdKey);
+
   static String _strEnc(
     String data,
     String firstKey,
