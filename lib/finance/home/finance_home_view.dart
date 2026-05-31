@@ -19,7 +19,6 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
   bool _isLoading = true;
   String? _error;
   Map<String, dynamic>? _userInfo;
-  List<dynamic> _menuItems = [];
 
   @override
   void initState() {
@@ -35,14 +34,7 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
 
     try {
       await _api.init();
-      final results = await Future.wait([
-        _api.getUserInfo(),
-        _api.getAppScheme(),
-      ]);
-
-      _userInfo = results[0];
-      _menuItems = _extractMenu(results[1]);
-
+      _userInfo = await _api.getUserInfo();
       setState(() => _isLoading = false);
     } catch (e) {
       final message = e.toString();
@@ -58,60 +50,6 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
     }
   }
 
-  /// 从菜单项中解析可跳转的链接（不同字段命名兼容）
-  static String _menuLink(Map item) {
-    final link =
-        item['websize'] ??
-        item['webSize'] ??
-        item['appUrl'] ??
-        item['url'] ??
-        item['h5Url'] ??
-        item['linkUrl'] ??
-        '';
-    return link.toString();
-  }
-
-  /// 递归遍历整棵方案树，收集所有“带名称且带链接”的菜单叶子。
-  /// 兼容 structureInfo 为对象或数组、菜单层级嵌套、parentNodeId 非 0 等情况。
-  List<dynamic> _extractMenu(Map<String, dynamic> scheme) {
-    final menus = <Map<String, dynamic>>[];
-    final seen = <String>{};
-
-    void addIfMenu(Map node) {
-      final name = node['name']?.toString() ?? '';
-      final link = _menuLink(node);
-      if (name.isNotEmpty && link.isNotEmpty && seen.add('$name|$link')) {
-        menus.add(Map<String, dynamic>.from(node));
-      }
-    }
-
-    void walk(dynamic node) {
-      if (node is List) {
-        for (final n in node) {
-          walk(n);
-        }
-        return;
-      }
-      if (node is! Map) return;
-
-      // 当前节点本身可能就是一个菜单叶子
-      addIfMenu(node);
-
-      // 继续深入子节点（combinedMenuList / children / 任意嵌套结构）
-      node.forEach((_, value) {
-        if (value is List || value is Map) walk(value);
-      });
-    }
-
-    try {
-      final structure =
-          scheme['data']?['schemeInfo']?['structureInfo'] ?? scheme['data'];
-      walk(structure);
-    } catch (_) {}
-
-    return menus;
-  }
-
   void _logout() async {
     await _api.logout();
     if (!mounted) return;
@@ -122,16 +60,23 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
   }
 
   void _openWebView(String title, String path) {
-    final fullUrl = path.startsWith('http')
-        ? path
-        : '${FinanceApi.baseUrl}$path';
+    var fullUrl = path.startsWith('http') ? path : '${FinanceApi.baseUrl}$path';
+    // 将 token 直接拼到 URL，SPA 初始化时会从 synjones-auth 参数读取，
+    // 避免仅靠 sessionStorage 注入产生的时序竞争（首屏跳登录）。
+    final token = _api.accessToken;
+    if (token != null &&
+        token.isNotEmpty &&
+        !fullUrl.contains('synjones-auth')) {
+      final sep = fullUrl.contains('?') ? '&' : '?';
+      fullUrl += '${sep}synjones-auth=${Uri.encodeComponent(token)}';
+    }
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => FinanceInnerWebView(
           title: title,
           url: fullUrl,
-          accessToken: _api.accessToken,
+          accessToken: token,
           cookies: _api.cookieJar,
         ),
       ),
@@ -184,7 +129,7 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
                 children: [
                   _buildUserCard(),
                   const SizedBox(height: 16),
-                  _buildMenuGrid(),
+                  _buildQuickServices(),
                 ],
               ),
             ),
@@ -239,83 +184,60 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
     );
   }
 
-  Widget _buildMenuGrid() {
-    if (_menuItems.isEmpty) {
-      return const Card(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Center(child: Text('暂无可用功能')),
-        ),
-      );
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '功能菜单 (${_menuItems.length}项)',
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.0,
-          ),
-          itemCount: _menuItems.length,
-          itemBuilder: (_, i) {
-            final item = _menuItems[i];
-            final name = item['name']?.toString() ?? '';
-            final iconWhole = item['iconWhole']?.toString();
-            final websize = _menuLink(item);
-
-            return Card(
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: websize.isNotEmpty
-                    ? () => _openWebView(name, websize)
-                    : null,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    iconWhole != null && iconWhole.startsWith('http')
-                        ? Image.network(
-                            iconWhole,
-                            width: 32,
-                            height: 32,
-                            errorBuilder: (ctx, err, stack) => Icon(
-                              Icons.apps,
-                              size: 32,
-                              color: Colors.orange.shade700,
-                            ),
-                          )
-                        : Icon(
-                            Icons.apps,
-                            size: 32,
-                            color: Colors.orange.shade700,
-                          ),
-                    const SizedBox(height: 8),
-                    Text(
-                      name,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
+  /// 常用功能：直达一卡通平台的真实路由（一码通/充值/缴费等），
+  /// 在共享登录态的 WebView 中打开。
+  Widget _buildQuickServices() {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '常用功能',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 4,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.82,
+              children: _financeServices.map((s) {
+                return InkWell(
+                  borderRadius: BorderRadius.circular(12),
+                  onTap: () => _openWebView(s.title, s.path),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 46,
+                        height: 46,
+                        decoration: BoxDecoration(
+                          color: s.color.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(s.icon, color: s.color, size: 24),
                       ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
+                      const SizedBox(height: 6),
+                      Text(
+                        s.title,
+                        style: const TextStyle(fontSize: 12),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -390,6 +312,8 @@ class _FinanceInnerWebViewState extends State<FinanceInnerWebView> {
               initialUrlRequest: URLRequest(url: WebUri(widget.url)),
               initialSettings: InAppWebViewSettings(
                 javaScriptEnabled: true,
+                domStorageEnabled: true,
+                databaseEnabled: true,
                 useWideViewPort: true,
                 supportZoom: true,
                 thirdPartyCookiesEnabled: true,
@@ -425,3 +349,27 @@ class _FinanceInnerWebViewState extends State<FinanceInnerWebView> {
     );
   }
 }
+
+/// 缴费系统常用功能项（直达一卡通平台真实路由）。
+class _FinanceService {
+  final String title;
+  final IconData icon;
+  final String path;
+  final Color color;
+  const _FinanceService(this.title, this.icon, this.path, this.color);
+}
+
+/// 路由取自一卡通 H5 平台（ycard.ahu.edu.cn/plat）的真实页面路由。
+const List<_FinanceService> _financeServices = [
+  _FinanceService('一码通', Icons.qr_code_2, '/plat/campusCode', Colors.orange),
+  _FinanceService('电子卡', Icons.credit_card, '/plat/wecard', Colors.blue),
+  _FinanceService(
+    '充值大厅',
+    Icons.account_balance_wallet,
+    '/plat/dating',
+    Colors.green,
+  ),
+  _FinanceService('在线缴费', Icons.payment, '/plat/pay', Colors.purple),
+  _FinanceService('交易记录', Icons.receipt_long, '/plat/record', Colors.teal),
+  _FinanceService('个人中心', Icons.person, '/plat/wode', Colors.indigo),
+];
