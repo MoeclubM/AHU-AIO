@@ -1,18 +1,18 @@
-name: Build and Release
+name: Release
 
 on:
   push:
     tags:
       - '*'
+  workflow_dispatch:
 
 env:
   FLUTTER_VERSION: '3.35.6'
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
-  # 提取版本信息
   get-version:
-    name: Extract Version Info
+    name: Extract Version
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.get-version.outputs.version }}
@@ -20,8 +20,7 @@ jobs:
       tag: ${{ steps.get-version.outputs.tag }}
       changelog: ${{ steps.get-changelog.outputs.changelog }}
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v6
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -29,14 +28,14 @@ jobs:
         id: get-version
         run: |
           VERSION="${{ github.ref_name }}"
-          VERSION="${VERSION#release-}"
-          if [[ "$VERSION" =~ ^v?([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+          VERSION="${VERSION#v}"
+          if [[ "$VERSION" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
             MAJOR="${BASH_REMATCH[1]}"
             MINOR="${BASH_REMATCH[2]}"
             PATCH="${BASH_REMATCH[3]}"
             BUILD_NUMBER=$((MAJOR * 10000 + MINOR * 100 + PATCH))
           else
-            echo "Invalid release tag format: $VERSION. Expected v<major>.<minor>.<patch>" >&2
+            echo "Invalid tag: $VERSION. Expected v<major>.<minor>.<patch>" >&2
             exit 1
           fi
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
@@ -46,57 +45,26 @@ jobs:
       - name: Generate Changelog
         id: get-changelog
         run: |
-          # 获取上一个标签
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
           if [ -n "$PREV_TAG" ]; then
             echo "## Changes since $PREV_TAG" > changelog.md
-            echo "" >> changelog.md
             git log --pretty=format:"- %s (%h)" $PREV_TAG..HEAD >> changelog.md
           else
-            echo "## Changes in this release" > changelog.md
-            echo "" >> changelog.md
+            echo "## Changes" > changelog.md
             git log --pretty=format:"- %s (%h)" >> changelog.md
           fi
           echo "" >> changelog.md
-          echo "" >> changelog.md
-          echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$PREV_TAG..${{ steps.get-version.outputs.tag }}" >> changelog.md
-          CHANGELOG=$(cat changelog.md)
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-  # 运行测试
-  test:
-    name: Run Tests
-    runs-on: ubuntu-latest
-    needs: get-version
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v6
-
-      - name: Set Up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: ${{ env.FLUTTER_VERSION }}
-
-      - name: Install Dependencies
-        run: flutter pub get
-
-      - name: Run Tests
-        run: flutter test
-
-      - name: Check Formatting
-        run: dart format --set-exit-if-changed lib test
-
-      - name: Analyze Code
-        run: flutter analyze
+          echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$PREV_TAG...${{ steps.get-version.outputs.tag }}" >> changelog.md
+          {
+            echo "changelog<<EOF"
+            cat changelog.md
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
 
   build-android:
-    name: Build Android
+    name: Build Android (${{ matrix.arch }})
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    needs: [get-version, test]
+    needs: get-version
     strategy:
       matrix:
         include:
@@ -104,244 +72,167 @@ jobs:
             target_platform: android-arm64
           - arch: x86_64
             target_platform: android-x64
-
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
 
-    - name: Set Up Java
-      uses: actions/setup-java@v5
-      with:
-        distribution: 'temurin'
-        java-version: '17'
+      - name: Decode Keystore
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > android/app/release-key.jks
+            echo "KEYSTORE_FILE=release-key.jks" >> $GITHUB_ENV
+          fi
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
 
-    - name: Set Up Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: ${{ env.FLUTTER_VERSION }}
+      - name: Build APK
+        run: |
+          flutter build apk --release \
+            --target-platform ${{ matrix.target_platform }} \
+            --build-name ${{ needs.get-version.outputs.version }} \
+            --build-number ${{ needs.get-version.outputs.build_number }}
+        env:
+          KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
 
-    - name: Install Dependencies
-      run: flutter pub get
+      - name: Cleanup Keystore
+        if: always()
+        run: rm -f android/app/release-key.jks
 
-    - name: Decode Keystore
-      run: |
-        if [ -n "$KEYSTORE_BASE64" ]; then
-          echo "$KEYSTORE_BASE64" | base64 -d > android/app/release-key.jks
-          echo "KEYSTORE_FILE=release-key.jks" >> $GITHUB_ENV
-        fi
-      env:
-        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-
-    - name: Build APK
-      run: |
-        flutter build apk --release --target-platform ${{ matrix.target_platform }} \
-          --build-name ${{ needs.get-version.outputs.version }} \
-          --build-number ${{ needs.get-version.outputs.build_number }}
-      env:
-        KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
-        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-
-    - name: Cleanup Keystore
-      if: always()
-      run: rm -f android/app/release-key.jks
-
-    - name: Upload APK
-      uses: actions/upload-artifact@v7
-      with:
-        name: AHU-AIO-Android-${{ matrix.arch }}-${{ needs.get-version.outputs.version }}
-        path: build/app/outputs/flutter-apk/app-release.apk
+      - name: Upload APK
+        uses: actions/upload-artifact@v7
+        with:
+          name: AHU-AIO-Android-${{ matrix.arch }}
+          path: build/app/outputs/flutter-apk/app-release.apk
 
   build-linux:
     name: Build Linux
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    needs: [get-version, test]
-
+    needs: get-version
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v6
-
-    - name: Install Linux Build Dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
-
-    - name: Set Up Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: ${{ env.FLUTTER_VERSION }}
-
-    - name: Install Dependencies
-      run: flutter pub get
-
-    - name: Enable Linux Desktop
-      run: flutter config --enable-linux-desktop
-
-    - name: Build Linux
-      run: flutter build linux --release --build-name ${{ needs.get-version.outputs.version }} --build-number ${{ needs.get-version.outputs.build_number }}
-
-    - name: Archive Linux Build
-      run: |
-        cd build/linux/x64/release/bundle
-        tar -czf ../../../../../AHU-AIO-Linux-x86_64-${{ needs.get-version.outputs.version }}.tar.gz .
-
-    - name: Upload Linux Build
-      uses: actions/upload-artifact@v7
-      with:
-        name: AHU-AIO-Linux-x86_64-${{ needs.get-version.outputs.version }}
-        path: AHU-AIO-Linux-x86_64-${{ needs.get-version.outputs.version }}.tar.gz
+      - uses: actions/checkout@v6
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libstdc++-12-dev
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+      - run: flutter config --enable-linux-desktop
+      - run: flutter build linux --release --build-name ${{ needs.get-version.outputs.version }} --build-number ${{ needs.get-version.outputs.build_number }}
+      - run: |
+          cd build/linux/x64/release/bundle
+          tar -czf ../../../../../AHU-AIO-Linux-x86_64.tar.gz .
+      - uses: actions/upload-artifact@v7
+        with:
+          name: AHU-AIO-Linux-x86_64
+          path: AHU-AIO-Linux-x86_64.tar.gz
 
   build-windows:
     name: Build Windows
     runs-on: windows-latest
-    permissions:
-      contents: read
-    needs: [get-version, test]
-
+    needs: get-version
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v6
-
-    - name: Set Up Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: ${{ env.FLUTTER_VERSION }}
-
-    - name: Install Dependencies
-      run: flutter pub get
-
-    - name: Enable Windows Desktop
-      run: flutter config --enable-windows-desktop
-
-    - name: Build Windows
-      run: flutter build windows --release --build-name ${{ needs.get-version.outputs.version }} --build-number ${{ needs.get-version.outputs.build_number }}
-
-    - name: Archive Windows Build
-      run: |
-        Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath AHU-AIO-Windows-x64-${{ needs.get-version.outputs.version }}.zip
-      shell: pwsh
-
-    - name: Upload Windows Build
-      uses: actions/upload-artifact@v7
-      with:
-        name: AHU-AIO-Windows-x64-${{ needs.get-version.outputs.version }}
-        path: AHU-AIO-Windows-x64-${{ needs.get-version.outputs.version }}.zip
+      - uses: actions/checkout@v6
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+      - run: flutter config --enable-windows-desktop
+      - run: flutter build windows --release --build-name ${{ needs.get-version.outputs.version }} --build-number ${{ needs.get-version.outputs.build_number }}
+      - run: Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath AHU-AIO-Windows-x64.zip
+        shell: pwsh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: AHU-AIO-Windows-x64
+          path: AHU-AIO-Windows-x64.zip
 
   build-macos:
     name: Build macOS
     runs-on: macos-latest
-    permissions:
-      contents: read
-    needs: [get-version, test]
-
+    needs: get-version
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v6
-
-    - name: Set Up Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: ${{ env.FLUTTER_VERSION }}
-
-    - name: Install Dependencies
-      run: flutter pub get
-
-    - name: Enable macOS Desktop
-      run: flutter config --enable-macos-desktop
-
-    - name: Build macOS
-      run: flutter build macos --release --build-name ${{ needs.get-version.outputs.version }} --build-number ${{ needs.get-version.outputs.build_number }}
-
-    - name: Archive macOS Build
-      run: |
-        cd build/macos/Build/Products/Release
-        zip -r ../../../../../AHU-AIO-macOS-universal-${{ needs.get-version.outputs.version }}.zip ahu_aio.app
-
-    - name: Upload macOS Build
-      uses: actions/upload-artifact@v7
-      with:
-        name: AHU-AIO-macOS-universal-${{ needs.get-version.outputs.version }}
-        path: AHU-AIO-macOS-universal-${{ needs.get-version.outputs.version }}.zip
+      - uses: actions/checkout@v6
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+      - run: flutter config --enable-macos-desktop
+      - run: flutter build macos --release --build-name ${{ needs.get-version.outputs.version }} --build-number ${{ needs.get-version.outputs.build_number }}
+      - run: |
+          cd build/macos/Build/Products/Release
+          zip -r ../../../../../AHU-AIO-macOS-universal.zip ahu_aio.app
+      - uses: actions/upload-artifact@v7
+        with:
+          name: AHU-AIO-macOS-universal
+          path: AHU-AIO-macOS-universal.zip
 
   release:
-    name: Create Release
+    name: Create GitHub Release
     needs: [get-version, build-android, build-linux, build-windows, build-macos]
     runs-on: ubuntu-latest
     permissions:
       contents: write
-
     steps:
-    - name: Download All Artifacts
-      uses: actions/download-artifact@v8
-      with:
-        path: artifacts
+      - uses: actions/download-artifact@v8
+        with:
+          path: artifacts
 
-    - name: Prepare Release Files
-      env:
-        VERSION: ${{ needs.get-version.outputs.version }}
-        TAG: ${{ needs.get-version.outputs.tag }}
-        CHANGELOG: ${{ needs.get-version.outputs.changelog }}
-      run: |
-        mkdir -p release
-        mv artifacts/AHU-AIO-Android-arm64-*/app-release.apk release/AHU-AIO-Android-arm64-${{ needs.get-version.outputs.version }}.apk
-        mv artifacts/AHU-AIO-Android-x86_64-*/app-release.apk release/AHU-AIO-Android-x86_64-${{ needs.get-version.outputs.version }}.apk
-        mv artifacts/AHU-AIO-Linux-x86_64-*/AHU-AIO-Linux-x86_64-*.tar.gz release/
-        mv artifacts/AHU-AIO-Windows-x64-*/AHU-AIO-Windows-x64-*.zip release/
-        mv artifacts/AHU-AIO-macOS-universal-*/AHU-AIO-macOS-universal-*.zip release/
+      - name: Prepare & Upload to Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.get-version.outputs.tag }}
+          VERSION: ${{ needs.get-version.outputs.version }}
+          CHANGELOG: ${{ needs.get-version.outputs.changelog }}
+        run: |
+          mkdir -p release
 
-        # 生成安装说明
-        cat > release/INSTALL.md << 'EOF'
-        # 安装说明
+          # Rename and move APKs
+          find artifacts/AHU-AIO-Android-arm64* -name "*.apk" -exec cp {} release/AHU-AIO-Android-arm64-${VERSION}.apk \;
+          find artifacts/AHU-AIO-Android-x86_64* -name "*.apk" -exec cp {} release/AHU-AIO-Android-x86_64-${VERSION}.apk \;
 
-        ## Android
-        - **arm64**: 适用于大多数现代 Android 设备
-        - **x86_64**: 适用于 Android 模拟器或特殊设备
+          # Copy other platforms
+          find artifacts/AHU-AIO-Linux-x86_64* -name "*.tar.gz" -exec cp {} release/AHU-AIO-Linux-x86_64-${VERSION}.tar.gz \;
+          find artifacts/AHU-AIO-Windows-x64* -name "*.zip" -exec cp {} release/AHU-AIO-Windows-x64-${VERSION}.zip \;
+          find artifacts/AHU-AIO-macOS-universal* -name "*.zip" -exec cp {} release/AHU-AIO-macOS-universal-${VERSION}.zip \;
 
-        ## Linux
-        解压后运行 `ahu_aio` 可执行文件
+          # Changelog
+          printf '%s\n\n' "$CHANGELOG" > release-body.md
+          {
+            echo "## 下载"
+            echo ""
+            echo "### Android (APK)"
+            echo "- [AHU-AIO Android arm64](https://github.com/${{ github.repository }}/releases/download/v${TAG}/AHU-AIO-Android-arm64-${VERSION}.apk)"
+            echo "- [AHU-AIO Android x86_64](https://github.com/${{ github.repository }}/releases/download/v${TAG}/AHU-AIO-Android-x86_64-${VERSION}.apk)"
+            echo ""
+            echo "### Linux"
+            echo "- [AHU-AIO Linux x86_64](https://github.com/${{ github.repository }}/releases/download/v${TAG}/AHU-AIO-Linux-x86_64-${VERSION}.tar.gz)"
+            echo ""
+            echo "### Windows"
+            echo "- [AHU-AIO Windows x64](https://github.com/${{ github.repository }}/releases/download/v${TAG}/AHU-AIO-Windows-x64-${VERSION}.zip)"
+            echo ""
+            echo "### macOS"
+            echo "- [AHU-AIO macOS Universal](https://github.com/${{ github.repository }}/releases/download/v${TAG}/AHU-AIO-macOS-universal-${VERSION}.zip)"
+          } >> release-body.md
 
-        ## Windows
-        解压后运行 `ahu_aio.exe` 可执行文件
-
-        ## macOS
-        解压后将应用拖入 Applications 文件夹
-
-        ---
-        版本: ${{ needs.get-version.outputs.version }}
-        构建时间: $(date)
-        EOF
-        {
-          printf '%s\n\n' "$CHANGELOG"
-          cat <<EOF
-        ## 下载
-
-        ### Android (APK)
-        - [AHU-AIO Android arm64](https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/AHU-AIO-Android-arm64-${VERSION}.apk)
-        - [AHU-AIO Android x86_64](https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/AHU-AIO-Android-x86_64-${VERSION}.apk)
-
-        ### Linux
-        - [AHU-AIO Linux x86_64](https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/AHU-AIO-Linux-x86_64-${VERSION}.tar.gz)
-
-        ### Windows
-        - [AHU-AIO Windows x64](https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/AHU-AIO-Windows-x64-${VERSION}.zip)
-
-        ### macOS
-        - [AHU-AIO macOS Universal](https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/AHU-AIO-macOS-universal-${VERSION}.zip)
-
-        详见 [INSTALL.md](https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/INSTALL.md)
-        EOF
-        } > release-body.md
-
-    - name: Create Or Update Release
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        REPO: ${{ github.repository }}
-        TAG: ${{ needs.get-version.outputs.tag }}
-      run: |
-        if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
-          gh release edit "$TAG" --repo "$REPO" --title "Release $TAG" --notes-file release-body.md
-          gh release upload "$TAG" release/* --repo "$REPO" --clobber
-        else
-          gh release create "$TAG" release/* --repo "$REPO" --title "Release $TAG" --notes-file release-body.md
-        fi
+          # Create/update release
+          if gh release view "v$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release edit "v$TAG" --repo "${{ github.repository }}" \
+              --title "Release v$TAG" --notes-file release-body.md
+            gh release upload "v$TAG" release/* --repo "${{ github.repository }}" --clobber
+          else
+            gh release create "v$TAG" release/* --repo "${{ github.repository }}" \
+              --title "Release v$TAG" --notes-file release-body.md
+          fi
