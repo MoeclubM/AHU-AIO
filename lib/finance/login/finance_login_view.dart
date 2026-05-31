@@ -1,7 +1,5 @@
-import 'dart:io' show Cookie;
-
 import 'package:flutter/material.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart' hide Cookie;
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api/synjones_client.dart';
 import '../home/finance_home_view.dart';
@@ -162,13 +160,14 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
     ).firstMatch(latestUrl);
     String? ticket;
     if (ticketMatch != null) {
-      ticket = ticketMatch.group(1)!;
+      var t = ticketMatch.group(1)!;
       try {
-        ticket = Uri.decodeComponent(ticket);
+        t = Uri.decodeComponent(t);
       } catch (_) {}
       try {
-        ticket = Uri.decodeComponent(ticket);
+        t = Uri.decodeComponent(t);
       } catch (_) {}
+      ticket = t;
     }
 
     // 2) Also check sessionStorage for token
