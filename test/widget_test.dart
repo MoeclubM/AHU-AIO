@@ -15,7 +15,7 @@ void main() {
   testWidgets('App loads correctly', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(
-      GetMaterialApp(title: 'AHU All In One', home: const HomePage()),
+      GetMaterialApp(title: 'AHU AIO', home: const HomePage()),
     );
 
     // Wait for the widget to settle
@@ -23,6 +23,6 @@ void main() {
 
     // Verify that the app loads without errors
     expect(find.byType(Scaffold), findsOneWidget);
-    expect(find.text('AHU All In One'), findsOneWidget);
+    expect(find.text('AHU AIO'), findsOneWidget);
   });
 }
