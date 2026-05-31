@@ -10,6 +10,7 @@ class JwApi {
   factory JwApi() => _instance;
 
   static const String baseUrl = 'https://jw.ahu.edu.cn';
+  static const String ssoLoginUrl = '$baseUrl/student/sso/login';
   late final Dio _dio;
   late final PersistCookieJar _cookieJar;
   String? studentId;
@@ -60,7 +61,9 @@ class JwApi {
   Future<bool> hasValidSession() async {
     if (!_initialized) return false;
     try {
-      final cookies = await _cookieJar.loadForRequest(Uri.parse(baseUrl));
+      final cookies = await _cookieJar.loadForRequest(
+        Uri.parse('$baseUrl/student/'),
+      );
       final hasSession = cookies.any(
         (c) => c.name == 'SESSION' || c.name == '__pstsid__',
       );
@@ -77,65 +80,6 @@ class JwApi {
       return false;
     } catch (_) {
       return false;
-    }
-  }
-
-  /// 获取登录盐值
-  Future<String> getLoginSalt() async {
-    final resp = await _dio.get(
-      '/student/login-salt',
-      options: Options(
-        contentType: 'text/plain',
-        responseType: ResponseType.plain,
-      ),
-    );
-    return resp.data.toString().trim();
-  }
-
-  /// 访问登录页面建立 session cookie（必须在 getLoginSalt 之前调用）
-  Future<void> prepareLogin() async {
-    try {
-      await _dio.get('/student/login');
-    } catch (_) {}
-  }
-
-  /// 获取登录验证码图片 (GET /student/login-captcha)
-  /// 返回 {"code":"0000","originalImageBase64":"iVBOR..."}
-  Future<Map<String, dynamic>> getLoginCaptcha() async {
-    final resp = await _dio.get('/student/login-captcha');
-    return Map<String, dynamic>.from(resp.data);
-  }
-
-  /// 登录
-  Future<LoginResult> login({
-    required String username,
-    required String passwordHash,
-    String captchaToken = '',
-  }) async {
-    try {
-      final data = <String, dynamic>{
-        'username': username,
-        'password': passwordHash,
-      };
-      if (captchaToken.isNotEmpty) {
-        data['captchaToken'] = captchaToken;
-      }
-      final resp = await _dio.post('/student/login', data: data);
-      final body = resp.data;
-      if (body is Map && body['result'] == true) {
-        studentId = await _fetchStudentId();
-        return LoginResult(success: true);
-      }
-      return LoginResult(
-        success: false,
-        message: body['message']?.toString() ?? '登录失败',
-        needCaptcha: body['needCaptcha'] == true,
-      );
-    } on DioException catch (e) {
-      return LoginResult(
-        success: false,
-        message: '服务器错误(${e.response?.statusCode}): ${e.message}',
-      );
     }
   }
 
@@ -302,12 +246,4 @@ class JwApi {
     } catch (_) {}
     return null;
   }
-}
-
-class LoginResult {
-  final bool success;
-  final String? message;
-  final bool needCaptcha;
-
-  LoginResult({required this.success, this.message, this.needCaptcha = false});
 }

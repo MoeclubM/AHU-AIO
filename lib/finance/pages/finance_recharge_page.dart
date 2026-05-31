@@ -53,9 +53,12 @@ class _FinanceRechargePageState extends State<FinanceRechargePage> {
         final website = app['website']?.toString() ?? '';
         final isCardRecharge =
             code == 'card-recharge' || website.contains('cardRecharge');
+        final rawFeeitemId = app['feeitemid'] ?? app['feeitemId'];
         final feeitemId = isCardRecharge
             ? cardRechargeFeeitemId
-            : _feeitemIdFromWebsite(website);
+            : rawFeeitemId == null
+                ? _feeitemIdFromWebsite(website)
+                : int.parse(rawFeeitemId.toString());
         if (!isCardRecharge && feeitemId == null) continue;
 
         final key = '$code-$feeitemId';
@@ -87,8 +90,17 @@ class _FinanceRechargePageState extends State<FinanceRechargePage> {
 
   int? _feeitemIdFromWebsite(String website) {
     final uri = Uri.tryParse(website);
-    final value = uri?.queryParameters['feeitemid'];
-    return value == null ? null : int.parse(value);
+    final value =
+        uri?.queryParameters['feeitemid'] ?? uri?.queryParameters['feeitemId'];
+    if (value != null) return int.parse(value);
+
+    final fragment = uri?.fragment;
+    if (fragment == null || !fragment.contains('?')) return null;
+    final fragmentQuery = fragment.substring(fragment.indexOf('?') + 1);
+    final fragmentParams = Uri.splitQueryString(fragmentQuery);
+    final fragmentValue =
+        fragmentParams['feeitemid'] ?? fragmentParams['feeitemId'];
+    return fragmentValue == null ? null : int.parse(fragmentValue);
   }
 
   @override

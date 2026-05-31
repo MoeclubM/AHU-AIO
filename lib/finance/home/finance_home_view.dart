@@ -8,7 +8,7 @@ import '../pages/finance_pay_code_page.dart';
 import '../pages/finance_payment_methods_page.dart';
 import '../pages/finance_recharge_page.dart';
 
-/// 财务/一卡通首页 — 原生展示余额、付款码入口、电子卡与服务目录。
+/// 一卡通首页 — 原生展示余额、付款码入口、电子卡与服务目录。
 class FinanceHomePage extends StatefulWidget {
   const FinanceHomePage({super.key});
 
@@ -80,7 +80,7 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('缴费系统'),
+        title: const Text('一卡通系统'),
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
           IconButton(

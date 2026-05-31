@@ -103,7 +103,7 @@ class HomePage extends StatelessWidget {
                   ),
                 );
               },
-              child: const Text('缴费系统'),
+              child: const Text('一卡通系统'),
             ),
           ],
         ),
