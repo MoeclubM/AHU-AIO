@@ -376,23 +376,59 @@ class SynjonesClient {
     String secondKey,
     String thirdKey,
   ) {
-    final dataBts = _strToBt(data);
     final firstKeyBts = _getKeyBytes(firstKey);
     final secondKeyBts = _getKeyBytes(secondKey);
     final thirdKeyBts = _getKeyBytes(thirdKey);
 
-    var encBt = dataBts;
-    for (final kb in firstKeyBts) {
-      encBt = _desEnc(encBt, kb);
-    }
-    for (final kb in secondKeyBts) {
-      encBt = _desEnc(encBt, kb);
-    }
-    for (final kb in thirdKeyBts) {
-      encBt = _desEnc(encBt, kb);
-    }
+    final leng = data.length;
+    final encData = StringBuffer();
 
-    return _bt64ToHex(encBt);
+    if (leng < 4) {
+      // Single block
+      var bt = _strToBt(data);
+      for (final kb in firstKeyBts) {
+        bt = _desEnc(bt, kb);
+      }
+      for (final kb in secondKeyBts) {
+        bt = _desEnc(bt, kb);
+      }
+      for (final kb in thirdKeyBts) {
+        bt = _desEnc(bt, kb);
+      }
+      encData.write(_bt64ToHex(bt));
+    } else {
+      final iterator = leng ~/ 4;
+      final remainder = leng % 4;
+      for (var i = 0; i < iterator; i++) {
+        final tempData = data.substring(i * 4, i * 4 + 4);
+        var tempByte = _strToBt(tempData);
+        for (final kb in firstKeyBts) {
+          tempByte = _desEnc(tempByte, kb);
+        }
+        for (final kb in secondKeyBts) {
+          tempByte = _desEnc(tempByte, kb);
+        }
+        for (final kb in thirdKeyBts) {
+          tempByte = _desEnc(tempByte, kb);
+        }
+        encData.write(_bt64ToHex(tempByte));
+      }
+      if (remainder > 0) {
+        final tempData = data.substring(iterator * 4, leng);
+        var tempByte = _strToBt(tempData);
+        for (final kb in firstKeyBts) {
+          tempByte = _desEnc(tempByte, kb);
+        }
+        for (final kb in secondKeyBts) {
+          tempByte = _desEnc(tempByte, kb);
+        }
+        for (final kb in thirdKeyBts) {
+          tempByte = _desEnc(tempByte, kb);
+        }
+        encData.write(_bt64ToHex(tempByte));
+      }
+    }
+    return encData.toString();
   }
 
   /// String → 64-bit array (16 bits per char, ≤4 chars).
