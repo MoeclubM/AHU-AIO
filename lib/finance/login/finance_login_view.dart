@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../api/synjones_client.dart';
 import '../home/finance_home_view.dart';
 
-/// 财务系统登录页 — CAS 统一身份认证 WebView
-/// 教务(jw/jwapp)和缴费系统共用同一套 CAS 凭据。
+/// 缴费系统登录页 — 直接调用 CAS/一卡通接口。
 class FinanceLoginPage extends StatefulWidget {
   const FinanceLoginPage({super.key});
 
@@ -13,21 +12,17 @@ class FinanceLoginPage extends StatefulWidget {
   State<FinanceLoginPage> createState() => _FinanceLoginPageState();
 }
 
-/// 共享凭据存储键（教务/缴费通用）
 const _keyUser = 'cas_username';
 const _keyPass = 'cas_password';
 
 class _FinanceLoginPageState extends State<FinanceLoginPage> {
-  InAppWebViewController? _controller;
-  bool _isLoading = true;
-  double _progress = 0;
-  bool _didNavigate = false;
+  final _formKey = GlobalKey<FormState>();
+  final _userController = TextEditingController();
+  final _passController = TextEditingController();
   bool _checkingSession = true;
-  String _savedUser = '';
-
-  static const String _casUrl =
-      'https://ycard.ahu.edu.cn/berserker-auth/cas/redirect/neusoftCas'
-      '?targetUrl=https://ycard.ahu.edu.cn/plat/?name=loginTransit';
+  bool _isLoading = false;
+  bool _savePassword = true;
+  bool _obscurePassword = true;
 
   @override
   void initState() {
@@ -35,11 +30,17 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
     _initAndCheck();
   }
 
+  @override
+  void dispose() {
+    _userController.dispose();
+    _passController.dispose();
+    super.dispose();
+  }
+
   Future<void> _initAndCheck() async {
     final client = SynjonesClient();
     await client.init();
 
-    // 已有有效 token，直接进入
     if (client.loggedIn) {
       final valid = await _checkSessionValid(client);
       if (valid && mounted) {
@@ -51,10 +52,9 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
       }
     }
 
-    // 读取统一凭据
     final prefs = await SharedPreferences.getInstance();
-    _savedUser = prefs.getString(_keyUser) ?? '';
-
+    _userController.text = prefs.getString(_keyUser) ?? '';
+    _passController.text = prefs.getString(_keyPass) ?? '';
     if (mounted) setState(() => _checkingSession = false);
   }
 
@@ -67,6 +67,38 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
     }
   }
 
+  Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isLoading = true);
+    final client = SynjonesClient();
+    await client.init();
+    final result = await client.casLogin(
+      username: _userController.text.trim(),
+      password: _passController.text,
+    );
+    if (!mounted) return;
+    setState(() => _isLoading = false);
+    if (!result.success) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(result.message ?? '登录失败')));
+      return;
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyUser, _userController.text.trim());
+    if (_savePassword) {
+      await prefs.setString(_keyPass, _passController.text);
+    } else {
+      await prefs.remove(_keyPass);
+    }
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const FinanceHomePage()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_checkingSession) {
@@ -74,171 +106,109 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('缴费系统')),
-      body: Column(
-        children: [
-          if (_isLoading)
-            LinearProgressIndicator(value: _progress < 1 ? _progress : null),
-          Expanded(
-            child: InAppWebView(
-              initialUrlRequest: URLRequest(url: WebUri(_casUrl)),
-              initialSettings: InAppWebViewSettings(
-                javaScriptEnabled: true,
-                domStorageEnabled: true,
-                useWideViewPort: true,
-                userAgent:
-                    'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 '
-                    '(KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36',
+      appBar: AppBar(title: const Text('缴费系统登录')),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 420),
+          child: ListView(
+            padding: const EdgeInsets.all(24),
+            shrinkWrap: true,
+            children: [
+              Icon(
+                Icons.account_balance_wallet,
+                size: 72,
+                color: Colors.orange.shade700,
               ),
-              onWebViewCreated: (c) => _controller = c,
-              onLoadStart: (controller, url) {
-                setState(() => _isLoading = true);
-              },
-              onLoadStop: (controller, url) async {
-                setState(() {
-                  _isLoading = false;
-                  _progress = 1.0;
-                });
-
-                final urlStr = url?.toString() ?? '';
-
-                // 在 CAS 登录页自动填入已保存凭据
-                if (urlStr.contains('one.ahu.edu.cn/cas/login')) {
-                  await _autoFillCredentials();
-                }
-
-                _checkSuccess(urlStr);
-              },
-              onProgressChanged: (_, progress) {
-                setState(() => _progress = progress / 100.0);
-              },
-            ),
+              const SizedBox(height: 16),
+              const Text(
+                '安徽大学缴费系统',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '使用统一身份认证账号密码登录',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 28),
+              Form(
+                key: _formKey,
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: _userController,
+                      decoration: const InputDecoration(
+                        labelText: '学号/工号',
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.person),
+                      ),
+                      textInputAction: TextInputAction.next,
+                      validator: (value) =>
+                          value == null || value.trim().isEmpty
+                          ? '请输入学号/工号'
+                          : null,
+                    ),
+                    const SizedBox(height: 16),
+                    TextFormField(
+                      controller: _passController,
+                      obscureText: _obscurePassword,
+                      decoration: InputDecoration(
+                        labelText: '统一身份认证密码',
+                        border: const OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.lock),
+                        suffixIcon: IconButton(
+                          onPressed: () {
+                            setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            );
+                          },
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                        ),
+                      ),
+                      onFieldSubmitted: (_) {
+                        if (!_isLoading) _login();
+                      },
+                      validator: (value) =>
+                          value == null || value.isEmpty ? '请输入密码' : null,
+                    ),
+                    CheckboxListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: _savePassword,
+                      onChanged: (value) {
+                        setState(() => _savePassword = value ?? true);
+                      },
+                      title: const Text('保存密码供下次登录'),
+                      controlAffinity: ListTileControlAffinity.leading,
+                    ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: FilledButton(
+                        onPressed: _isLoading ? null : _login,
+                        child: _isLoading
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Text('登录'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
-    );
-  }
-
-  /// 在 CAS 登录页自动填写学号和密码
-  Future<void> _autoFillCredentials() async {
-    if (_savedUser.isEmpty) return;
-    final prefs = await SharedPreferences.getInstance();
-    final savedPass = prefs.getString(_keyPass) ?? '';
-    if (savedPass.isEmpty) return;
-
-    try {
-      final user = _savedUser;
-      final js =
-          'document.getElementById("un")?.value="$user";'
-          'document.getElementById("pd")?.value="$savedPass";'
-          'if(typeof initPassWordEvent==="function")initPassWordEvent();';
-      await _controller?.evaluateJavascript(source: js);
-      // 自动点击登录（CAS 的 login.js 需 device 预检通过）
-      await _controller?.evaluateJavascript(
-        source:
-            'setTimeout(function(){'
-            'var btn=document.getElementById("index_login_btn");'
-            'if(btn)btn.click();'
-            '},500);',
-      );
-    } catch (_) {}
-  }
-
-  void _checkSuccess(String url) {
-    if (_didNavigate) return;
-    if (url.contains('ycard.ahu.edu.cn/plat/') &&
-        !url.contains('/plat/login')) {
-      _didNavigate = true;
-      _handleSuccess(url);
-    }
-  }
-
-  Future<void> _handleSuccess(String latestUrl) async {
-    // 1) Extract ticket from URL (synjones encrypted ticket)
-    final ticketMatch = RegExp(
-      r'[?&]ticket=(iFKYpYOO4[^&"\s]+)',
-    ).firstMatch(latestUrl);
-    String? ticket;
-    if (ticketMatch != null) {
-      var t = ticketMatch.group(1)!;
-      try {
-        t = Uri.decodeComponent(t);
-      } catch (_) {}
-      try {
-        t = Uri.decodeComponent(t);
-      } catch (_) {}
-      ticket = t;
-    }
-
-    // 2) Also check sessionStorage for token
-    if (ticket == null || ticket.isEmpty) {
-      try {
-        final ss = await _controller?.evaluateJavascript(
-          source: 'sessionStorage.getItem("access_token")',
-        );
-        if (ss != null && ss is String && ss.isNotEmpty && ss != 'null') {
-          final client = SynjonesClient();
-          client.accessToken = ss.replaceAll('"', '');
-          await _saveCredentialsOnSuccess();
-          _goHome();
-          return;
-        }
-      } catch (_) {}
-    }
-
-    // 3) Exchange ticket → JWT via SynjonesClient
-    if (ticket != null && ticket.isNotEmpty) {
-      try {
-        final client = SynjonesClient();
-        await client.init();
-        final result = await client.casLoginDirect(ticket);
-        if (result.success) {
-          await _saveCredentialsOnSuccess();
-          if (mounted) _goHome();
-          return;
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Token 兑换失败: $e')));
-        }
-      }
-    }
-
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('登录态获取失败，请重试')));
-      setState(() => _didNavigate = false);
-    }
-  }
-
-  /// 登录成功后保存凭据
-  Future<void> _saveCredentialsOnSuccess() async {
-    try {
-      // Extract login form values from WebView
-      final userResult = await _controller?.evaluateJavascript(
-        source: 'document.getElementById("un")?.value||""',
-      );
-      final passResult = await _controller?.evaluateJavascript(
-        source: 'document.getElementById("pd")?.value||""',
-      );
-      final user = (userResult is String ? userResult : '').replaceAll('"', '');
-      final pass = (passResult is String ? passResult : '').replaceAll('"', '');
-
-      if (user.isNotEmpty) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(_keyUser, user);
-        if (pass.isNotEmpty) await prefs.setString(_keyPass, pass);
-      }
-    } catch (_) {}
-  }
-
-  void _goHome() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const FinanceHomePage()),
     );
   }
 }

@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+
 import '../api/synjones_client.dart';
 import '../login/finance_login_view.dart';
+import '../pages/finance_apps_page.dart';
+import '../pages/finance_cards_page.dart';
+import '../pages/finance_pay_code_page.dart';
+import '../pages/finance_payment_methods_page.dart';
+import '../pages/finance_recharge_page.dart';
 
-/// 财务系统首页 — 一卡通余额/付款码/常用功能
+/// 财务/一卡通首页 — 原生展示余额、付款码入口、电子卡与服务目录。
 class FinanceHomePage extends StatefulWidget {
   const FinanceHomePage({super.key});
 
@@ -17,6 +22,7 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
   String? _error;
   Map<String, dynamic>? _userInfo;
   List<dynamic> _cards = [];
+  List<dynamic> _payments = [];
   Map<String, dynamic>? _paymentInfo;
 
   @override
@@ -33,8 +39,6 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
 
     try {
       await _client.init();
-
-      // 并行获取用户信息、校园卡列表、支付信息
       final results = await Future.wait([
         _client.fetchUserInfo(),
         _client.getCampusCards(),
@@ -42,12 +46,10 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
       ]);
 
       _userInfo = results[0]['data'] as Map<String, dynamic>?;
-      final cardsData = results[1];
-      _cards = (cardsData['data']?['card'] as List?) ?? [];
-      final payData = results[2];
-      final payList = (payData['data'] as List?) ?? [];
-      _paymentInfo = payList.isNotEmpty
-          ? payList.first as Map<String, dynamic>
+      _cards = (results[1]['data']?['card'] as List?) ?? [];
+      _payments = (results[2]['data'] as List?) ?? [];
+      _paymentInfo = _payments.isNotEmpty
+          ? Map<String, dynamic>.from(_payments.first as Map)
           : null;
 
       setState(() => _isLoading = false);
@@ -71,15 +73,6 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const FinanceLoginPage()),
-    );
-  }
-
-  void _openWebView(String title, String url) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => _FinanceWebView(title: title, url: url),
-      ),
     );
   }
 
@@ -111,6 +104,8 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
                   _buildBalanceCard(),
                   const SizedBox(height: 16),
                   _buildQuickServices(),
+                  const SizedBox(height: 16),
+                  _buildCardsPreview(),
                 ],
               ),
             ),
@@ -139,6 +134,7 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
   }
 
   Widget _buildUserCard() {
+    final name = _userInfo?['name']?.toString() ?? '-';
     return Card(
       elevation: 2,
       child: Padding(
@@ -153,9 +149,7 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
                   : null,
               child: _userInfo?['avatar'] == null
                   ? Text(
-                      (_userInfo?['name']?.toString() ?? '?').isNotEmpty
-                          ? _userInfo!['name'].toString()[0]
-                          : '?',
+                      name.isNotEmpty ? name[0] : '?',
                       style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -170,7 +164,7 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    _userInfo?['name']?.toString() ?? '-',
+                    name,
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -190,11 +184,9 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
     );
   }
 
-  /// 余额卡片：显示校园卡余额（单位：分 → 元）
   Widget _buildBalanceCard() {
-    // 优先用 paymentInfo 的 elec_accamt，否则取第一张卡
-    int balanceFen = 0;
-    String accountLabel = '';
+    var balanceFen = 0;
+    var accountLabel = '';
     if (_paymentInfo != null) {
       balanceFen = (_paymentInfo!['elec_accamt'] as num?)?.toInt() ?? 0;
       accountLabel = _paymentInfo!['name']?.toString() ?? '电子账户';
@@ -229,18 +221,69 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
               '当前余额',
               style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
             ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _payments.isEmpty
+                    ? null
+                    : () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => FinancePayCodePage(
+                              initialPayments: _payments,
+                              initialPayment: _paymentInfo,
+                            ),
+                          ),
+                        );
+                      },
+                icon: const Icon(Icons.qr_code_2),
+                label: const Text('打开付款码'),
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  /// 常用功能：直达一卡通平台的真实路由
   Widget _buildQuickServices() {
-    final token = _client.accessToken;
-    final tokenParam = token != null
-        ? '&synjones-auth=${Uri.encodeComponent(token)}'
-        : '';
+    final services = [
+      _FinanceService(
+        '付款码',
+        Icons.qr_code_2,
+        Colors.orange,
+        () => FinancePayCodePage(
+          initialPayments: _payments,
+          initialPayment: _paymentInfo,
+        ),
+      ),
+      _FinanceService(
+        '电子卡',
+        Icons.credit_card,
+        Colors.blue,
+        () => FinanceCardsPage(initialCards: _cards),
+      ),
+      _FinanceService(
+        '付款方式',
+        Icons.account_balance_wallet,
+        Colors.purple,
+        () => FinancePaymentMethodsPage(initialPayments: _payments),
+      ),
+      _FinanceService(
+        '充值缴费',
+        Icons.currency_yuan,
+        Colors.green,
+        () => const FinanceRechargePage(),
+      ),
+      _FinanceService(
+        '服务目录',
+        Icons.apps,
+        Colors.indigo,
+        () => const FinanceAppsPage(),
+      ),
+    ];
 
     return Card(
       elevation: 2,
@@ -261,13 +304,15 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
               crossAxisSpacing: 8,
               mainAxisSpacing: 12,
               childAspectRatio: 0.82,
-              children: _financeServices.map((s) {
-                final fullUrl =
-                    'https://ycard.ahu.edu.cn${s.path}'
-                    '?synAccessSource=app$tokenParam';
+              children: services.map((service) {
                 return InkWell(
                   borderRadius: BorderRadius.circular(12),
-                  onTap: () => _openWebView(s.title, fullUrl),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => service.builder()),
+                    );
+                  },
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -275,14 +320,18 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
                         width: 46,
                         height: 46,
                         decoration: BoxDecoration(
-                          color: s.color.withValues(alpha: 0.12),
+                          color: service.color.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Icon(s.icon, color: s.color, size: 24),
+                        child: Icon(
+                          service.icon,
+                          color: service.color,
+                          size: 24,
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        s.title,
+                        service.title,
                         style: const TextStyle(fontSize: 12),
                         textAlign: TextAlign.center,
                         maxLines: 1,
@@ -298,61 +347,57 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
       ),
     );
   }
-}
 
-/// 缴费系统内部 WebView（token 通过 URL 参数注入）
-class _FinanceWebView extends StatefulWidget {
-  final String title;
-  final String url;
-  const _FinanceWebView({required this.title, required this.url});
-
-  @override
-  State<_FinanceWebView> createState() => _FinanceWebViewState();
-}
-
-class _FinanceWebViewState extends State<_FinanceWebView> {
-  bool _ready = false;
-
-  @override
-  void initState() {
-    super.initState();
-    // 小延时确保 WebView 初始化完成
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (mounted) setState(() => _ready = true);
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
-      body: _ready
-          ? InAppWebView(
-              initialUrlRequest: URLRequest(url: WebUri(widget.url)),
-              initialSettings: InAppWebViewSettings(
-                javaScriptEnabled: true,
-                domStorageEnabled: true,
-                databaseEnabled: true,
-                useWideViewPort: true,
-                supportZoom: true,
-                thirdPartyCookiesEnabled: true,
-                userAgent:
-                    'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 '
-                    '(KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36',
-              ),
-              onLoadStop: (controller, url) async {
-                // 注入 viewport
-                controller.evaluateJavascript(
-                  source:
-                      'var m=document.querySelector(\'meta[name="viewport"]\');'
-                      'if(!m){m=document.createElement("meta");'
-                      'm.name="viewport";'
-                      'm.content="width=device-width,initial-scale=1.0,maximum-scale=3.0";'
-                      'document.head.appendChild(m);}',
+  Widget _buildCardsPreview() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    '电子卡',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => FinanceCardsPage(initialCards: _cards),
+                      ),
+                    );
+                  },
+                  child: const Text('全部'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (_cards.isEmpty)
+              Text('暂无校园卡', style: TextStyle(color: Colors.grey.shade600))
+            else
+              ..._cards.take(2).map((card) {
+                final balance =
+                    ((card['elec_accamt'] as num?)?.toInt() ?? 0) / 100;
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.credit_card),
+                  title: Text(
+                    card['name']?.toString() ??
+                        card['cardname']?.toString() ??
+                        '校园卡',
+                  ),
+                  subtitle: Text(card['account']?.toString() ?? '-'),
+                  trailing: Text('¥${balance.toStringAsFixed(2)}'),
                 );
-              },
-            )
-          : const Center(child: CircularProgressIndicator()),
+              }),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -360,22 +405,8 @@ class _FinanceWebViewState extends State<_FinanceWebView> {
 class _FinanceService {
   final String title;
   final IconData icon;
-  final String path;
   final Color color;
-  const _FinanceService(this.title, this.icon, this.path, this.color);
-}
+  final Widget Function() builder;
 
-/// 路由来自一卡通 H5 平台（ycard.ahu.edu.cn/plat）的真实页面
-const List<_FinanceService> _financeServices = [
-  _FinanceService('一码通', Icons.qr_code_2, '/plat/campusCode', Colors.orange),
-  _FinanceService('电子卡', Icons.credit_card, '/plat/wecard', Colors.blue),
-  _FinanceService(
-    '充值大厅',
-    Icons.account_balance_wallet,
-    '/plat/dating',
-    Colors.green,
-  ),
-  _FinanceService('在线缴费', Icons.payment, '/plat/pay', Colors.purple),
-  _FinanceService('交易记录', Icons.receipt_long, '/plat/record', Colors.teal),
-  _FinanceService('个人中心', Icons.person, '/plat/wode', Colors.indigo),
-];
+  const _FinanceService(this.title, this.icon, this.color, this.builder);
+}

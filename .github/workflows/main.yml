@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - '*'
-  workflow_dispatch:
 
 env:
   FLUTTER_VERSION: '3.35.6'
@@ -173,7 +172,8 @@ jobs:
       - run: flutter build macos --release --build-name ${{ needs.get-version.outputs.version }} --build-number ${{ needs.get-version.outputs.build_number }}
       - run: |
           cd build/macos/Build/Products/Release
-          zip -r ../../../../../AHU-AIO-macOS-universal.zip ahu_aio.app
+          APP_BUNDLE=$(find . -maxdepth 1 -name "*.app" -type d | head -n 1)
+          zip -r ../../../../../AHU-AIO-macOS-universal.zip "$APP_BUNDLE"
       - uses: actions/upload-artifact@v7
         with:
           name: AHU-AIO-macOS-universal

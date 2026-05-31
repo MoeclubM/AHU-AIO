@@ -1,14 +1,18 @@
 library;
 
+import 'dart:convert';
+import 'dart:math';
+
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart' as path_provider;
 import 'package:shared_preferences/shared_preferences.dart';
 
 // ============================================================
-// Synjones (新中新 / 慧新E校) 一卡通 H5 协议客户端
+// Synjones (新中新 / 慧新E校) 一卡通协议客户端
 // Protocol: CAS SSO → encrypted ticket → OAuth token (JWT)
 // ============================================================
 
@@ -20,6 +24,9 @@ class SynjonesClient {
   static const String _casBase = 'https://one.ahu.edu.cn';
   static const String _oauthBasic =
       'Basic bW9iaWxlX3NlcnZpY2VfcGxhdGZvcm06bW9iaWxlX3NlcnZpY2VfcGxhdGZvcm1fc2VjcmV0';
+  static const String _chargeBasic = 'Basic Y2hhcmdlOmNoYXJnZV9zZWNyZXQ=';
+  static const String _chargeAppId = '56321';
+  static const String _chargeSecret = '0osTIhce7uPvDKHz6aa67bhCukaKoYl4';
   static const String _ua =
       'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 '
       '(KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36';
@@ -194,7 +201,7 @@ class SynjonesClient {
     }
   }
 
-  /// CAS 登录已通过 WebView 完成，直接用 ticket 兑换 JWT。
+  /// 已获得 CAS 跳转 ticket 时，直接兑换 JWT。
   Future<LoginResult> casLoginDirect(String ticket) async {
     await init();
     return await _exchangeToken(ticket);
@@ -259,6 +266,14 @@ class SynjonesClient {
     return await _ycardGet('/berserker-app/ykt/tsm/codebarPayinfo');
   }
 
+  /// 一卡通应用方案（原生首页按此识别可用模块）
+  Future<Map<String, dynamic>> getAppScheme() async {
+    return await _ycardGet(
+      '/berserker-app/appScheme/info',
+      params: {'type': 'user', 'serviceType': 'h5'},
+    );
+  }
+
   /// 卡片样式 HTML 模板
   Future<Map<String, dynamic>> getCardStyle() async {
     return await _ycardGet('/berserker-app/cardStyle');
@@ -269,10 +284,35 @@ class SynjonesClient {
     required String account,
     required String payacc,
     required String paytype,
+    String? codeType,
   }) async {
+    final params = {'account': account, 'payacc': payacc, 'paytype': paytype};
+    if (codeType != null) params['codeType'] = codeType;
     return await _ycardGet(
       '/berserker-app/ykt/tsm/batchGetBarCodeGet',
-      params: {'account': account, 'payacc': payacc, 'paytype': paytype},
+      params: params,
+    );
+  }
+
+  /// 删除已下发的付款码/身份码
+  Future<Map<String, dynamic>> deleteBarcode(String barcode) async {
+    final resp = await _ycardDio.post(
+      '/berserker-app/ykt/tsm/barcodeDel',
+      queryParameters: {'synAccessSource': 'h5'},
+      data: {'barcode': barcode},
+    );
+    return Map<String, dynamic>.from(resp.data);
+  }
+
+  /// 离线付款参数（部分付款方式启用离线码时使用）
+  Future<Map<String, dynamic>> getOfflinePayParams({
+    required String payacc,
+    required String paytype,
+    required String voucher,
+  }) async {
+    return await _ycardGet(
+      '/berserker-app/ykt/tsm/offlienPar',
+      params: {'payacc': payacc, 'paytype': paytype, 'voucher': voucher},
     );
   }
 
@@ -285,10 +325,18 @@ class SynjonesClient {
   }
 
   /// 查询指定账户的卡信息
-  Future<Map<String, dynamic>> queryCard(String account) async {
+  Future<Map<String, dynamic>> queryCard([String? account]) async {
     return await _ycardGet(
       '/berserker-app/ykt/tsm/queryCard',
-      params: {'account': account},
+      params: account == null ? null : {'account': account},
+    );
+  }
+
+  /// 充值场景下的可充值卡/电子账户。
+  Future<Map<String, dynamic>> queryRechargeCards() async {
+    return await _ycardGet(
+      '/berserker-app/ykt/tsm/queryCard',
+      params: {'scene': 'recharge'},
     );
   }
 
@@ -310,13 +358,104 @@ class SynjonesClient {
     return await _ycardGet('/berserker-app/notice/protocol');
   }
 
+  /// 缴费项目配置：一卡通充值、水电网费等均由该接口描述。
+  Future<Map<String, dynamic>> getFeeItem(int feeitemId) async {
+    return await _ycardGet(
+      '/charge/feeitem/singleFeeitem',
+      params: {'feeitemid': feeitemId},
+      options: _chargeOptions(),
+    );
+  }
+
+  /// 缴费项目第三方数据：楼栋/房间/网费账号等场景参数查询。
+  Future<Map<String, dynamic>> getFeeItemThirdData(
+    Map<String, dynamic> data,
+  ) async {
+    final resp = await _ycardDio.post(
+      '/charge/feeitem/getThirdData',
+      queryParameters: {'synAccessSource': 'h5'},
+      data: data,
+      options: _chargeFormOptions(),
+    );
+    return Map<String, dynamic>.from(resp.data);
+  }
+
+  /// 生活缴费下单。返回 orderid 后继续走 getChargePayInfo / blade-pay 支付确认。
+  Future<Map<String, dynamic>> createChargeOrder(
+    Map<String, dynamic> data,
+  ) async {
+    final signed = _signChargeData(data);
+    final resp = await _ycardDio.post(
+      '/blade-pay/pay',
+      queryParameters: {'synAccessSource': 'h5'},
+      data: signed,
+      options: _chargeFormOptions(),
+    );
+    return Map<String, dynamic>.from(resp.data);
+  }
+
+  /// 一卡通卡片充值下单，H5 使用 /charge/order/thirdOrder。
+  Future<Map<String, dynamic>> createCardRechargeOrder({
+    required int feeitemId,
+    required String yktcard,
+    required String tranamt,
+  }) async {
+    final signed = _signChargeData({
+      'feeitemid': feeitemId,
+      'appid': _chargeAppId,
+      'tranamt': tranamt,
+      'source': 'app',
+      'synjones-auth': 'bearer $accessToken',
+      'yktcard': yktcard,
+      'synAccessSource': 'h5',
+      'abstracts': jsonEncode({'type': 'recharge'}),
+    });
+    final resp = await _ycardDio.post(
+      '/charge/order/thirdOrder',
+      data: signed,
+      options: _chargeFormOptions(),
+    );
+    if (resp.data is Map) return Map<String, dynamic>.from(resp.data);
+    return {
+      'code': resp.statusCode,
+      'contentType': resp.headers.value(Headers.contentTypeHeader),
+      'data': resp.data?.toString() ?? '',
+    };
+  }
+
+  /// 查询订单与可用支付方式。
+  Future<Map<String, dynamic>> getChargePayInfo(String orderId) async {
+    return await _ycardGet(
+      '/charge/pay/getpayinfo',
+      params: {'orderid': orderId},
+      options: _chargeOptions(),
+    );
+  }
+
+  /// 继续支付步骤。payment/paytype/account 字段按 getChargePayInfo 返回传入。
+  Future<Map<String, dynamic>> postChargePay(Map<String, dynamic> data) async {
+    final signed = _signChargeData(data);
+    final resp = await _ycardDio.post(
+      '/blade-pay/pay',
+      queryParameters: {'synAccessSource': 'h5'},
+      data: signed,
+      options: _chargeFormOptions(),
+    );
+    return Map<String, dynamic>.from(resp.data);
+  }
+
   Future<Map<String, dynamic>> _ycardGet(
     String path, {
     Map<String, dynamic>? params,
+    Options? options,
   }) async {
     final qp = {'synAccessSource': 'h5', ...?params};
     try {
-      final resp = await _ycardDio.get(path, queryParameters: qp);
+      final resp = await _ycardDio.get(
+        path,
+        queryParameters: qp,
+        options: options,
+      );
       return Map<String, dynamic>.from(resp.data);
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
@@ -340,6 +479,57 @@ class SynjonesClient {
     _ycardDio.options.headers.remove('synjones-auth');
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('synjones_access_token');
+  }
+
+  Options _chargeFormOptions() {
+    return Options(
+      contentType: Headers.formUrlEncodedContentType,
+      headers: {'Authorization': _chargeBasic},
+    );
+  }
+
+  Options _chargeOptions() {
+    return Options(headers: {'Authorization': _chargeBasic});
+  }
+
+  Map<String, dynamic> _signChargeData(Map<String, dynamic> data) {
+    final signed = Map<String, dynamic>.from(data);
+    signed['APP_ID'] = _chargeAppId;
+    signed['TIMESTAMP'] = _chargeTimestamp();
+    signed['SIGN_TYPE'] = 'SHA256';
+    signed['NONCE'] = Random().nextDouble().toString().substring(2);
+
+    final keys =
+        signed.keys
+            .where(
+              (key) =>
+                  key != 'SIGN' &&
+                  key != 'SECRET_KEY' &&
+                  signed[key] != null &&
+                  signed[key].toString().isNotEmpty,
+            )
+            .toList()
+          ..sort();
+    final payload = StringBuffer();
+    for (final key in keys) {
+      payload.write('$key=${signed[key]}&');
+    }
+    payload.write('SECRET_KEY=$_chargeSecret');
+    signed['SIGN'] = sha256
+        .convert(utf8.encode(payload.toString()))
+        .toString()
+        .toUpperCase();
+    return signed;
+  }
+
+  String _chargeTimestamp() {
+    final now = DateTime.now();
+    return '${now.year}'
+        '${now.month.toString().padLeft(2, '0')}'
+        '${now.day.toString().padLeft(2, '0')}'
+        '${now.hour.toString().padLeft(2, '0')}'
+        '${now.minute.toString().padLeft(2, '0')}'
+        '${now.second.toString().padLeft(2, '0')}';
   }
 
   // ============================================================

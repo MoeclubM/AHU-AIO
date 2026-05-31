@@ -2,8 +2,7 @@ name: Beta Build
 
 on:
   push:
-    tags:
-      - '*'
+    branches: [main, master]
   workflow_dispatch:
 
 concurrency:
@@ -54,9 +53,12 @@ jobs:
       - name: Compute Beta Version
         id: compute
         run: |
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
-          LATEST_TAG="${LATEST_TAG#v}"
-          COMMITS_SINCE=$(git rev-list --count ${LATEST_TAG}..HEAD 2>/dev/null || echo "0")
+          LATEST_TAG_REF=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -n "$LATEST_TAG_REF" ]; then
+            COMMITS_SINCE=$(git rev-list --count ${LATEST_TAG_REF}..HEAD)
+          else
+            COMMITS_SINCE=$(git rev-list --count HEAD)
+          fi
           SHORT_HASH=$(git rev-parse --short=7 HEAD)
           BASE_VERSION=$(grep 'version:' pubspec.yaml | head -1 | sed 's/.*version: *//' | sed 's/+.*//')
           BUILD_NUMBER=$(grep 'version:' pubspec.yaml | head -1 | sed 's/.*+//')
@@ -122,19 +124,3 @@ jobs:
         with:
           name: ahu-aio-beta-${{ matrix.arch }}
           path: build/app/outputs/flutter-apk/app-release.apk
-
-      - name: Upload APK to Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG="${GITHUB_REF#refs/tags/}"
-          if [ -z "$TAG" ] || [ "$TAG" = "$GITHUB_REF" ]; then
-            echo "Not a tag push, skip release upload"
-            exit 0
-          fi
-          APK_NAME="AHU-AIO-Beta-${{ matrix.arch }}-${{ needs.get-version.outputs.version }}.apk"
-          cp build/app/outputs/flutter-apk/app-release.apk "$APK_NAME"
-          # 确保 release 存在
-          gh release create "$TAG" --repo "${{ github.repository }}" \
-            --title "Beta ${TAG}" --generate-notes 2>/dev/null || true
-          gh release upload "$TAG" "$APK_NAME" --repo "${{ github.repository }}" --clobber
