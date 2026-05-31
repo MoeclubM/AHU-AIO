@@ -194,6 +194,12 @@ class SynjonesClient {
     }
   }
 
+  /// CAS 登录已通过 WebView 完成，直接用 ticket 兑换 JWT。
+  Future<LoginResult> casLoginDirect(String ticket) async {
+    await init();
+    return await _exchangeToken(ticket);
+  }
+
   Future<LoginResult> _exchangeToken(String ticket) async {
     try {
       final resp = await _ycardDio.post(

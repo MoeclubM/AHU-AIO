@@ -33,8 +33,11 @@ class _JwLoginPageState extends State<JwLoginPage> {
 
   Future<void> _loadSavedCredentials() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedUsername = prefs.getString('jw_username');
-    final savedPassword = prefs.getString('jw_password');
+    // 统一凭据键（教务/缴费共用）
+    final savedUsername =
+        prefs.getString('cas_username') ?? prefs.getString('jw_username');
+    final savedPassword =
+        prefs.getString('cas_password') ?? prefs.getString('jw_password');
     if (savedUsername != null) _usernameController.text = savedUsername;
     if (savedPassword != null) _passwordController.text = savedPassword;
   }
@@ -45,8 +48,10 @@ class _JwLoginPageState extends State<JwLoginPage> {
       await api.init();
 
       final prefs = await SharedPreferences.getInstance();
-      final savedUser = prefs.getString('jw_username');
-      final savedPass = prefs.getString('jw_password');
+      final savedUser =
+          prefs.getString('cas_username') ?? prefs.getString('jw_username');
+      final savedPass =
+          prefs.getString('cas_password') ?? prefs.getString('jw_password');
 
       // 1) 已有有效会话，直接进入
       final hasSession = await api.hasValidSession();
@@ -130,6 +135,9 @@ class _JwLoginPageState extends State<JwLoginPage> {
       if (result.success) {
         final prefs = await SharedPreferences.getInstance();
         if (_savePassword) {
+          await prefs.setString('cas_username', username);
+          await prefs.setString('cas_password', password);
+          // 保留旧键兼容
           await prefs.setString('jw_username', username);
           await prefs.setString('jw_password', password);
         } else {
