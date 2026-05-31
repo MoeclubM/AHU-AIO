@@ -459,7 +459,7 @@ class SynjonesClient {
     return bits;
   }
 
-  static List<int> _bitsToBytes(List<int> bits) {
+  static Uint8List _bitsToBytes(List<int> bits) {
     final bytes = <int>[];
     for (var i = 0; i < bits.length; i += 8) {
       var b = 0;
@@ -468,7 +468,7 @@ class SynjonesClient {
       }
       bytes.add(b);
     }
-    return bytes;
+    return Uint8List.fromList(bytes);
   }
 
   static List<int> _permute(List<int> bits, List<int> table) {
