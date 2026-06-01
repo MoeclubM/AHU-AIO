@@ -461,13 +461,13 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       final data = <String, dynamic>{
         'orderid': orderId,
         'paystep': 2,
-        if (paytype != null) 'paytype': paytype,
-        if (paytypeid != null) 'paytypeid': paytypeid,
         if (pay['payment'] != null) 'payment': pay['payment'],
         if (pay['account'] != null) 'account': pay['account'],
         if (pay['payacc'] != null) 'payacc': pay['payacc'],
         if (pay['name'] != null) 'paytypename': pay['name'],
       };
+      if (paytype != null) data['paytype'] = paytype;
+      if (paytypeid != null) data['paytypeid'] = paytypeid;
       final resp = await _client.postChargePay(data);
       setState(() => _payStepResponse = resp);
     } catch (e) {
