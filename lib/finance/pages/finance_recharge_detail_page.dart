@@ -390,6 +390,10 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       _showMessage('请输入充值金额');
       return;
     }
+    if (_accountValue == null) {
+      _showMessage('请选择充值账户');
+      return;
+    }
     setState(() {
       _creating = true;
       _orderResponse = null;
@@ -399,7 +403,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       final resp = await _client.createCardRechargeOrder(
         feeitemId: widget.feeitemId,
         tranamt: amount,
-        flag: _feeitemType,
+        yktcard: _accountValue!,
       );
       await _setOrderResponse(resp);
     } catch (e) {
@@ -527,7 +531,15 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
     final data = _payBaseData(orderId, pay);
     if (_selectedAccountNo != null) data['accountno'] = _selectedAccountNo;
     final resp = await _client.postChargePay(data, includeRedirect: false);
+    if (resp['code'] != 200 && resp['code'] != '200') {
+      throw StateError(
+        (resp['msg'] ?? resp['message'] ?? '电子账户信息获取失败').toString(),
+      );
+    }
     final respData = resp['data'];
+    final accountNo = respData is Map
+        ? respData['accountno']?.toString()
+        : null;
     final types = respData is Map
         ? ((respData['ccctype'] as List?) ?? [])
               .whereType<Map>()
@@ -535,6 +547,10 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
               .toList()
         : <Map<String, dynamic>>[];
     setState(() {
+      if (accountNo != null && accountNo.isNotEmpty) {
+        _selectedAccountNo = accountNo;
+        if (!_accountNoList.contains(accountNo)) _accountNoList = [accountNo];
+      }
       _accountTypeList = types;
       _selectedCccType = types.isEmpty
           ? null
@@ -560,8 +576,13 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       return;
     }
     if ((code == 'ACCOUNT' || code == 'ACCOUNTTSM') &&
-        ((_truthy(pay['chooseAccount']) && _selectedAccountNo == null) ||
-            _selectedCccType == null)) {
+        _truthy(pay['chooseAccount']) &&
+        _selectedAccountNo == null) {
+      _showMessage('请选择支付账户');
+      return;
+    }
+    if ((code == 'ACCOUNT' || code == 'ACCOUNTTSM') &&
+        _selectedCccType == null) {
       _showMessage('请选择电子账户');
       return;
     }

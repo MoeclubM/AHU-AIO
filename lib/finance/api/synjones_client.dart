@@ -278,25 +278,26 @@ class SynjonesClient {
     return _chargeOrderResponse(resp, '一卡通缴费下单');
   }
 
-  /// 一卡通卡片充值下单，参数保持与 charge-pc 原始页面一致。
+  /// 一卡通卡片充值下单，参数保持与 campus-card 原始充值页面一致。
   Future<Map<String, dynamic>> createCardRechargeOrder({
     required int feeitemId,
     required String tranamt,
-    required String flag,
+    required String yktcard,
   }) async {
     final signed = _signChargeData({
       'feeitemid': feeitemId,
       'appid': _chargeAppId,
       'tranamt': tranamt,
-      'source': 'pc',
+      'source': 'app',
       'synjones-auth': 'bearer $accessToken',
-      'synAccessSource': 'pc',
-      'flag': flag,
+      'yktcard': yktcard,
+      'synAccessSource': 'app',
+      'abstracts': jsonEncode({'type': 'recharge'}),
     });
     final resp = await _ycardDio.post(
       '/charge/order/thirdOrder',
       data: signed,
-      options: _chargeFormOptions('pc'),
+      options: _chargeFormOptions('app'),
     );
     return _chargeOrderResponse(resp, '一卡通充值');
   }
