@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// 原生 Code128-B 条形码绘制器，用于一卡通付款码/身份码展示。
+/// 原生 Code128-B 身份码绘制器，用于一卡通电子卡展示。
 class Code128Barcode extends StatelessWidget {
   final String data;
   final double height;

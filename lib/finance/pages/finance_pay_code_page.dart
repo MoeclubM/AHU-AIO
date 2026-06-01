@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../api/synjones_client.dart';
-import '../widgets/code128_barcode.dart';
 
 class FinancePayCodePage extends StatefulWidget {
   final List<dynamic> initialPayments;
@@ -201,7 +200,7 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
               children: [
                 const Expanded(
                   child: Text(
-                    '当前付款码',
+                    '当前付款二维码',
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -226,7 +225,18 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
                 ),
               )
             else if (_barcode != null) ...[
-              Code128Barcode(data: _barcode!),
+              Center(
+                child: Container(
+                  width: 260,
+                  height: 260,
+                  padding: const EdgeInsets.all(12),
+                  color: Colors.white,
+                  child: Image.network(
+                    _client.getQrCodeUrl(_barcode!),
+                    fit: BoxFit.contain,
+                  ),
+                ),
+              ),
               const SizedBox(height: 16),
               SelectableText(
                 _groupCode(_barcode!),

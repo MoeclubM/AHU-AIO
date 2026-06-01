@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../../auth/cas_auth_cache.dart';
 import '../api/synjones_client.dart';
 import '../login/finance_login_view.dart';
 import '../pages/finance_apps_page.dart';
 import '../pages/finance_cards_page.dart';
 import '../pages/finance_pay_code_page.dart';
-import '../pages/finance_payment_methods_page.dart';
 import '../pages/finance_recharge_page.dart';
 
-/// 一卡通首页 — 原生展示余额、付款码入口、电子卡与服务目录。
+/// 一卡通首页 — 原生展示余额、付款码入口、电子卡与更多功能。
 class FinanceHomePage extends StatefulWidget {
   const FinanceHomePage({super.key});
 
@@ -69,6 +69,7 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
 
   void _logout() async {
     await _client.logout();
+    await CasAuthCache.clear();
     if (!mounted) return;
     Navigator.pushReplacement(
       context,
@@ -266,22 +267,20 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
         () => FinanceCardsPage(initialCards: _cards),
       ),
       _FinanceService(
-        '付款方式',
-        Icons.account_balance_wallet,
-        Colors.purple,
-        () => FinancePaymentMethodsPage(initialPayments: _payments),
-      ),
-      _FinanceService(
         '充值缴费',
         Icons.currency_yuan,
         Colors.green,
         () => const FinanceRechargePage(),
       ),
       _FinanceService(
-        '服务目录',
+        '更多功能',
         Icons.apps,
         Colors.indigo,
-        () => const FinanceAppsPage(),
+        () => FinanceAppsPage(
+          initialCards: _cards,
+          initialPayments: _payments,
+          initialPayment: _paymentInfo,
+        ),
       ),
     ];
 

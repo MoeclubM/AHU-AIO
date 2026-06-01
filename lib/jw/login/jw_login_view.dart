@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../auth/cas_auth_cache.dart';
 import '../../auth/cas_web_login_page.dart';
 import '../../globals.dart' as globals;
 import '../api/jw_api.dart';
@@ -45,6 +46,7 @@ class _JwLoginPageState extends State<JwLoginPage> {
     final api = JwApi();
     if (!await api.hasValidSession()) return false;
     await api.fetchStudentIdDirect();
+    await CasAuthCache.markLoggedIn('jw');
     globals.jwLoggedIn = true;
     globals.jwStudentNo = api.studentId;
     _goHome();

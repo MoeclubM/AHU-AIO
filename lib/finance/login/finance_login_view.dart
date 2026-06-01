@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../auth/cas_auth_cache.dart';
 import '../../auth/cas_web_login_page.dart';
 import '../api/synjones_client.dart';
 import '../home/finance_home_view.dart';
@@ -51,6 +52,7 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
     if (!result.success) {
       throw result.message ?? '一卡通登录失败';
     }
+    await CasAuthCache.markLoggedIn('ycard');
     if (!mounted) return true;
     Navigator.pushAndRemoveUntil(
       context,

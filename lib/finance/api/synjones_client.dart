@@ -151,7 +151,7 @@ class SynjonesClient {
     return await _ycardGet('/berserker-app/cardStyle');
   }
 
-  /// 生成付款条形码（account/payacc/paytype 从 getPaymentInfo 获取）
+  /// 生成付款码（account/payacc/paytype 从 getPaymentInfo 获取）。
   Future<Map<String, dynamic>> generateBarcode({
     required String account,
     required String payacc,
@@ -190,10 +190,15 @@ class SynjonesClient {
 
   /// 一码通扫码支付 URL
   String getQrCodeUrl(String qrCodeValue) {
-    return '$_ycardBase/berserker-app/qrcode'
-        '?qrCode=${Uri.encodeComponent(qrCodeValue)}'
-        '&synjones-auth=bearer $accessToken'
-        '&synAccessSource=app';
+    return Uri.parse('$_ycardBase/berserker-app/qrcode')
+        .replace(
+          queryParameters: {
+            'qrCode': qrCodeValue,
+            'synjones-auth': 'bearer $accessToken',
+            'synAccessSource': 'app',
+          },
+        )
+        .toString();
   }
 
   /// 查询指定账户的卡信息
@@ -234,8 +239,8 @@ class SynjonesClient {
   Future<Map<String, dynamic>> getFeeItem(int feeitemId) async {
     return await _ycardGet(
       '/charge/feeitem/singleFeeitem',
-      params: {'feeitemid': feeitemId},
-      options: _chargeOptions(),
+      params: {'feeitemid': feeitemId, 'synAccessSource': 'pc'},
+      options: _chargeOptions('pc'),
     );
   }
 
@@ -245,10 +250,13 @@ class SynjonesClient {
   ) async {
     final resp = await _ycardDio.post(
       '/charge/feeitem/getThirdData',
-      queryParameters: {'synAccessSource': 'h5'},
-      data: data,
-      options: _chargeFormOptions(),
+      queryParameters: {'synAccessSource': 'pc'},
+      data: {'synAccessSource': 'pc', ...data},
+      options: _chargeFormOptions('pc'),
     );
+    if (resp.statusCode == 302) {
+      throw StateError('一卡通缴费接口重定向到登录：${resp.headers.value('location')}');
+    }
     return Map<String, dynamic>.from(resp.data);
   }
 
@@ -256,14 +264,19 @@ class SynjonesClient {
   Future<Map<String, dynamic>> createChargeOrder(
     Map<String, dynamic> data,
   ) async {
-    final signed = _signChargeData(data);
+    final signed = _signChargeData({
+      'appid': _chargeAppId,
+      'source': 'pc',
+      'synAccessSource': 'pc',
+      ...data,
+    });
     final resp = await _ycardDio.post(
-      '/blade-pay/pay',
-      queryParameters: {'synAccessSource': 'h5'},
+      '/charge/order/thirdOrder',
+      queryParameters: {'synAccessSource': 'pc'},
       data: signed,
-      options: _chargeFormOptions(),
+      options: _chargeFormOptions('pc'),
     );
-    return Map<String, dynamic>.from(resp.data);
+    return _chargeOrderResponse(resp, '一卡通缴费下单');
   }
 
   /// 一卡通卡片充值下单，H5 使用 /charge/order/thirdOrder。
@@ -279,20 +292,16 @@ class SynjonesClient {
       'source': 'app',
       'synjones-auth': 'bearer $accessToken',
       'yktcard': yktcard,
-      'synAccessSource': 'h5',
+      'synAccessSource': 'app',
       'abstracts': jsonEncode({'type': 'recharge'}),
     });
     final resp = await _ycardDio.post(
       '/charge/order/thirdOrder',
+      queryParameters: {'synAccessSource': 'app'},
       data: signed,
-      options: _chargeFormOptions(),
+      options: _chargeFormOptions('app'),
     );
-    if (resp.data is Map) return Map<String, dynamic>.from(resp.data);
-    return {
-      'code': resp.statusCode,
-      'contentType': resp.headers.value(Headers.contentTypeHeader),
-      'data': resp.data?.toString() ?? '',
-    };
+    return _chargeOrderResponse(resp, '一卡通充值');
   }
 
   /// 查询订单与可用支付方式。
@@ -300,19 +309,32 @@ class SynjonesClient {
     return await _ycardGet(
       '/charge/pay/getpayinfo',
       params: {'orderid': orderId},
-      options: _chargeOptions(),
+      options: _chargeOptions('h5'),
     );
   }
 
   /// 继续支付步骤。payment/paytype/account 字段按 getChargePayInfo 返回传入。
   Future<Map<String, dynamic>> postChargePay(Map<String, dynamic> data) async {
-    final signed = _signChargeData(data);
+    final payData = Map<String, dynamic>.from(data);
+    final orderId = payData['orderid']?.toString();
+    final payId = payData['paytypeid']?.toString();
+    if (orderId != null && payId != null) {
+      payData.putIfAbsent(
+        'redirect_url',
+        () => '$_ycardBase/payment?name=result&orderid=$orderId&payid=$payId',
+      );
+    }
+    payData.putIfAbsent('userAgent', () => 'app');
+    final signed = _signChargeData(payData);
     final resp = await _ycardDio.post(
       '/blade-pay/pay',
       queryParameters: {'synAccessSource': 'h5'},
       data: signed,
-      options: _chargeFormOptions(),
+      options: _chargeFormOptions('h5'),
     );
+    if (resp.statusCode == 302) {
+      throw StateError('一卡通支付接口重定向到登录：${resp.headers.value('location')}');
+    }
     return Map<String, dynamic>.from(resp.data);
   }
 
@@ -328,6 +350,9 @@ class SynjonesClient {
         queryParameters: qp,
         options: options,
       );
+      if (resp.statusCode == 302) {
+        throw StateError('一卡通接口重定向到登录：${resp.headers.value('location')}');
+      }
       return Map<String, dynamic>.from(resp.data);
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
@@ -353,19 +378,78 @@ class SynjonesClient {
     await prefs.remove('synjones_access_token');
   }
 
-  Options _chargeFormOptions() {
+  Options _chargeFormOptions(String source) {
     return Options(
       contentType: Headers.formUrlEncodedContentType,
-      headers: {'Authorization': _chargeBasic},
+      followRedirects: false,
+      validateStatus: (status) => status != null && status < 400,
+      headers: {
+        'Authorization': _chargeBasic,
+        'synAccessSource': source,
+        'Origin': _ycardBase,
+        'Referer': '$_ycardBase/plat/',
+        if (accessToken != null) 'synjones-auth': 'bearer $accessToken',
+      },
     );
   }
 
-  Options _chargeOptions() {
-    return Options(headers: {'Authorization': _chargeBasic});
+  Options _chargeOptions(String source) {
+    return Options(
+      followRedirects: false,
+      validateStatus: (status) => status != null && status < 400,
+      headers: {
+        'Authorization': _chargeBasic,
+        'synAccessSource': source,
+        'Referer': '$_ycardBase/plat/',
+        if (accessToken != null) 'synjones-auth': 'bearer $accessToken',
+      },
+    );
+  }
+
+  Map<String, dynamic> _chargeOrderResponse(
+    Response<dynamic> resp,
+    String action,
+  ) {
+    if (resp.statusCode == 302) {
+      final location = resp.headers.value('location') ?? '';
+      if (location.contains('/login') || location.contains('/cas/')) {
+        throw StateError('$action接口重定向到登录：$location');
+      }
+      final uri = Uri.tryParse(location);
+      final params = uri?.queryParameters ?? {};
+      final msg = params['msg'] == null
+          ? '订单已创建，请继续提交支付'
+          : Uri.decodeComponent(Uri.decodeComponent(params['msg']!));
+      return {
+        'code': resp.statusCode,
+        'msg': msg,
+        'data': {
+          if (params['orderid'] != null) 'orderid': params['orderid'],
+          if (params['paytypeid'] != null) 'paytypeid': params['paytypeid'],
+          if (params['paytype'] != null) 'paytype': params['paytype'],
+          if (params['chooseAccount'] != null)
+            'chooseAccount': params['chooseAccount'],
+          'redirectUrl': location.replaceAllMapped(
+            RegExp(r'([?&]token=)[^&]+'),
+            (match) => '${match.group(1)}<redacted>',
+          ),
+        },
+      };
+    }
+    if (resp.data is Map) return Map<String, dynamic>.from(resp.data);
+    return {
+      'code': resp.statusCode,
+      'contentType': resp.headers.value(Headers.contentTypeHeader),
+      'data': resp.data?.toString() ?? '',
+    };
   }
 
   Map<String, dynamic> _signChargeData(Map<String, dynamic> data) {
     final signed = Map<String, dynamic>.from(data);
+    if (accessToken != null) {
+      signed.putIfAbsent('synjones-auth', () => 'bearer $accessToken');
+    }
+    signed.putIfAbsent('synAccessSource', () => 'h5');
     signed['APP_ID'] = _chargeAppId;
     signed['TIMESTAMP'] = _chargeTimestamp();
     signed['SIGN_TYPE'] = 'SHA256';

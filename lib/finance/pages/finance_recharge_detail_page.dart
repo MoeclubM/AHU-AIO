@@ -28,6 +28,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
   final _thirdInputController = TextEditingController();
 
   Map<String, dynamic>? _feeitem;
+  String _feeitemType = 'choose';
   List<Map<String, dynamic>> _accounts = [];
   String? _accountValue;
   List<String> _amountLayout = [];
@@ -75,6 +76,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       _payInfo = null;
       _payStepResponse = null;
       _selectedPayId = null;
+      _feeitemType = 'choose';
       _accounts = [];
       _accountValue = null;
       _amountLayout = [];
@@ -94,6 +96,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       await _client.init();
       final feeResp = await _client.getFeeItem(widget.feeitemId);
       _feeitem = Map<String, dynamic>.from(feeResp['feeitem'] as Map);
+      _feeitemType = feeResp['view']?.toString() ?? 'choose';
       _amountLayout = _parseAmountLayout(_feeitem!['layout']);
       final flag = _feeitem!['flag'].toString();
       _thirdInputMode = flag.length > 4 && flag[4] == '1';
@@ -236,22 +239,32 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       final resp = await _client.getFeeItemThirdData(params);
       final map = Map<String, dynamic>.from(resp['map'] as Map);
       final totals = ((map['total'] as List?) ?? []).whereType<Map>().toList();
-      if (totals.isNotEmpty) {
+      if (totals.isNotEmpty && _thirdLevels.isEmpty) {
         _thirdLevels = totals.map((e) => Map<String, dynamic>.from(e)).toList();
       }
 
       if (type == 'select') {
+        final dataList = ((map['data'] as List?) ?? [])
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
         final nextLevel = _thirdLevels
             .where((e) => (e['level'] as num?)?.toInt() == level + 1)
             .toList();
         if (nextLevel.isNotEmpty && nextLevel.first['code'] != null) {
           final code = nextLevel.first['code'].toString();
-          _thirdOptions[code] = ((map['data'] as List?) ?? [])
-              .whereType<Map>()
-              .map((e) => Map<String, dynamic>.from(e))
-              .toList();
+          _thirdOptions[code] = dataList;
         }
         _thirdTip = map['tipinfo']?.toString();
+        final onlyDirectQuery =
+            dataList.isEmpty &&
+            _thirdTip == null &&
+            _thirdLevels.length == 1 &&
+            ((_thirdLevels.first['level'] as num?)?.toInt() ?? -1) == 0;
+        if (onlyDirectQuery) {
+          await _loadThirdData(type: 'IEC', level: 0);
+          return;
+        }
       } else {
         if (map['data'] is Map) {
           final data = Map<String, dynamic>.from(map['data'] as Map);
@@ -265,11 +278,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
           }
           _thirdPartyData = data;
         }
-        if (map['showData'] is Map) {
-          _thirdInfoRows = Map<String, dynamic>.from(map['showData'] as Map);
-        } else if (map['data'] is Map) {
-          _thirdInfoRows = Map<String, dynamic>.from(map['data'] as Map);
-        }
+        _thirdInfoRows = _thirdInfoFromMap(map);
         _thirdTip = map['tipinfo']?.toString();
         if (map['money'] != null) {
           _amountController.text = map['money'].toString();
@@ -291,11 +300,11 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
     final code = level['code'].toString();
     final levelNo = (level['level'] as num).toInt();
     final option = _thirdOptions[code]!.firstWhere(
-      (e) => e['value'].toString() == value,
+      (e) => _thirdOptionValue(e) == value,
     );
     setState(() {
       _thirdSelected[code] = value;
-      _thirdSelectedLabels[code] = option['name'].toString();
+      _thirdSelectedLabels[code] = _thirdOptionLabel(option);
       _sceneText = _thirdLevels
           .map((e) => e['code']?.toString())
           .where((e) => e != null && _thirdSelectedLabels.containsKey(e))
@@ -393,9 +402,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       final data = <String, dynamic>{
         'feeitemid': widget.feeitemId,
         'tranamt': amount,
-        'flag': 'choose',
-        'source': 'app',
-        'paystep': 0,
+        'flag': _feeitemType,
         'abstracts': _sceneText ?? '',
       };
       if (_thirdPartyData != null) {
@@ -420,7 +427,15 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       _payInfo = await _client.getChargePayInfo(orderId);
       final payList = ((_payInfo?['payList'] as List?) ?? []).whereType<Map>();
       if (payList.isNotEmpty) {
-        _selectedPayId = payList.first['payid'].toString();
+        final paytypeid = data is Map
+            ? data['paytypeid']?.toString()
+            : resp['paytypeid']?.toString();
+        final matched = payList.any(
+          (pay) => pay['payid'].toString() == paytypeid,
+        );
+        _selectedPayId = matched
+            ? paytypeid
+            : payList.first['payid'].toString();
       }
     }
     setState(() {});
@@ -436,17 +451,24 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       _showMessage('缺少订单或支付方式');
       return;
     }
+    final paytype = pay['code'] ?? pay['paytype'];
+    final paytypeid = pay['payid'] ?? pay['paytypeid'];
     setState(() {
       _paying = true;
       _payStepResponse = null;
     });
     try {
-      final resp = await _client.postChargePay({
+      final data = <String, dynamic>{
         'orderid': orderId,
         'paystep': 2,
-        'paytype': pay['code'],
-        'paytypeid': pay['payid'],
-      });
+        if (paytype != null) 'paytype': paytype,
+        if (paytypeid != null) 'paytypeid': paytypeid,
+        if (pay['payment'] != null) 'payment': pay['payment'],
+        if (pay['account'] != null) 'account': pay['account'],
+        if (pay['payacc'] != null) 'payacc': pay['payacc'],
+        if (pay['name'] != null) 'paytypename': pay['name'],
+      };
+      final resp = await _client.postChargePay(data);
       setState(() => _payStepResponse = resp);
     } catch (e) {
       _showMessage(e.toString());
@@ -714,8 +736,8 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       items: options
           .map(
             (e) => DropdownMenuItem<String>(
-              value: e['value'].toString(),
-              child: Text(e['name']?.toString() ?? e['value'].toString()),
+              value: _thirdOptionValue(e),
+              child: Text(_thirdOptionLabel(e)),
             ),
           )
           .toList(),
@@ -766,6 +788,9 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
     final orderId = orderData is Map
         ? orderData['orderid']?.toString()
         : _orderResponse?['orderid']?.toString();
+    final redirectUrl = orderData is Map
+        ? orderData['redirectUrl']?.toString()
+        : null;
     final payList = ((_payInfo?['payList'] as List?) ?? []).whereType<Map>();
     return Card(
       child: Padding(
@@ -774,12 +799,21 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              '订单结果',
+              '下单结果',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            _infoRow('状态', _orderResponse?['msg'] ?? _orderResponse?['code']),
+            _infoRow('接口返回', _orderResponse?['msg'] ?? _orderResponse?['code']),
+            _infoRow(
+              '支付状态',
+              orderId == null
+                  ? '未创建订单'
+                  : _payStepResponse == null
+                  ? '订单已创建，尚未支付'
+                  : '支付接口已返回',
+            ),
             _infoRow('订单号', orderId ?? '-'),
+            if (redirectUrl != null) _infoRow('收银台', redirectUrl),
             if (payList.isNotEmpty) ...[
               const Divider(height: 24),
               const Text('可用支付方式'),
@@ -815,12 +849,18 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.payment),
-                label: Text(_paying ? '正在获取支付参数' : '获取支付参数'),
+                label: Text(_paying ? '正在提交支付' : '提交支付'),
+              ),
+            ] else if (orderId != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                '订单已创建，但接口未返回可用支付方式。',
+                style: TextStyle(color: Colors.orange.shade800),
               ),
             ],
             if (_payStepResponse != null) ...[
               const Divider(height: 24),
-              const Text('支付参数响应'),
+              const Text('支付接口响应'),
               const SizedBox(height: 8),
               SelectableText(jsonEncode(_payStepResponse)),
               const SizedBox(height: 8),
@@ -883,6 +923,49 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       }
     }
     return null;
+  }
+
+  String _thirdOptionValue(Map<String, dynamic> option) {
+    return (option['value'] ??
+            option['id'] ??
+            option['code'] ??
+            option['bh'] ??
+            option['roomid'] ??
+            option['roomId'] ??
+            option['account'])
+        .toString();
+  }
+
+  String _thirdOptionLabel(Map<String, dynamic> option) {
+    return (option['name'] ??
+            option['mc'] ??
+            option['label'] ??
+            option['text'] ??
+            option['title'] ??
+            _thirdOptionValue(option))
+        .toString();
+  }
+
+  Map<String, dynamic> _thirdInfoFromMap(Map<String, dynamic> map) {
+    final rows = <String, dynamic>{};
+    if (map['data'] is Map) rows.addAll(Map<String, dynamic>.from(map['data']));
+    if (map['showData'] is Map) {
+      rows.addAll(Map<String, dynamic>.from(map['showData']));
+    }
+    for (final key in [
+      'money',
+      'balance',
+      'leftmoney',
+      'leftMoney',
+      'surplus',
+      'realMoney',
+      'account',
+      'username',
+      'custname',
+    ]) {
+      if (map[key] != null) rows[key] = map[key];
+    }
+    return rows;
   }
 
   String _limitText(Map<String, dynamic> feeitem) {
