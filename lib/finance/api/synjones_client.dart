@@ -272,34 +272,31 @@ class SynjonesClient {
     });
     final resp = await _ycardDio.post(
       '/charge/order/thirdOrder',
-      queryParameters: {'synAccessSource': 'pc'},
       data: signed,
       options: _chargeFormOptions('pc'),
     );
     return _chargeOrderResponse(resp, '一卡通缴费下单');
   }
 
-  /// 一卡通卡片充值下单，H5 使用 /charge/order/thirdOrder。
+  /// 一卡通卡片充值下单，参数保持与 charge-pc 原始页面一致。
   Future<Map<String, dynamic>> createCardRechargeOrder({
     required int feeitemId,
-    required String yktcard,
     required String tranamt,
+    required String flag,
   }) async {
     final signed = _signChargeData({
       'feeitemid': feeitemId,
       'appid': _chargeAppId,
       'tranamt': tranamt,
-      'source': 'app',
+      'source': 'pc',
       'synjones-auth': 'bearer $accessToken',
-      'yktcard': yktcard,
-      'synAccessSource': 'app',
-      'abstracts': jsonEncode({'type': 'recharge'}),
+      'synAccessSource': 'pc',
+      'flag': flag,
     });
     final resp = await _ycardDio.post(
       '/charge/order/thirdOrder',
-      queryParameters: {'synAccessSource': 'app'},
       data: signed,
-      options: _chargeFormOptions('app'),
+      options: _chargeFormOptions('pc'),
     );
     return _chargeOrderResponse(resp, '一卡通充值');
   }
@@ -308,27 +305,37 @@ class SynjonesClient {
   Future<Map<String, dynamic>> getChargePayInfo(String orderId) async {
     return await _ycardGet(
       '/charge/pay/getpayinfo',
-      params: {'orderid': orderId},
+      params: {'orderid': orderId, 'userAgent': 'app'},
       options: _chargeOptions('h5'),
     );
   }
 
+  /// 安全键盘。支付密码需要把用户输入映射成键盘返回值后再提交。
+  Future<Map<String, dynamic>> getSecureKeyboard() async {
+    return await _ycardGet(
+      '/berserker-secure/keyboard',
+      params: {'type': 'Number', 'order': 0},
+    );
+  }
+
   /// 继续支付步骤。payment/paytype/account 字段按 getChargePayInfo 返回传入。
-  Future<Map<String, dynamic>> postChargePay(Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> postChargePay(
+    Map<String, dynamic> data, {
+    bool includeRedirect = true,
+  }) async {
     final payData = Map<String, dynamic>.from(data);
     final orderId = payData['orderid']?.toString();
     final payId = payData['paytypeid']?.toString();
-    if (orderId != null && payId != null) {
+    if (includeRedirect && orderId != null && payId != null) {
       payData.putIfAbsent(
         'redirect_url',
-        () => '$_ycardBase/payment?name=result&orderid=$orderId&payid=$payId',
+        () => '$_ycardBase/payment/?name=result',
       );
     }
-    payData.putIfAbsent('userAgent', () => 'app');
+    if (includeRedirect) payData.putIfAbsent('userAgent', () => 'app');
     final signed = _signChargeData(payData);
     final resp = await _ycardDio.post(
       '/blade-pay/pay',
-      queryParameters: {'synAccessSource': 'h5'},
       data: signed,
       options: _chargeFormOptions('h5'),
     );

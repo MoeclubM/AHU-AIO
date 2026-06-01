@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../api/synjones_client.dart';
 
@@ -26,6 +25,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
   final _client = SynjonesClient();
   final _amountController = TextEditingController();
   final _thirdInputController = TextEditingController();
+  final _payPasswordController = TextEditingController();
 
   Map<String, dynamic>? _feeitem;
   String _feeitemType = 'choose';
@@ -47,9 +47,14 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
   Map<String, dynamic>? _orderResponse;
   Map<String, dynamic>? _payInfo;
   String? _selectedPayId;
+  List<String> _accountNoList = [];
+  List<Map<String, dynamic>> _accountTypeList = [];
+  String? _selectedAccountNo;
+  String? _selectedCccType;
   Map<String, dynamic>? _payStepResponse;
   bool _loading = true;
   bool _creating = false;
+  bool _preparingPay = false;
   bool _paying = false;
   String? _error;
   String? _thirdError;
@@ -64,6 +69,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
   void dispose() {
     _amountController.dispose();
     _thirdInputController.dispose();
+    _payPasswordController.dispose();
     super.dispose();
   }
 
@@ -76,6 +82,10 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       _payInfo = null;
       _payStepResponse = null;
       _selectedPayId = null;
+      _accountNoList = [];
+      _accountTypeList = [];
+      _selectedAccountNo = null;
+      _selectedCccType = null;
       _feeitemType = 'choose';
       _accounts = [];
       _accountValue = null;
@@ -91,6 +101,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       _sceneText = null;
       _amountController.clear();
       _thirdInputController.clear();
+      _payPasswordController.clear();
     });
     try {
       await _client.init();
@@ -240,7 +251,12 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       final map = Map<String, dynamic>.from(resp['map'] as Map);
       final totals = ((map['total'] as List?) ?? []).whereType<Map>().toList();
       if (totals.isNotEmpty && _thirdLevels.isEmpty) {
-        _thirdLevels = totals.map((e) => Map<String, dynamic>.from(e)).toList();
+        _thirdLevels = totals.map((e) => Map<String, dynamic>.from(e)).toList()
+          ..sort(
+            (a, b) => ((a['level'] as num?)?.toInt() ?? 0).compareTo(
+              (b['level'] as num?)?.toInt() ?? 0,
+            ),
+          );
       }
 
       if (type == 'select') {
@@ -248,12 +264,14 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
             .whereType<Map>()
             .map((e) => Map<String, dynamic>.from(e))
             .toList();
-        final nextLevel = _thirdLevels
-            .where((e) => (e['level'] as num?)?.toInt() == level + 1)
-            .toList();
-        if (nextLevel.isNotEmpty && nextLevel.first['code'] != null) {
-          final code = nextLevel.first['code'].toString();
-          _thirdOptions[code] = dataList;
+        if (dataList.isNotEmpty && _thirdLevels.isNotEmpty) {
+          final nextLevel = _nextThirdLevel(level);
+          if (nextLevel != null) {
+            final levelNo = (nextLevel['level'] as num?)?.toInt();
+            final code = nextLevel['code']?.toString();
+            if (code != null) _thirdOptions[code] = dataList;
+            if (levelNo != null) _thirdOptions['level:$levelNo'] = dataList;
+          }
         }
         _thirdTip = map['tipinfo']?.toString();
         final onlyDirectQuery =
@@ -299,9 +317,8 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
   ) async {
     final code = level['code'].toString();
     final levelNo = (level['level'] as num).toInt();
-    final option = _thirdOptions[code]!.firstWhere(
-      (e) => _thirdOptionValue(e) == value,
-    );
+    final options = _thirdOptions[code] ?? _thirdOptions['level:$levelNo']!;
+    final option = options.firstWhere((e) => _thirdOptionValue(e) == value);
     setState(() {
       _thirdSelected[code] = value;
       _thirdSelectedLabels[code] = _thirdOptionLabel(option);
@@ -319,17 +336,31 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
           _thirdSelectedLabels.remove(nextCode);
           _thirdOptions.remove(nextCode);
         }
+        final nextLevelNo = (next['level'] as num?)?.toInt();
+        if (nextLevelNo != null) _thirdOptions.remove('level:$nextLevelNo');
       }
     });
 
-    final maxLevel = _thirdLevels
-        .map((e) => (e['level'] as num?)?.toInt() ?? 0)
-        .fold<int>(0, (a, b) => a > b ? a : b);
-    if (levelNo < maxLevel) {
+    final index = _thirdLevels.indexWhere(
+      (e) => (e['level'] as num?)?.toInt() == levelNo,
+    );
+    if (index >= 0 && index < _thirdLevels.length - 1) {
       await _loadThirdData(type: 'select', level: levelNo);
     } else {
       await _loadThirdData(type: 'IEC', level: levelNo);
     }
+  }
+
+  Map<String, dynamic>? _nextThirdLevel(int currentLevel) {
+    for (final level in _thirdLevels) {
+      final levelNo = (level['level'] as num?)?.toInt();
+      if (levelNo != null &&
+          levelNo > currentLevel &&
+          !_thirdSelected.containsKey(level['code']?.toString())) {
+        return level;
+      }
+    }
+    return null;
   }
 
   Future<void> _queryThirdInput() async {
@@ -355,10 +386,6 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
 
   Future<void> _createCardOrder() async {
     final amount = _amountController.text.trim();
-    if (_accountValue == null) {
-      _showMessage('请选择充值账户');
-      return;
-    }
     if (amount.isEmpty) {
       _showMessage('请输入充值金额');
       return;
@@ -371,8 +398,8 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
     try {
       final resp = await _client.createCardRechargeOrder(
         feeitemId: widget.feeitemId,
-        yktcard: _accountValue!,
         tranamt: amount,
+        flag: _feeitemType,
       );
       await _setOrderResponse(resp);
     } catch (e) {
@@ -419,6 +446,12 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
 
   Future<void> _setOrderResponse(Map<String, dynamic> resp) async {
     _orderResponse = resp;
+    _payStepResponse = null;
+    _accountNoList = [];
+    _accountTypeList = [];
+    _selectedAccountNo = null;
+    _selectedCccType = null;
+    _payPasswordController.clear();
     final data = resp['data'];
     final orderId = data is Map
         ? data['orderid']?.toString()
@@ -439,6 +472,74 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       }
     }
     setState(() {});
+    if (orderId != null && orderId.isNotEmpty && _selectedPayId != null) {
+      await _prepareSelectedPay(orderId);
+    }
+  }
+
+  Future<void> _prepareSelectedPay(String orderId) async {
+    final pay = _selectedPay();
+    if (pay == null) return;
+    final code = _payCode(pay);
+    setState(() {
+      _preparingPay = true;
+      _accountNoList = [];
+      _accountTypeList = [];
+      _selectedAccountNo = null;
+      _selectedCccType = null;
+      _payStepResponse = null;
+      _payPasswordController.clear();
+    });
+    try {
+      if (code == 'CARD' || code == 'CARDTSM') {
+        final resp = await _client.postChargePay(
+          _payBaseData(orderId, pay),
+          includeRedirect: false,
+        );
+        final accounts = _accountNoFromPayStep(resp);
+        setState(() {
+          _accountNoList = accounts;
+          _selectedAccountNo = accounts.isEmpty ? null : accounts.first;
+        });
+      } else if (code == 'ACCOUNT' || code == 'ACCOUNTTSM') {
+        if (_truthy(pay['chooseAccount'])) {
+          final resp = await _client.postChargePay(
+            _payBaseData(orderId, pay),
+            includeRedirect: false,
+          );
+          final accounts = _accountNoFromPayStep(resp);
+          _accountNoList = accounts;
+          _selectedAccountNo = accounts.isEmpty ? null : accounts.first;
+        }
+        await _loadAccountTypes(orderId, pay);
+      }
+    } catch (e) {
+      _showMessage(e.toString());
+    } finally {
+      if (mounted) setState(() => _preparingPay = false);
+    }
+  }
+
+  Future<void> _loadAccountTypes(
+    String orderId,
+    Map<String, dynamic> pay,
+  ) async {
+    final data = _payBaseData(orderId, pay);
+    if (_selectedAccountNo != null) data['accountno'] = _selectedAccountNo;
+    final resp = await _client.postChargePay(data, includeRedirect: false);
+    final respData = resp['data'];
+    final types = respData is Map
+        ? ((respData['ccctype'] as List?) ?? [])
+              .whereType<Map>()
+              .map((e) => Map<String, dynamic>.from(e))
+              .toList()
+        : <Map<String, dynamic>>[];
+    setState(() {
+      _accountTypeList = types;
+      _selectedCccType = types.isEmpty
+          ? null
+          : types.first['ccctype']?.toString();
+    });
   }
 
   Future<void> _requestPayStep() async {
@@ -451,23 +552,39 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       _showMessage('缺少订单或支付方式');
       return;
     }
-    final paytype = pay['code'] ?? pay['paytype'];
-    final paytypeid = pay['payid'] ?? pay['paytypeid'];
+    final code = _payCode(pay);
+    if ((code == 'CARD' || code == 'CARDTSM') &&
+        _truthy(pay['chooseAccount']) &&
+        _selectedAccountNo == null) {
+      _showMessage('请选择支付账户');
+      return;
+    }
+    if ((code == 'ACCOUNT' || code == 'ACCOUNTTSM') &&
+        ((_truthy(pay['chooseAccount']) && _selectedAccountNo == null) ||
+            _selectedCccType == null)) {
+      _showMessage('请选择电子账户');
+      return;
+    }
+    final needsPassword = _requiresPaymentPassword(pay);
+    if (needsPassword && _payPasswordController.text.trim().isEmpty) {
+      _showMessage('请输入支付密码');
+      return;
+    }
     setState(() {
       _paying = true;
       _payStepResponse = null;
     });
     try {
-      final data = <String, dynamic>{
-        'orderid': orderId,
-        'paystep': 2,
-        if (pay['payment'] != null) 'payment': pay['payment'],
-        if (pay['account'] != null) 'account': pay['account'],
-        if (pay['payacc'] != null) 'payacc': pay['payacc'],
-        if (pay['name'] != null) 'paytypename': pay['name'],
-      };
-      if (paytype != null) data['paytype'] = paytype;
-      if (paytypeid != null) data['paytypeid'] = paytypeid;
+      final data = <String, dynamic>{..._payBaseData(orderId, pay)};
+      if (_selectedAccountNo != null) data['accountno'] = _selectedAccountNo;
+      if (_selectedCccType != null) data['ccctype'] = _selectedCccType;
+      if (needsPassword) {
+        final encoded = await _encodePaymentPassword(
+          _payPasswordController.text.trim(),
+        );
+        data['password'] = encoded['password'];
+        data['pwdType'] = 1;
+      }
       final resp = await _client.postChargePay(data);
       setState(() => _payStepResponse = resp);
     } catch (e) {
@@ -535,8 +652,6 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            _infoRow('缴费项', widget.feeitemId),
-            _infoRow('接口', feeitem['impl_interface'] ?? '标准充值'),
             _infoRow('限额', _limitText(feeitem)),
             if (feeitem['content'] != null)
               Padding(
@@ -564,14 +679,14 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            if (_accounts.isEmpty)
-              const Text('当前账号没有可充值账户')
-            else
+            const Text('将为当前校园卡创建充值订单，支付完成后到账。'),
+            if (_accounts.isNotEmpty) ...[
+              const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 value: _accountValue,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
-                  labelText: '选择账户',
+                  labelText: '当前卡片',
                 ),
                 items: _accounts
                     .map(
@@ -583,13 +698,12 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
                     .toList(),
                 onChanged: (value) => setState(() => _accountValue = value),
               ),
+            ],
             const SizedBox(height: 16),
             _buildAmountInput('充值金额'),
             const SizedBox(height: 16),
             FilledButton.icon(
-              onPressed: _creating || _accounts.isEmpty
-                  ? null
-                  : _createCardOrder,
+              onPressed: _creating ? null : _createCardOrder,
               icon: _creating
                   ? const SizedBox(
                       width: 16,
@@ -719,7 +833,9 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
 
   Widget _buildLevelSelector(Map<String, dynamic> level) {
     final code = level['code'].toString();
-    final options = _thirdOptions[code] ?? [];
+    final levelNo = (level['level'] as num?)?.toInt();
+    final options =
+        _thirdOptions[code] ?? _thirdOptions['level:$levelNo'] ?? [];
     final selected = _thirdSelected[code];
     if (options.isEmpty) {
       return _infoRow(
@@ -727,23 +843,228 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
         selected == null ? '等待上一级查询' : _thirdSelectedLabels[code],
       );
     }
-    return DropdownButtonFormField<String>(
-      value: selected,
-      decoration: InputDecoration(
-        border: const OutlineInputBorder(),
-        labelText: level['name']?.toString() ?? code,
+    final label = level['name']?.toString() ?? code;
+    return InkWell(
+      onTap: () => _showThirdOptionSheet(level, options),
+      child: InputDecorator(
+        decoration: InputDecoration(
+          border: const OutlineInputBorder(),
+          labelText: label,
+          suffixIcon: const Icon(Icons.expand_more),
+        ),
+        child: Text(
+          selected == null
+              ? '请选择$label'
+              : _thirdSelectedLabels[code] ?? selected,
+        ),
       ),
-      items: options
-          .map(
-            (e) => DropdownMenuItem<String>(
-              value: _thirdOptionValue(e),
-              child: Text(_thirdOptionLabel(e)),
-            ),
-          )
-          .toList(),
-      onChanged: (value) {
-        if (value != null) _selectThirdValue(level, value);
+    );
+  }
+
+  Future<void> _showThirdOptionSheet(
+    Map<String, dynamic> level,
+    List<Map<String, dynamic>> options,
+  ) async {
+    final keywordController = TextEditingController();
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        var filtered = options;
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return SafeArea(
+              child: FractionallySizedBox(
+                heightFactor: 0.85,
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    left: 16,
+                    right: 16,
+                    top: 16,
+                    bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        level['name']?.toString() ?? level['code'].toString(),
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: keywordController,
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.search),
+                          hintText: '搜索',
+                        ),
+                        onChanged: (value) {
+                          final keyword = value.trim();
+                          setSheetState(() {
+                            filtered = keyword.isEmpty
+                                ? options
+                                : options
+                                      .where(
+                                        (e) => _thirdOptionLabel(
+                                          e,
+                                        ).contains(keyword),
+                                      )
+                                      .toList();
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      Expanded(
+                        child: ListView.separated(
+                          itemCount: filtered.length,
+                          separatorBuilder: (_, _) => const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final option = filtered[index];
+                            return ListTile(
+                              title: Text(_thirdOptionLabel(option)),
+                              onTap: () => Navigator.pop(
+                                context,
+                                _thirdOptionValue(option),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
       },
+    );
+    keywordController.dispose();
+    if (picked != null) await _selectThirdValue(level, picked);
+  }
+
+  Widget _buildPayAccountSelectors(String orderId, Map<String, dynamic> pay) {
+    final widgets = <Widget>[];
+    final code = _payCode(pay);
+    if (_preparingPay) {
+      widgets.add(
+        const Padding(
+          padding: EdgeInsets.only(top: 12),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+    if (_accountNoList.isNotEmpty) {
+      widgets.addAll([
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(
+          value: _selectedAccountNo,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            labelText: '支付账户',
+          ),
+          items: _accountNoList
+              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+              .toList(),
+          onChanged: (value) async {
+            setState(() {
+              _selectedAccountNo = value;
+              _selectedCccType = null;
+              _accountTypeList = [];
+              _payStepResponse = null;
+            });
+            if (value != null && (code == 'ACCOUNT' || code == 'ACCOUNTTSM')) {
+              await _loadAccountTypes(orderId, pay);
+            }
+          },
+        ),
+      ]);
+    }
+    if (_accountTypeList.isNotEmpty) {
+      widgets.addAll([
+        const SizedBox(height: 12),
+        DropdownButtonFormField<String>(
+          value: _selectedCccType,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            labelText: '电子账户',
+          ),
+          items: _accountTypeList
+              .map(
+                (e) => DropdownMenuItem<String>(
+                  value: e['ccctype']?.toString(),
+                  child: Text(_accountTypeTitle(e)),
+                ),
+              )
+              .toList(),
+          onChanged: (value) => setState(() {
+            _selectedCccType = value;
+            _payStepResponse = null;
+          }),
+        ),
+      ]);
+    }
+    if (_requiresPaymentPassword(pay)) {
+      widgets.addAll([
+        const SizedBox(height: 12),
+        TextField(
+          controller: _payPasswordController,
+          obscureText: true,
+          keyboardType: TextInputType.number,
+          maxLength: 6,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            labelText: '支付密码',
+            counterText: '',
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          '该支付方式需要输入一卡通支付密码。',
+          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+        ),
+      ]);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: widgets,
+    );
+  }
+
+  Widget _buildPayResponseSummary() {
+    final resp = _payStepResponse!;
+    final data = resp['data'];
+    final rows = <Widget>[_infoRow('接口返回', resp['msg'] ?? resp['code'])];
+    if (data is Map) {
+      if (data['returnType'] != null) {
+        rows.add(_infoRow('支付类型', data['returnType']));
+      }
+      if (data['webUrl'] != null) {
+        rows.add(_infoRow('跳转支付', '支付页面已生成'));
+      }
+      if (data['qrCodeUrl'] != null) {
+        rows.add(_infoRow('二维码', '请使用下方二维码完成支付'));
+      }
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('支付结果'),
+        const SizedBox(height: 8),
+        ...rows,
+        if (data is Map && data['qrCodeUrl'] != null) ...[
+          const SizedBox(height: 12),
+          Center(
+            child: Image.network(
+              data['qrCodeUrl'].toString(),
+              width: 180,
+              height: 180,
+            ),
+          ),
+        ],
+      ],
     );
   }
 
@@ -788,10 +1109,8 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
     final orderId = orderData is Map
         ? orderData['orderid']?.toString()
         : _orderResponse?['orderid']?.toString();
-    final redirectUrl = orderData is Map
-        ? orderData['redirectUrl']?.toString()
-        : null;
     final payList = ((_payInfo?['payList'] as List?) ?? []).whereType<Map>();
+    final selectedPay = _selectedPay();
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -813,7 +1132,6 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
                   : '支付接口已返回',
             ),
             _infoRow('订单号', orderId ?? '-'),
-            if (redirectUrl != null) _infoRow('收银台', redirectUrl),
             if (payList.isNotEmpty) ...[
               const Divider(height: 24),
               const Text('可用支付方式'),
@@ -834,14 +1152,17 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
                       ),
                     )
                     .toList(),
-                onChanged: (value) => setState(() {
-                  _selectedPayId = value;
-                  _payStepResponse = null;
-                }),
+                onChanged: (value) async {
+                  if (value == null || orderId == null) return;
+                  setState(() => _selectedPayId = value);
+                  await _prepareSelectedPay(orderId);
+                },
               ),
+              if (selectedPay != null && orderId != null)
+                _buildPayAccountSelectors(orderId, selectedPay),
               const SizedBox(height: 12),
               FilledButton.icon(
-                onPressed: _paying ? null : _requestPayStep,
+                onPressed: _paying || _preparingPay ? null : _requestPayStep,
                 icon: _paying
                     ? const SizedBox(
                         width: 16,
@@ -860,34 +1181,8 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
             ],
             if (_payStepResponse != null) ...[
               const Divider(height: 24),
-              const Text('支付接口响应'),
-              const SizedBox(height: 8),
-              SelectableText(jsonEncode(_payStepResponse)),
-              const SizedBox(height: 8),
-              FilledButton.icon(
-                onPressed: () async {
-                  await Clipboard.setData(
-                    ClipboardData(text: jsonEncode(_payStepResponse)),
-                  );
-                  if (!mounted) return;
-                  _showMessage('支付参数响应已复制');
-                },
-                icon: const Icon(Icons.copy),
-                label: const Text('复制支付参数'),
-              ),
+              _buildPayResponseSummary(),
             ],
-            const SizedBox(height: 8),
-            FilledButton.icon(
-              onPressed: () async {
-                await Clipboard.setData(
-                  ClipboardData(text: jsonEncode(_orderResponse)),
-                );
-                if (!mounted) return;
-                _showMessage('订单响应已复制');
-              },
-              icon: const Icon(Icons.copy),
-              label: const Text('复制订单响应'),
-            ),
           ],
         ),
       ),
@@ -925,6 +1220,67 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
     return null;
   }
 
+  Map<String, dynamic> _payBaseData(String orderId, Map<String, dynamic> pay) {
+    final data = <String, dynamic>{'orderid': orderId, 'paystep': 2};
+    final paytype = pay['code'] ?? pay['paytype'];
+    final paytypeid = pay['payid'] ?? pay['paytypeid'];
+    if (paytype != null) data['paytype'] = paytype;
+    if (paytypeid != null) data['paytypeid'] = paytypeid;
+    return data;
+  }
+
+  List<String> _accountNoFromPayStep(Map<String, dynamic> resp) {
+    final data = resp['data'];
+    final raw = data is Map ? (data['accountData'] ?? data['data']) : data;
+    return ((raw as List?) ?? []).map((e) => e.toString()).toList();
+  }
+
+  Future<Map<String, String>> _encodePaymentPassword(String password) async {
+    final keyboard = await _client.getSecureKeyboard();
+    final data = Map<String, dynamic>.from(keyboard['data'] as Map);
+    final keys = ((data['numberKeyboard'] as List?) ?? [])
+        .map((e) => e.toString())
+        .toList();
+    final uuid = data['uuid'].toString();
+    final buffer = StringBuffer();
+    for (final rune in password.runes) {
+      final digit = String.fromCharCode(rune);
+      final index = digit == '0' ? 9 : int.parse(digit) - 1;
+      buffer.write(keys[index]);
+    }
+    return {'password': '1\$1\$${buffer.toString()}\$1\$$uuid'};
+  }
+
+  String _payCode(Map<String, dynamic> pay) {
+    final code = (pay['myCode'] ?? pay['code'] ?? pay['paytype'] ?? '')
+        .toString()
+        .toUpperCase();
+    return code.contains('-') ? code.split('-').first : code;
+  }
+
+  bool _requiresPaymentPassword(Map<String, dynamic> pay) {
+    final code = _payCode(pay);
+    final cardPay =
+        code == 'CARD' ||
+        code == 'CARDTSM' ||
+        code == 'ACCOUNT' ||
+        code == 'ACCOUNTTSM';
+    return cardPay && pay['nopassword'] != 1 && pay['nopassword'] != '1';
+  }
+
+  bool _truthy(dynamic value) {
+    return value == true || value == 1 || value == '1' || value == 'true';
+  }
+
+  String _accountTypeTitle(Map<String, dynamic> accountType) {
+    final name = accountType['name']?.toString() ?? '电子账户';
+    final type = accountType['ccctype']?.toString() ?? '';
+    final balance = accountType['balance']?.toString();
+    return balance == null || balance.isEmpty
+        ? '$name$type'
+        : '$name$type · ¥$balance';
+  }
+
   String _thirdOptionValue(Map<String, dynamic> option) {
     return (option['value'] ??
             option['id'] ??
@@ -948,22 +1304,24 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
 
   Map<String, dynamic> _thirdInfoFromMap(Map<String, dynamic> map) {
     final rows = <String, dynamic>{};
-    if (map['data'] is Map) rows.addAll(Map<String, dynamic>.from(map['data']));
     if (map['showData'] is Map) {
       rows.addAll(Map<String, dynamic>.from(map['showData']));
     }
-    for (final key in [
-      'money',
-      'balance',
-      'leftmoney',
-      'leftMoney',
-      'surplus',
-      'realMoney',
-      'account',
-      'username',
-      'custname',
-    ]) {
-      if (map[key] != null) rows[key] = map[key];
+    final labels = {
+      'money': '应缴金额',
+      'balance': '余额',
+      'leftmoney': '剩余金额',
+      'leftMoney': '剩余金额',
+      'surplus': '剩余',
+      'surplusCharge': '欠费',
+      'realMoney': '实际金额',
+      'account': '账号',
+      'username': '姓名',
+      'custname': '姓名',
+      'iectranamt': '应缴金额',
+    };
+    for (final entry in labels.entries) {
+      if (map[entry.key] != null) rows[entry.value] = map[entry.key];
     }
     return rows;
   }
