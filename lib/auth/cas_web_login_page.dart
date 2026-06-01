@@ -39,7 +39,7 @@ class _CasWebLoginPageState extends State<CasWebLoginPage> {
       return;
     }
 
-    var nextUrl = current;
+    String? nextUrl = current;
     while (!_completed && nextUrl != null) {
       final controller = _controller;
       if (controller == null) return;
