@@ -119,8 +119,14 @@ jobs:
         if: always()
         run: rm -f android/app/release-key.jks
 
+      - name: Prepare APK Artifact
+        run: |
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk \
+            "dist/AHU-AIO-Beta-Android-${{ matrix.arch }}-${{ needs.get-version.outputs.version }}-${{ github.run_id }}.apk"
+
       - name: Upload APK (Artifact)
         uses: actions/upload-artifact@v7
         with:
-          name: ahu-aio-beta-${{ matrix.arch }}
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: ahu-aio-beta-${{ matrix.arch }}-${{ github.run_id }}
+          path: dist/*.apk
