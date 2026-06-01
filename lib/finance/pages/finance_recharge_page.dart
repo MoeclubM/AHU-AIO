@@ -57,8 +57,8 @@ class _FinanceRechargePageState extends State<FinanceRechargePage> {
         final feeitemId = isCardRecharge
             ? cardRechargeFeeitemId
             : rawFeeitemId == null
-                ? _feeitemIdFromWebsite(website)
-                : int.parse(rawFeeitemId.toString());
+            ? _feeitemIdFromWebsite(website)
+            : int.parse(rawFeeitemId.toString());
         if (!isCardRecharge && feeitemId == null) continue;
 
         final key = '$code-$feeitemId';
