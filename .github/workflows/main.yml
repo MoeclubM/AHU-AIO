@@ -117,7 +117,9 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: AHU-AIO-Android-${{ matrix.arch }}-${{ github.run_id }}
-          path: dist/*.apk
+          archive: false
+          path: dist/AHU-AIO-Android-${{ matrix.arch }}-${{ needs.get-version.outputs.version }}-${{ github.run_id }}.apk
+          if-no-files-found: error
 
   build-linux:
     name: Build Linux
@@ -142,7 +144,9 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: AHU-AIO-Linux-x86_64-${{ github.run_id }}
-          path: dist/*.tar.gz
+          archive: false
+          path: dist/AHU-AIO-Linux-x86_64-${{ needs.get-version.outputs.version }}-${{ github.run_id }}.tar.gz
+          if-no-files-found: error
 
   build-windows:
     name: Build Windows
@@ -164,7 +168,9 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: AHU-AIO-Windows-x64-${{ github.run_id }}
-          path: dist/*.zip
+          archive: false
+          path: dist/AHU-AIO-Windows-x64-${{ needs.get-version.outputs.version }}-${{ github.run_id }}.zip
+          if-no-files-found: error
 
   build-macos:
     name: Build macOS
@@ -187,7 +193,9 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: AHU-AIO-macOS-universal-${{ github.run_id }}
-          path: dist/*.zip
+          archive: false
+          path: dist/AHU-AIO-macOS-universal-${{ needs.get-version.outputs.version }}-${{ github.run_id }}.zip
+          if-no-files-found: error
 
   release:
     name: Create GitHub Release

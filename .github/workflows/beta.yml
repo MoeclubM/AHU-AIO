@@ -129,4 +129,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ahu-aio-beta-${{ matrix.arch }}-${{ github.run_id }}
-          path: dist/*.apk
+          archive: false
+          path: dist/AHU-AIO-Beta-Android-${{ matrix.arch }}-${{ needs.get-version.outputs.version }}-${{ github.run_id }}.apk
+          if-no-files-found: error
