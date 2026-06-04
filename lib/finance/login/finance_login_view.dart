@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../auth/cas_auth_cache.dart';
-import '../../auth/cas_web_login_page.dart';
 import '../api/synjones_client.dart';
 import '../home/finance_home_view.dart';
 
-/// 一卡通系统登录页：使用学校原版统一身份认证页面。
+/// 一卡通系统登录页：原生提交学校统一身份认证。
 class FinanceLoginPage extends StatefulWidget {
   const FinanceLoginPage({super.key});
 
@@ -14,8 +13,19 @@ class FinanceLoginPage extends StatefulWidget {
 }
 
 class _FinanceLoginPageState extends State<FinanceLoginPage> {
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _checkingSession = true;
+  bool _loggingIn = false;
+  bool _trustDevice = false;
   String? _error;
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -43,36 +53,46 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
     if (mounted) setState(() => _checkingSession = false);
   }
 
-  Future<bool> _handleCasUrl(String url, _) async {
-    final ticket = SynjonesClient.extractWebLoginTicket(url);
-    if (ticket == null) return false;
-
-    final client = SynjonesClient();
-    final result = await client.casLoginDirect(ticket);
-    if (!result.success) {
-      throw result.message ?? '一卡通登录失败';
+  Future<void> _login() async {
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text;
+    if (username.isEmpty || password.isEmpty) {
+      setState(() => _error = '请输入统一身份认证账号和密码');
+      return;
     }
-    await CasAuthCache.markLoggedIn('ycard');
-    if (!mounted) return true;
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (_) => const FinanceHomePage()),
-      (_) => false,
-    );
-    return true;
-  }
-
-  void _openCasLogin() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => CasWebLoginPage(
-          title: '统一身份认证',
-          initialUrl: SynjonesClient.casWebLoginUrl,
-          onUrlChanged: _handleCasUrl,
-        ),
-      ),
-    );
+    setState(() {
+      _loggingIn = true;
+      _error = null;
+    });
+    final client = SynjonesClient();
+    try {
+      final result = await client.casLoginNative(
+        username: username,
+        password: password,
+        trustDevice: _trustDevice,
+      );
+      if (!mounted) return;
+      if (!result.success) {
+        setState(() {
+          _loggingIn = false;
+          _error = result.message ?? '一卡通登录失败';
+        });
+        return;
+      }
+      await CasAuthCache.markLoggedIn('ycard');
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const FinanceHomePage()),
+        (_) => false,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loggingIn = false;
+        _error = e.toString();
+      });
+    }
   }
 
   @override
@@ -81,6 +101,8 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Scaffold(
       appBar: AppBar(title: const Text('一卡通系统登录')),
       body: Center(
@@ -96,7 +118,7 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
                   Icon(
                     Icons.account_balance_wallet,
                     size: 72,
-                    color: Colors.orange.shade700,
+                    color: colorScheme.primary,
                   ),
                   const SizedBox(height: 16),
                   const Text(
@@ -106,16 +128,50 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '使用学校原版统一身份认证页面登录',
+                    '使用统一身份认证账号密码登录',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey.shade600),
+                    style: TextStyle(color: colorScheme.onSurfaceVariant),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 24),
+                  TextField(
+                    controller: _usernameController,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: '学号 / 工号',
+                      prefixIcon: Icon(Icons.person_outline),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    onSubmitted: (_) {
+                      if (!_loggingIn) _login();
+                    },
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: '统一身份认证密码',
+                      prefixIcon: Icon(Icons.lock_outline),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  CheckboxListTile(
+                    value: _trustDevice,
+                    onChanged: _loggingIn
+                        ? null
+                        : (value) => setState(() {
+                            _trustDevice = value!;
+                          }),
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: const Text('信任此设备'),
+                  ),
                   if (_error != null) ...[
                     Text(
                       _error!,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.red),
+                      style: TextStyle(color: colorScheme.error),
                     ),
                     const SizedBox(height: 16),
                   ],
@@ -123,9 +179,9 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
                     width: double.infinity,
                     height: 48,
                     child: FilledButton.icon(
-                      onPressed: _openCasLogin,
+                      onPressed: _loggingIn ? null : _login,
                       icon: const Icon(Icons.login),
-                      label: const Text('打开统一身份认证'),
+                      label: Text(_loggingIn ? '登录中...' : '登录'),
                     ),
                   ),
                 ],

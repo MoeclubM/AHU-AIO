@@ -596,7 +596,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       _paymentPasswordValue = '';
     });
     try {
-      final keyboard = await _client.getSecureKeyboard(order: 1);
+      final keyboard = await _client.getSecureKeyboard(order: 0);
       final data = Map<String, dynamic>.from(keyboard['data'] as Map);
       final values = data['numberKeyboard'].toString().split('');
       final images = (data['numberKeyboardImage'] as List)
@@ -1088,7 +1088,10 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
         const SizedBox(height: 6),
         Text(
           '按一卡通安全键盘输入支付密码。',
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            fontSize: 12,
+          ),
         ),
       ]);
     }
@@ -1099,6 +1102,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
   }
 
   Widget _buildSecurePasswordInput() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1118,6 +1122,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
                       ? Icons.circle
                       : Icons.circle_outlined,
                   size: 14,
+                  color: colorScheme.onSurface,
                 ),
               ),
             ),
@@ -1135,9 +1140,9 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
             crossAxisSpacing: 8,
             childAspectRatio: 2.2,
             children: [
-              for (var i = 0; i < 9; i++) _secureKeyButton(i),
+              for (var digit = 1; digit <= 9; digit++) _secureKeyButton(digit),
               const SizedBox.shrink(),
-              _secureKeyButton(9),
+              _secureKeyButton(0),
               OutlinedButton(
                 onPressed: _paymentPasswordValue.isEmpty
                     ? null
@@ -1161,6 +1166,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
   }
 
   Widget _secureKeyButton(int index) {
+    final colorScheme = Theme.of(context).colorScheme;
     final hasKey =
         index < _secureKeyboardValues.length &&
         index < _secureKeyboardImages.length;
@@ -1172,10 +1178,16 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
             })
           : null,
       child: hasKey
-          ? Image.memory(
-              base64Decode(_secureKeyboardImages[index]),
-              height: 30,
-              fit: BoxFit.contain,
+          ? ColorFiltered(
+              colorFilter: ColorFilter.mode(
+                colorScheme.onSurface,
+                BlendMode.srcIn,
+              ),
+              child: Image.memory(
+                base64Decode(_secureKeyboardImages[index]),
+                height: 30,
+                fit: BoxFit.contain,
+              ),
             )
           : const SizedBox.shrink(),
     );

@@ -7,6 +7,8 @@ import 'package:dio/dio.dart';
 import 'package:crypto/crypto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../auth/cas_native_client.dart';
+
 // ============================================================
 // Synjones (新中新 / 慧新E校) 一卡通协议客户端
 // Protocol: CAS SSO → encrypted ticket → OAuth token (JWT)
@@ -17,7 +19,6 @@ class SynjonesClient {
   factory SynjonesClient() => _instance;
 
   static const String _ycardBase = 'https://ycard.ahu.edu.cn';
-  static const String _casBase = 'https://one.ahu.edu.cn';
   static const String _oauthBasic =
       'Basic bW9iaWxlX3NlcnZpY2VfcGxhdGZvcm06bW9iaWxlX3NlcnZpY2VfcGxhdGZvcm1fc2VjcmV0';
   static const String _chargeBasic = 'Basic Y2hhcmdlOmNoYXJnZV9zZWNyZXQ=';
@@ -66,16 +67,38 @@ class SynjonesClient {
   // CAS SSO Login → Synjones OAuth Token
   // ============================================================
 
-  static String get casWebLoginUrl {
-    final serviceUrl =
-        '$_ycardBase/berserker-auth/cas/login/neusoftCas'
-        '?redirectUrl=${Uri.encodeComponent('$_ycardBase/plat/?name=loginTransit')}';
-    return '$_casBase/cas/login?service=${Uri.encodeComponent(serviceUrl)}';
+  static String get casNativeLoginUrl {
+    return Uri.parse('$_ycardBase/berserker-auth/cas/redirect/neusoftCas')
+        .replace(
+          queryParameters: {'targetUrl': '$_ycardBase/plat/?name=loginTransit'},
+        )
+        .toString();
   }
 
-  /// 已获得 CAS 跳转 ticket 时，直接兑换 JWT。
-  Future<LoginResult> casLoginDirect(String ticket) async {
+  Future<LoginResult> casLoginNative({
+    required String username,
+    required String password,
+    required bool trustDevice,
+  }) async {
     await init();
+    final cas = CasNativeClient();
+    final result = await cas.login(
+      loginUri: Uri.parse(casNativeLoginUrl),
+      username: username,
+      password: password,
+      trustDevice: trustDevice,
+    );
+    String? ticket;
+    for (final uri in result.observedUris) {
+      ticket = extractWebLoginTicket(uri.toString());
+      if (ticket != null) break;
+    }
+    if (ticket == null) {
+      return LoginResult(
+        success: false,
+        message: 'CAS 登录完成但未获得一卡通票据：${result.finalUri}',
+      );
+    }
     return await _exchangeToken(ticket);
   }
 
@@ -298,8 +321,8 @@ class SynjonesClient {
     );
   }
 
-  /// 安全键盘。原版数字密码默认 order=1，直接提交被点击按键对应的 numberKeyboard 字符。
-  Future<Map<String, dynamic>> getSecureKeyboard({int order = 1}) async {
+  /// 安全键盘。order=0 为 0-9 常用数字顺序，提交被点击按键对应的 numberKeyboard 字符。
+  Future<Map<String, dynamic>> getSecureKeyboard({int order = 0}) async {
     return await _ycardGet(
       '/berserker-secure/keyboard',
       params: {'type': 'Number', 'order': order},

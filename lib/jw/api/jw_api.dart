@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:path_provider/path_provider.dart' as path_provider;
+import '../../auth/cas_native_client.dart';
 import '../models/jw_models.dart';
 
 /// 新教务系统 API 客户端 (jw.ahu.edu.cn)
@@ -56,6 +57,25 @@ class JwApi {
     try {
       await _cookieJar.deleteAll();
     } catch (_) {}
+  }
+
+  Future<void> loginWithCas({
+    required String username,
+    required String password,
+    required bool trustDevice,
+  }) async {
+    await init();
+    final cas = CasNativeClient(cookieJar: _cookieJar);
+    final result = await cas.login(
+      loginUri: CasNativeClient.loginUriForService(ssoLoginUrl),
+      username: username,
+      password: password,
+      trustDevice: trustDevice,
+    );
+    if (!await hasValidSession()) {
+      throw StateError('CAS 登录完成但教务会话未建立：${result.finalUri}');
+    }
+    await fetchStudentIdDirect();
   }
 
   Future<bool> hasValidSession() async {

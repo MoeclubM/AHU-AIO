@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../auth/cas_auth_cache.dart';
-import '../../auth/cas_web_login_page.dart';
 import '../../globals.dart' as globals;
 import '../api/jw_api.dart';
 import '../home/jw_home_view.dart';
-import '../utils/jw_webview_auth.dart';
 
 class JwLoginPage extends StatefulWidget {
   const JwLoginPage({super.key});
@@ -15,7 +13,19 @@ class JwLoginPage extends StatefulWidget {
 }
 
 class _JwLoginPageState extends State<JwLoginPage> {
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _checkingSession = true;
+  bool _loggingIn = false;
+  bool _trustDevice = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -36,21 +46,37 @@ class _JwLoginPageState extends State<JwLoginPage> {
     if (mounted) setState(() => _checkingSession = false);
   }
 
-  Future<bool> _handleCasUrl(String url, _) async {
-    final uri = Uri.parse(url);
-    if (uri.host != 'jw.ahu.edu.cn' || !uri.path.startsWith('/student')) {
-      return false;
+  Future<void> _login() async {
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text;
+    if (username.isEmpty || password.isEmpty) {
+      setState(() => _error = '请输入统一身份认证账号和密码');
+      return;
     }
-    if (uri.path == '/student/sso/login') return false;
-    await JwWebViewAuth.importCookiesFromWebView();
+    setState(() {
+      _loggingIn = true;
+      _error = null;
+    });
     final api = JwApi();
-    if (!await api.hasValidSession()) return false;
-    await api.fetchStudentIdDirect();
-    await CasAuthCache.markLoggedIn('jw');
-    globals.jwLoggedIn = true;
-    globals.jwStudentNo = api.studentId;
-    _goHome();
-    return true;
+    try {
+      await api.loginWithCas(
+        username: username,
+        password: password,
+        trustDevice: _trustDevice,
+      );
+      await CasAuthCache.markLoggedIn('jw');
+      globals.jwLoggedIn = true;
+      globals.jwStudentNo = api.studentId;
+      if (!mounted) return;
+      _goHome();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loggingIn = false;
+          _error = e.toString();
+        });
+      }
+    }
   }
 
   void _goHome() {
@@ -62,25 +88,14 @@ class _JwLoginPageState extends State<JwLoginPage> {
     );
   }
 
-  void _openCasLogin() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => CasWebLoginPage(
-          title: '统一身份认证',
-          initialUrl: JwApi.ssoLoginUrl,
-          onUrlChanged: _handleCasUrl,
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_checkingSession) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return Scaffold(
       appBar: AppBar(title: const Text('教务系统登录')),
       body: Center(
@@ -93,7 +108,7 @@ class _JwLoginPageState extends State<JwLoginPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.school, size: 72, color: Colors.blue),
+                  Icon(Icons.school, size: 72, color: colorScheme.primary),
                   const SizedBox(height: 16),
                   const Text(
                     '安徽大学教务系统',
@@ -102,18 +117,60 @@ class _JwLoginPageState extends State<JwLoginPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '使用学校原版统一身份认证页面登录',
+                    '使用统一身份认证账号密码登录',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: Colors.grey.shade600),
+                    style: TextStyle(color: colorScheme.onSurfaceVariant),
                   ),
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 24),
+                  TextField(
+                    controller: _usernameController,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: '学号 / 工号',
+                      prefixIcon: Icon(Icons.person_outline),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    onSubmitted: (_) {
+                      if (!_loggingIn) _login();
+                    },
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: '统一身份认证密码',
+                      prefixIcon: Icon(Icons.lock_outline),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  CheckboxListTile(
+                    value: _trustDevice,
+                    onChanged: _loggingIn
+                        ? null
+                        : (value) => setState(() {
+                            _trustDevice = value!;
+                          }),
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: const Text('信任此设备'),
+                  ),
+                  if (_error != null) ...[
+                    Text(
+                      _error!,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: colorScheme.error),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   SizedBox(
                     width: double.infinity,
                     height: 48,
                     child: FilledButton.icon(
-                      onPressed: _openCasLogin,
+                      onPressed: _loggingIn ? null : _login,
                       icon: const Icon(Icons.login),
-                      label: const Text('打开统一身份认证'),
+                      label: Text(_loggingIn ? '登录中...' : '登录'),
                     ),
                   ),
                 ],

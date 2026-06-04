@@ -60,34 +60,4 @@ class JwWebViewAuth {
     if (!url.contains('/login')) return false;
     return !originalUrl.contains('/login');
   }
-
-  /// 把原版 CAS Web 登录后的 WebView Cookie 写回 Dio，会话供原生接口复用。
-  static Future<void> importCookiesFromWebView() async {
-    final api = JwApi();
-    await api.init();
-
-    final cookieManager = CookieManager.instance();
-    final targetUris = [
-      Uri.parse(JwApi.baseUrl),
-      Uri.parse('${JwApi.baseUrl}/student'),
-      Uri.parse('${JwApi.baseUrl}/student/'),
-    ];
-    for (final uri in targetUris) {
-      final cookies = await cookieManager.getCookies(
-        url: WebUri(uri.toString()),
-      );
-      final converted = cookies.map((cookie) {
-        final c = io.Cookie(cookie.name, cookie.value.toString());
-        c.domain = cookie.domain ?? uri.host;
-        c.path = cookie.path ?? '/';
-        c.secure = cookie.isSecure ?? uri.scheme == 'https';
-        c.httpOnly = cookie.isHttpOnly ?? false;
-        if (cookie.expiresDate != null) {
-          c.expires = DateTime.fromMillisecondsSinceEpoch(cookie.expiresDate!);
-        }
-        return c;
-      }).toList();
-      await api.cookieJar.saveFromResponse(uri, converted);
-    }
-  }
 }
