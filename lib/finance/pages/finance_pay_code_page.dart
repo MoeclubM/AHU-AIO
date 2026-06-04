@@ -238,9 +238,8 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
                     version: QrVersions.auto,
                     errorCorrectionLevel: QrErrorCorrectLevel.L,
                     backgroundColor: Colors.white,
-                    errorStateBuilder: (_, error) => Center(
-                      child: Text('二维码生成失败：$error'),
-                    ),
+                    errorStateBuilder: (_, error) =>
+                        Center(child: Text('二维码生成失败：$error')),
                   ),
                 ),
               ),

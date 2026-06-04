@@ -1213,9 +1213,8 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
               errorCorrectionLevel: QrErrorCorrectLevel.L,
               backgroundColor: Colors.white,
               size: 180,
-              errorStateBuilder: (_, error) => Center(
-                child: Text('二维码生成失败：$error'),
-              ),
+              errorStateBuilder: (_, error) =>
+                  Center(child: Text('二维码生成失败：$error')),
             ),
           ),
         ],
