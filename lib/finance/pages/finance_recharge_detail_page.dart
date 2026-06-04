@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../api/synjones_client.dart';
 
@@ -25,7 +26,6 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
   final _client = SynjonesClient();
   final _amountController = TextEditingController();
   final _thirdInputController = TextEditingController();
-  final _payPasswordController = TextEditingController();
 
   Map<String, dynamic>? _feeitem;
   String _feeitemType = 'choose';
@@ -52,10 +52,15 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
   String? _selectedAccountNo;
   String? _selectedCccType;
   Map<String, dynamic>? _payStepResponse;
+  List<String> _secureKeyboardValues = [];
+  List<String> _secureKeyboardImages = [];
+  String? _secureKeyboardUuid;
+  String _paymentPasswordValue = '';
   bool _loading = true;
   bool _creating = false;
   bool _preparingPay = false;
   bool _paying = false;
+  bool _keyboardLoading = false;
   String? _error;
   String? _thirdError;
 
@@ -69,7 +74,6 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
   void dispose() {
     _amountController.dispose();
     _thirdInputController.dispose();
-    _payPasswordController.dispose();
     super.dispose();
   }
 
@@ -86,6 +90,11 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       _accountTypeList = [];
       _selectedAccountNo = null;
       _selectedCccType = null;
+      _secureKeyboardValues = [];
+      _secureKeyboardImages = [];
+      _secureKeyboardUuid = null;
+      _paymentPasswordValue = '';
+      _keyboardLoading = false;
       _feeitemType = 'choose';
       _accounts = [];
       _accountValue = null;
@@ -101,7 +110,6 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       _sceneText = null;
       _amountController.clear();
       _thirdInputController.clear();
-      _payPasswordController.clear();
     });
     try {
       await _client.init();
@@ -207,7 +215,21 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
         _thirdInputController.text = parsed.last['id']!;
       }
       _sceneText = parsed.map((e) => e['name']).join(' ');
-      await _loadThirdData(type: 'IEC', level: parsed.length);
+      await _loadThirdData(type: 'select', level: 0);
+      for (final level in _thirdLevels) {
+        final levelNo = (level['level'] as num?)?.toInt();
+        final code = level['code']?.toString();
+        if (levelNo != null &&
+            code != null &&
+            _thirdSelected.containsKey(code) &&
+            levelNo < _thirdLevels.length) {
+          await _loadThirdData(type: 'select', level: levelNo);
+        }
+      }
+      final lastLevel = (_thirdLevels.isEmpty
+          ? parsed.length
+          : (_thirdLevels.last['level'] as num?)?.toInt() ?? parsed.length);
+      await _loadThirdData(type: 'IEC', level: lastLevel);
     } else {
       await _loadThirdData(type: 'select', level: 0);
     }
@@ -455,7 +477,10 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
     _accountTypeList = [];
     _selectedAccountNo = null;
     _selectedCccType = null;
-    _payPasswordController.clear();
+    _secureKeyboardValues = [];
+    _secureKeyboardImages = [];
+    _secureKeyboardUuid = null;
+    _paymentPasswordValue = '';
     final data = resp['data'];
     final orderId = data is Map
         ? data['orderid']?.toString()
@@ -492,7 +517,11 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       _selectedAccountNo = null;
       _selectedCccType = null;
       _payStepResponse = null;
-      _payPasswordController.clear();
+      _secureKeyboardValues = [];
+      _secureKeyboardImages = [];
+      _secureKeyboardUuid = null;
+      _paymentPasswordValue = '';
+      _keyboardLoading = _requiresPaymentPassword(pay);
     });
     try {
       if (code == 'CARD' || code == 'CARDTSM') {
@@ -516,6 +545,9 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
           _selectedAccountNo = accounts.isEmpty ? null : accounts.first;
         }
         await _loadAccountTypes(orderId, pay);
+      }
+      if (_requiresPaymentPassword(pay)) {
+        await _loadSecureKeyboard();
       }
     } catch (e) {
       _showMessage(e.toString());
@@ -558,6 +590,28 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
     });
   }
 
+  Future<void> _loadSecureKeyboard() async {
+    setState(() {
+      _keyboardLoading = true;
+      _paymentPasswordValue = '';
+    });
+    try {
+      final keyboard = await _client.getSecureKeyboard(order: 1);
+      final data = Map<String, dynamic>.from(keyboard['data'] as Map);
+      final values = data['numberKeyboard'].toString().split('');
+      final images = (data['numberKeyboardImage'] as List)
+          .map((e) => e.toString())
+          .toList();
+      setState(() {
+        _secureKeyboardValues = values;
+        _secureKeyboardImages = images;
+        _secureKeyboardUuid = data['uuid'].toString();
+      });
+    } finally {
+      if (mounted) setState(() => _keyboardLoading = false);
+    }
+  }
+
   Future<void> _requestPayStep() async {
     final orderData = _orderResponse?['data'];
     final orderId = orderData is Map
@@ -587,7 +641,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       return;
     }
     final needsPassword = _requiresPaymentPassword(pay);
-    if (needsPassword && _payPasswordController.text.trim().isEmpty) {
+    if (needsPassword && _paymentPasswordValue.length < 6) {
       _showMessage('请输入支付密码');
       return;
     }
@@ -600,10 +654,8 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       if (_selectedAccountNo != null) data['accountno'] = _selectedAccountNo;
       if (_selectedCccType != null) data['ccctype'] = _selectedCccType;
       if (needsPassword) {
-        final encoded = await _encodePaymentPassword(
-          _payPasswordController.text.trim(),
-        );
-        data['password'] = encoded['password'];
+        data['password'] =
+            '1\$1\$$_paymentPasswordValue\$1\$$_secureKeyboardUuid';
         data['pwdType'] = 1;
       }
       final resp = await _client.postChargePay(data);
@@ -995,6 +1047,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
               _selectedCccType = null;
               _accountTypeList = [];
               _payStepResponse = null;
+              _paymentPasswordValue = '';
             });
             if (value != null && (code == 'ACCOUNT' || code == 'ACCOUNTTSM')) {
               await _loadAccountTypes(orderId, pay);
@@ -1023,6 +1076,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
           onChanged: (value) => setState(() {
             _selectedCccType = value;
             _payStepResponse = null;
+            _paymentPasswordValue = '';
           }),
         ),
       ]);
@@ -1030,20 +1084,10 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
     if (_requiresPaymentPassword(pay)) {
       widgets.addAll([
         const SizedBox(height: 12),
-        TextField(
-          controller: _payPasswordController,
-          obscureText: true,
-          keyboardType: TextInputType.number,
-          maxLength: 6,
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
-            labelText: '支付密码',
-            counterText: '',
-          ),
-        ),
+        _buildSecurePasswordInput(),
         const SizedBox(height: 6),
         Text(
-          '该支付方式需要输入一卡通支付密码。',
+          '按一卡通安全键盘输入支付密码。',
           style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
         ),
       ]);
@@ -1051,6 +1095,89 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: widgets,
+    );
+  }
+
+  Widget _buildSecurePasswordInput() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        InputDecorator(
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            labelText: '支付密码',
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              6,
+              (index) => Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Icon(
+                  index < _paymentPasswordValue.length
+                      ? Icons.circle
+                      : Icons.circle_outlined,
+                  size: 14,
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        if (_keyboardLoading)
+          const Center(child: CircularProgressIndicator())
+        else ...[
+          GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: 3,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+            childAspectRatio: 2.2,
+            children: [
+              for (var i = 0; i < 9; i++) _secureKeyButton(i),
+              const SizedBox.shrink(),
+              _secureKeyButton(9),
+              OutlinedButton(
+                onPressed: _paymentPasswordValue.isEmpty
+                    ? null
+                    : () => setState(() {
+                        _paymentPasswordValue = _paymentPasswordValue.substring(
+                          0,
+                          _paymentPasswordValue.length - 1,
+                        );
+                      }),
+                child: const Icon(Icons.backspace_outlined),
+              ),
+            ],
+          ),
+          TextButton(
+            onPressed: _loadSecureKeyboard,
+            child: const Text('刷新安全键盘'),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _secureKeyButton(int index) {
+    final hasKey =
+        index < _secureKeyboardValues.length &&
+        index < _secureKeyboardImages.length;
+    final enabled = hasKey && _paymentPasswordValue.length < 6;
+    return OutlinedButton(
+      onPressed: enabled
+          ? () => setState(() {
+              _paymentPasswordValue += _secureKeyboardValues[index];
+            })
+          : null,
+      child: hasKey
+          ? Image.memory(
+              base64Decode(_secureKeyboardImages[index]),
+              height: 30,
+              fit: BoxFit.contain,
+            )
+          : const SizedBox.shrink(),
     );
   }
 
@@ -1068,6 +1195,8 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       if (data['qrCodeUrl'] != null) {
         rows.add(_infoRow('二维码', '请使用下方二维码完成支付'));
       }
+    } else if (data != null) {
+      rows.add(_infoRow('支付状态', '支付请求已完成'));
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1078,10 +1207,15 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
         if (data is Map && data['qrCodeUrl'] != null) ...[
           const SizedBox(height: 12),
           Center(
-            child: Image.network(
-              data['qrCodeUrl'].toString(),
-              width: 180,
-              height: 180,
+            child: QrImageView(
+              data: data['qrCodeUrl'].toString(),
+              version: QrVersions.auto,
+              errorCorrectionLevel: QrErrorCorrectLevel.L,
+              backgroundColor: Colors.white,
+              size: 180,
+              errorStateBuilder: (_, error) => Center(
+                child: Text('二维码生成失败：$error'),
+              ),
             ),
           ),
         ],
@@ -1254,22 +1388,6 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
     final data = resp['data'];
     final raw = data is Map ? (data['accountData'] ?? data['data']) : data;
     return ((raw as List?) ?? []).map((e) => e.toString()).toList();
-  }
-
-  Future<Map<String, String>> _encodePaymentPassword(String password) async {
-    final keyboard = await _client.getSecureKeyboard();
-    final data = Map<String, dynamic>.from(keyboard['data'] as Map);
-    final keys = ((data['numberKeyboard'] as List?) ?? [])
-        .map((e) => e.toString())
-        .toList();
-    final uuid = data['uuid'].toString();
-    final buffer = StringBuffer();
-    for (final rune in password.runes) {
-      final digit = String.fromCharCode(rune);
-      final index = digit == '0' ? 9 : int.parse(digit) - 1;
-      buffer.write(keys[index]);
-    }
-    return {'password': '1\$1\$${buffer.toString()}\$1\$$uuid'};
   }
 
   String _payCode(Map<String, dynamic> pay) {

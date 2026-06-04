@@ -188,19 +188,6 @@ class SynjonesClient {
     );
   }
 
-  /// 一码通扫码支付 URL
-  String getQrCodeUrl(String qrCodeValue) {
-    return Uri.parse('$_ycardBase/berserker-app/qrcode')
-        .replace(
-          queryParameters: {
-            'qrCode': qrCodeValue,
-            'synjones-auth': 'bearer $accessToken',
-            'synAccessSource': 'app',
-          },
-        )
-        .toString();
-  }
-
   /// 查询指定账户的卡信息
   Future<Map<String, dynamic>> queryCard([String? account]) async {
     return await _ycardGet(
@@ -311,11 +298,11 @@ class SynjonesClient {
     );
   }
 
-  /// 安全键盘。支付密码需要把用户输入映射成键盘返回值后再提交。
-  Future<Map<String, dynamic>> getSecureKeyboard() async {
+  /// 安全键盘。原版数字密码默认 order=1，直接提交被点击按键对应的 numberKeyboard 字符。
+  Future<Map<String, dynamic>> getSecureKeyboard({int order = 1}) async {
     return await _ycardGet(
       '/berserker-secure/keyboard',
-      params: {'type': 'Number', 'order': 0},
+      params: {'type': 'Number', 'order': order},
     );
   }
 
@@ -454,10 +441,6 @@ class SynjonesClient {
 
   Map<String, dynamic> _signChargeData(Map<String, dynamic> data) {
     final signed = Map<String, dynamic>.from(data);
-    if (accessToken != null) {
-      signed.putIfAbsent('synjones-auth', () => 'bearer $accessToken');
-    }
-    signed.putIfAbsent('synAccessSource', () => 'h5');
     signed['APP_ID'] = _chargeAppId;
     signed['TIMESTAMP'] = _chargeTimestamp();
     signed['SIGN_TYPE'] = 'SHA256';
