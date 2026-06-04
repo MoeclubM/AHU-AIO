@@ -714,6 +714,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
 
   Widget _buildFeeitemCard() {
     final feeitem = _feeitem!;
+    final colorScheme = Theme.of(context).colorScheme;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -731,7 +732,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
                   _plainText(feeitem['content'].toString()),
-                  style: TextStyle(color: Colors.grey.shade700),
+                  style: TextStyle(color: colorScheme.onSurfaceVariant),
                 ),
               ),
           ],
@@ -828,6 +829,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
   }
 
   Widget _buildThirdSelectors() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -835,10 +837,13 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.blue.shade50,
+              color: colorScheme.primaryContainer,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text('已解析缴费对象：$_sceneText'),
+            child: Text(
+              '已解析缴费对象：$_sceneText',
+              style: TextStyle(color: colorScheme.onPrimaryContainer),
+            ),
           ),
         if (_thirdInputMode) ...[
           const SizedBox(height: 12),
@@ -859,7 +864,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
             padding: const EdgeInsets.only(top: 12),
             child: Text(
               _thirdError!,
-              style: TextStyle(color: Colors.red.shade700),
+              style: TextStyle(color: colorScheme.error),
             ),
           ),
         if (_thirdTip != null)
@@ -867,7 +872,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
             padding: const EdgeInsets.only(top: 12),
             child: Text(
               _thirdTip!,
-              style: TextStyle(color: Colors.orange.shade800),
+              style: TextStyle(color: colorScheme.tertiary),
             ),
           ),
         if (_thirdInfoRows.isNotEmpty) ...[
@@ -1342,7 +1347,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
               const SizedBox(height: 8),
               Text(
                 '订单已创建，但接口未返回可用支付方式。',
-                style: TextStyle(color: Colors.orange.shade800),
+                style: TextStyle(color: Theme.of(context).colorScheme.tertiary),
               ),
             ],
             if (_payStepResponse != null) ...[
@@ -1356,6 +1361,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
   }
 
   Widget _infoRow(String label, dynamic value) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(top: 6),
       child: Row(
@@ -1363,7 +1369,10 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
         children: [
           SizedBox(
             width: 76,
-            child: Text(label, style: TextStyle(color: Colors.grey.shade600)),
+            child: Text(
+              label,
+              style: TextStyle(color: colorScheme.onSurfaceVariant),
+            ),
           ),
           Expanded(child: Text(value?.toString() ?? '-')),
         ],
