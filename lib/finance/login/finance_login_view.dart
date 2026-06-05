@@ -36,6 +36,7 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
   Future<void> _initAndCheck() async {
     final client = SynjonesClient();
     await client.init();
+    String? expiredSessionError;
     if (client.loggedIn) {
       try {
         await client.fetchUserInfo();
@@ -47,8 +48,29 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
         return;
       } catch (e) {
         await client.logout();
-        _error = '已有一卡通会话失效，请重新登录：$e';
+        expiredSessionError = '已有一卡通会话失效，请重新登录：$e';
       }
+    }
+    LoginResult? cached;
+    try {
+      cached = await client.casLoginWithCachedSession();
+    } catch (e) {
+      _error = '一卡通 CAS 会话复用失败：$e';
+    }
+    if (cached != null) {
+      if (cached.success) {
+        await CasAuthCache.markLoggedIn('ycard');
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const FinanceHomePage()),
+        );
+        return;
+      }
+      if (!mounted) return;
+      _error = cached.message ?? '一卡通 CAS 会话复用失败';
+    } else if (_error == null) {
+      _error = expiredSessionError;
     }
     if (mounted) setState(() => _checkingSession = false);
   }

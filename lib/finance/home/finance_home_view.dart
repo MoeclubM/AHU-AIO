@@ -8,7 +8,7 @@ import '../pages/finance_cards_page.dart';
 import '../pages/finance_pay_code_page.dart';
 import '../pages/finance_recharge_page.dart';
 
-/// 一卡通首页 — 原生展示余额、付款码入口、电子卡与更多功能。
+/// 一卡通首页 — 原生展示余额、一码通入口、电子卡与更多功能。
 class FinanceHomePage extends StatefulWidget {
   const FinanceHomePage({super.key});
 
@@ -226,21 +226,16 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: _payments.isEmpty
-                    ? null
-                    : () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => FinancePayCodePage(
-                              initialPayments: _payments,
-                              initialPayment: _paymentInfo,
-                            ),
-                          ),
-                        );
-                      },
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const FinancePayCodePage(),
+                    ),
+                  );
+                },
                 icon: const Icon(Icons.qr_code_2),
-                label: const Text('打开付款码'),
+                label: const Text('打开一码通'),
               ),
             ),
           ],
@@ -252,13 +247,10 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
   Widget _buildQuickServices() {
     final services = [
       _FinanceService(
-        '付款码',
+        '一码通',
         Icons.qr_code_2,
         Colors.orange,
-        () => FinancePayCodePage(
-          initialPayments: _payments,
-          initialPayment: _paymentInfo,
-        ),
+        () => const FinancePayCodePage(),
       ),
       _FinanceService(
         '电子卡',
@@ -276,11 +268,7 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
         '更多功能',
         Icons.apps,
         Colors.indigo,
-        () => FinanceAppsPage(
-          initialCards: _cards,
-          initialPayments: _payments,
-          initialPayment: _paymentInfo,
-        ),
+        () => FinanceAppsPage(initialCards: _cards),
       ),
     ];
 

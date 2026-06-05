@@ -7,6 +7,7 @@ import 'package:dio/dio.dart';
 import 'package:crypto/crypto.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../auth/cas_auth_cache.dart';
 import '../../auth/cas_native_client.dart';
 
 // ============================================================
@@ -81,13 +82,29 @@ class SynjonesClient {
     required bool trustDevice,
   }) async {
     await init();
-    final cas = CasNativeClient();
+    final cas = CasNativeClient(cookieJar: await CasAuthCache.cookieJar());
     final result = await cas.login(
       loginUri: Uri.parse(casNativeLoginUrl),
       username: username,
       password: password,
       trustDevice: trustDevice,
     );
+    return await _exchangeTokenFromCasResult(result);
+  }
+
+  Future<LoginResult?> casLoginWithCachedSession() async {
+    await init();
+    final cas = CasNativeClient(cookieJar: await CasAuthCache.cookieJar());
+    final result = await cas.loginWithCachedSession(
+      loginUri: Uri.parse(casNativeLoginUrl),
+    );
+    if (result == null) return null;
+    return await _exchangeTokenFromCasResult(result);
+  }
+
+  Future<LoginResult> _exchangeTokenFromCasResult(
+    CasNativeLoginResult result,
+  ) async {
     String? ticket;
     for (final uri in result.observedUris) {
       ticket = extractWebLoginTicket(uri.toString());

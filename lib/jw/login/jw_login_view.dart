@@ -43,6 +43,22 @@ class _JwLoginPageState extends State<JwLoginPage> {
       _goHome();
       return;
     }
+    try {
+      if (await api.loginWithCachedCas()) {
+        await CasAuthCache.markLoggedIn('jw');
+        globals.jwLoggedIn = true;
+        globals.jwStudentNo = api.studentId;
+        _goHome();
+        return;
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _checkingSession = false;
+        _error = e.toString();
+      });
+      return;
+    }
     if (mounted) setState(() => _checkingSession = false);
   }
 

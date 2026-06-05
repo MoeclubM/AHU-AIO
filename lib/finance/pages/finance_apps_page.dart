@@ -7,15 +7,8 @@ import 'finance_recharge_detail_page.dart';
 
 class FinanceAppsPage extends StatefulWidget {
   final List<dynamic> initialCards;
-  final List<dynamic> initialPayments;
-  final Map<String, dynamic>? initialPayment;
 
-  const FinanceAppsPage({
-    super.key,
-    this.initialCards = const [],
-    this.initialPayments = const [],
-    this.initialPayment,
-  });
+  const FinanceAppsPage({super.key, this.initialCards = const []});
 
   @override
   State<FinanceAppsPage> createState() => _FinanceAppsPageState();
@@ -141,15 +134,11 @@ class _FinanceAppsPageState extends State<FinanceAppsPage> {
 
     if (lower.contains('codebar') ||
         lower.contains('barcode') ||
+        title.contains('一码通') ||
         title.contains('付款码')) {
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (_) => FinancePayCodePage(
-            initialPayments: widget.initialPayments,
-            initialPayment: widget.initialPayment,
-          ),
-        ),
+        MaterialPageRoute(builder: (_) => const FinancePayCodePage()),
       );
       return;
     }
@@ -199,8 +188,9 @@ class _FinanceAppsPageState extends State<FinanceAppsPage> {
     final lower = '$code $title $website'.toLowerCase();
     if (lower.contains('codebar') ||
         lower.contains('barcode') ||
+        title.contains('一码通') ||
         title.contains('付款码')) {
-      return '原生打开付款二维码';
+      return '原生打开一码通二维码';
     }
     if (lower.contains('ecard') ||
         lower.contains('cardinfo') ||
@@ -225,6 +215,7 @@ class _FinanceAppsPageState extends State<FinanceAppsPage> {
     final lower = '${_code(app)} $title ${app['website'] ?? ''}'.toLowerCase();
     if (lower.contains('codebar') ||
         lower.contains('barcode') ||
+        title.contains('一码通') ||
         title.contains('付款码')) {
       return Icons.qr_code_2;
     }

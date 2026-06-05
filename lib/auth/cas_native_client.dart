@@ -55,6 +55,9 @@ class CasNativeClient {
     required String password,
     required bool trustDevice,
   }) async {
+    final cached = await loginWithCachedSession(loginUri: loginUri);
+    if (cached != null) return cached;
+
     final initialRedirects = <Uri>[];
     var currentLoginUri = loginUri;
     late Response<String> loginPage;
@@ -130,6 +133,28 @@ class CasNativeClient {
     throw StateError(_loginPageError(loginResp.data) ?? 'CAS 登录未产生服务跳转');
   }
 
+  Future<CasNativeLoginResult?> loginWithCachedSession({
+    required Uri loginUri,
+  }) async {
+    final resp = await _dio.getUri<String>(
+      loginUri,
+      options: Options(
+        responseType: ResponseType.plain,
+        followRedirects: false,
+        validateStatus: (status) => status != null && status < 500,
+      ),
+    );
+    if (!_isRedirect(resp.statusCode)) {
+      if (resp.statusCode == 200) return null;
+      throw StateError('CAS 会话检查失败：${resp.statusCode}');
+    }
+
+    final firstRedirect = resp.realUri.resolve(resp.headers.value('location')!);
+    final result = await _followGetRedirects(firstRedirect);
+    if (_isCasLoginUri(result.finalUri)) return null;
+    return result;
+  }
+
   Future<CasNativeLoginResult> _followGetRedirects(Uri firstUri) async {
     final redirects = <Uri>[];
     var current = firstUri;
@@ -170,6 +195,10 @@ class CasNativeClient {
 
   static bool _isRedirect(int? statusCode) {
     return statusCode != null && statusCode >= 300 && statusCode < 400;
+  }
+
+  static bool _isCasLoginUri(Uri uri) {
+    return uri.host == 'one.ahu.edu.cn' && uri.path.contains('/cas/login');
   }
 
   static String _hiddenValue(String html, String name) {

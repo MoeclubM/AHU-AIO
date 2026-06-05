@@ -1,63 +1,67 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
-import '../api/synjones_client.dart';
-import '../widgets/code128_barcode.dart';
+import '../api/adwmh_client.dart';
 
 class FinancePayCodePage extends StatefulWidget {
-  final List<dynamic> initialPayments;
-  final Map<String, dynamic>? initialPayment;
-
-  const FinancePayCodePage({
-    super.key,
-    this.initialPayments = const [],
-    this.initialPayment,
-  });
+  const FinancePayCodePage({super.key});
 
   @override
   State<FinancePayCodePage> createState() => _FinancePayCodePageState();
 }
 
 class _FinancePayCodePageState extends State<FinancePayCodePage> {
-  final _client = SynjonesClient();
-  List<Map<String, dynamic>> _payments = [];
-  Map<String, dynamic>? _payment;
+  final _client = AdwmhClient();
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _captchaController = TextEditingController();
+
   bool _loading = true;
-  bool _generating = false;
+  bool _loggingIn = false;
+  bool _refreshing = false;
+  bool _needsLogin = false;
   String? _error;
-  String? _barcode;
-  int? _expires;
-  DateTime? _generatedAt;
+  String? _oneCode;
+  String? _time;
+  String? _balance;
+  Uint8List? _captcha;
+  Map<String, dynamic>? _user;
 
   @override
   void initState() {
     super.initState();
-    _payments = widget.initialPayments
-        .whereType<Map>()
-        .map((e) => Map<String, dynamic>.from(e))
-        .toList();
-    _payment = widget.initialPayment;
-    _loadPayments();
+    _load();
   }
 
-  Future<void> _loadPayments() async {
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    _captchaController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
       await _client.init();
-      if (_payments.isEmpty) {
-        final resp = await _client.getPaymentInfo();
-        _payments = ((resp['data'] as List?) ?? [])
-            .whereType<Map>()
-            .map((e) => Map<String, dynamic>.from(e))
-            .toList();
+      final user = await _client.fetchSessionUser();
+      if (user == null) {
+        final captcha = await _client.fetchCaptcha();
+        setState(() {
+          _needsLogin = true;
+          _captcha = captcha;
+          _loading = false;
+        });
+        return;
       }
-      _payment ??= _payments.isNotEmpty ? _payments.first : null;
-      setState(() => _loading = false);
-      if (_payment != null) await _generateCode();
+      await _loadOneCode(user);
     } catch (e) {
       setState(() {
         _error = e.toString();
@@ -66,39 +70,80 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
     }
   }
 
-  Future<void> _generateCode() async {
-    final payment = _payment;
-    if (payment == null) return;
+  Future<void> _loadOneCode(Map<String, dynamic> user) async {
+    final oneCode = await _client.fetchOneCode();
+    final balance = await _client.fetchBalance();
     setState(() {
-      _generating = true;
+      _user = user;
+      _oneCode = oneCode.code;
+      _time = oneCode.time;
+      _balance = balance;
+      _needsLogin = false;
+      _loading = false;
+      _refreshing = false;
       _error = null;
-      _barcode = null;
+    });
+  }
+
+  Future<void> _refreshCaptcha() async {
+    final captcha = await _client.fetchCaptcha();
+    setState(() {
+      _captcha = captcha;
+      _captchaController.clear();
+    });
+  }
+
+  Future<void> _login() async {
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text;
+    final captcha = _captchaController.text.trim();
+    if (username.isEmpty || password.isEmpty || captcha.isEmpty) {
+      setState(() => _error = '请输入智慧安大账号、密码和验证码');
+      return;
+    }
+    setState(() {
+      _loggingIn = true;
+      _error = null;
     });
     try {
-      final resp = await _client.generateBarcode(
-        account: payment['account'].toString(),
-        payacc: payment['payacc'].toString(),
-        paytype: payment['paytype'].toString(),
+      await _client.login(
+        username: username,
+        password: password,
+        captcha: captcha,
       );
-      final data = resp['data'] as Map?;
-      final codes = (data?['barcode'] as List?) ?? [];
-      if (codes.isEmpty) {
-        setState(() {
-          _error = resp['msg']?.toString() ?? '付款码接口未返回码值';
-          _generating = false;
-        });
-        return;
+      final user = await _client.fetchSessionUser();
+      if (user == null) {
+        throw StateError('智慧安大登录成功但会话未建立');
       }
+      await _loadOneCode(user);
+      setState(() => _loggingIn = false);
+    } catch (e) {
+      final captcha = await _client.fetchCaptcha();
       setState(() {
-        _barcode = codes.first.toString();
-        _expires = (data?['expires'] as num?)?.toInt();
-        _generatedAt = DateTime.now();
-        _generating = false;
+        _error = e.toString();
+        _captcha = captcha;
+        _captchaController.clear();
+        _loggingIn = false;
       });
+    }
+  }
+
+  Future<void> _refreshCode() async {
+    final user = _user ?? await _client.fetchSessionUser();
+    if (user == null) {
+      await _load();
+      return;
+    }
+    setState(() {
+      _refreshing = true;
+      _error = null;
+    });
+    try {
+      await _loadOneCode(user);
     } catch (e) {
       setState(() {
         _error = e.toString();
-        _generating = false;
+        _refreshing = false;
       });
     }
   }
@@ -106,225 +151,306 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('付款码')),
+      appBar: AppBar(title: const Text('一码通')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: _generateCode,
+              onRefresh: _needsLogin ? _refreshCaptcha : _refreshCode,
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  if (_payments.isEmpty) _buildEmpty() else _buildPaymentCard(),
-                  if (_payments.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    _buildCodeCard(),
-                  ],
+                  if (_needsLogin) _buildLoginCard() else _buildOneCodeCard(),
                 ],
               ),
             ),
     );
   }
 
-  Widget _buildEmpty() {
+  Widget _buildLoginCard() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
-          children: [
-            Icon(
-              Icons.payments_outlined,
-              size: 56,
-              color: Colors.grey.shade500,
-            ),
-            const SizedBox(height: 12),
-            const Text('当前账号没有可用付款方式'),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPaymentCard() {
-    final selectedIndex = _payments.indexWhere(
-      (e) => e['id'] == _payment?['id'],
-    );
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '付款方式',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<int>(
-              value: selectedIndex < 0 ? 0 : selectedIndex,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: '选择付款账户',
-              ),
-              items: [
-                for (var i = 0; i < _payments.length; i++)
-                  DropdownMenuItem(
-                    value: i,
-                    child: Text(_paymentTitle(_payments[i])),
-                  ),
-              ],
-              onChanged: (value) async {
-                _payment = _payments[value!];
-                await _generateCode();
-              },
-            ),
-            const SizedBox(height: 12),
-            _infoRow('账户', _payment?['account']),
-            _infoRow('支付账号', _payment?['payacc']),
-            _infoRow('支付类型', _payment?['paytype']),
-            _infoRow(
-              '余额',
-              '¥${_money(_payment?['elec_accamt'] ?? _payment?['balance'])}',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCodeCard() {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Icon(Icons.qr_code_2, size: 56, color: colorScheme.primary),
+            const SizedBox(height: 12),
+            const Text(
+              '登录智慧安大后生成一码通',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '一码通二维码来自智慧安大 /xzxcard/qrcode，不再使用一卡通 20 位条码。',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: colorScheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 20),
+            TextField(
+              controller: _usernameController,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: '学号 / 工号',
+                prefixIcon: Icon(Icons.person_outline),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _passwordController,
+              obscureText: true,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: '智慧安大密码',
+                prefixIcon: Icon(Icons.lock_outline),
+              ),
+            ),
+            const SizedBox(height: 12),
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Expanded(
-                  child: Text(
-                    '当前付款码',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                Expanded(
+                  child: TextField(
+                    controller: _captchaController,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) {
+                      if (!_loggingIn) _login();
+                    },
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      labelText: '验证码',
+                      prefixIcon: Icon(Icons.verified_outlined),
+                    ),
                   ),
                 ),
-                IconButton(
-                  onPressed: _generating ? null : _generateCode,
-                  icon: const Icon(Icons.refresh),
-                  tooltip: '刷新付款码',
+                const SizedBox(width: 12),
+                InkWell(
+                  onTap: _loggingIn ? null : _refreshCaptcha,
+                  child: Container(
+                    width: 96,
+                    height: 56,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: colorScheme.outlineVariant),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: _captcha == null
+                        ? const Icon(Icons.refresh)
+                        : Image.memory(_captcha!, fit: BoxFit.contain),
+                  ),
                 ),
               ],
             ),
-            if (_generating)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 32),
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else if (_error != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(
-                  _error!,
-                  style: TextStyle(color: Colors.red.shade700),
-                ),
-              )
-            else if (_barcode != null) ...[
-              Center(
-                child: Container(
-                  width: 260,
-                  height: 260,
-                  padding: const EdgeInsets.all(12),
-                  color: Colors.white,
-                  child: QrImageView(
-                    data: _barcode!,
-                    version: QrVersions.auto,
-                    errorCorrectionLevel: QrErrorCorrectLevel.L,
-                    backgroundColor: Colors.white,
-                    errorStateBuilder: (_, error) =>
-                        Center(child: Text('二维码生成失败：$error')),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Code128Barcode(data: _barcode!, height: 88),
-              const SizedBox(height: 16),
-              SelectableText(
-                _groupCode(_barcode!),
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 20,
-                  letterSpacing: 1.2,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _expires == null
-                    ? '生成时间：${_timeText(_generatedAt)}'
-                    : '有效期：${_expires}s · 生成时间：${_timeText(_generatedAt)}',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey.shade600),
-              ),
+            if (_error != null) ...[
               const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: _barcode!));
-                  if (!mounted) return;
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(const SnackBar(content: Text('码值已复制')));
-                },
-                icon: const Icon(Icons.copy),
-                label: const Text('复制码值'),
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: colorScheme.error),
               ),
             ],
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: _loggingIn ? null : _login,
+              icon: _loggingIn
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.login),
+              label: Text(_loggingIn ? '登录中...' : '登录并生成一码通'),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _infoRow(String label, dynamic value) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 6),
-      child: Row(
+  Widget _buildOneCodeCard() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final user = _user ?? {};
+    final name = _maskedName(user['userName']?.toString());
+    final idNumber = user['idNumber']?.toString() ?? '';
+    final headimg = user['headimgurl']?.toString();
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.primary,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+      child: Column(
         children: [
-          SizedBox(
-            width: 72,
-            child: Text(label, style: TextStyle(color: Colors.grey.shade600)),
+          Text(
+            '一码通',
+            style: TextStyle(
+              color: colorScheme.onPrimary,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-          Expanded(child: Text(value?.toString() ?? '-')),
+          const SizedBox(height: 54),
+          Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.topCenter,
+            children: [
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(18, 70, 18, 20),
+                decoration: BoxDecoration(
+                  color: colorScheme.surface,
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      idNumber,
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    if (_refreshing)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 72),
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    else if (_error != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 72),
+                        child: Text(
+                          _error!,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: colorScheme.error),
+                        ),
+                      )
+                    else if (_oneCode != null)
+                      Container(
+                        width: 250,
+                        height: 250,
+                        padding: const EdgeInsets.all(8),
+                        color: Colors.white,
+                        child: QrImageView(
+                          data: _oneCode!,
+                          version: QrVersions.auto,
+                          errorCorrectionLevel: QrErrorCorrectLevel.L,
+                          backgroundColor: Colors.white,
+                          errorStateBuilder: (_, error) =>
+                              Center(child: Text('二维码生成失败：$error')),
+                        ),
+                      ),
+                    const SizedBox(height: 12),
+                    Text(
+                      _time ?? '',
+                      style: TextStyle(
+                        color: colorScheme.onSurfaceVariant,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.account_balance_wallet_outlined,
+                          color: colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '余额',
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            '￥${_balance ?? '-'}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('全部应用'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    TextButton.icon(
+                      onPressed: _refreshing ? null : _refreshCode,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('点击刷新'),
+                    ),
+                    TextButton.icon(
+                      onPressed: _oneCode == null
+                          ? null
+                          : () async {
+                              await Clipboard.setData(
+                                ClipboardData(text: _oneCode!),
+                              );
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('一码通内容已复制')),
+                              );
+                            },
+                      icon: const Icon(Icons.copy),
+                      label: const Text('复制二维码内容'),
+                    ),
+                  ],
+                ),
+              ),
+              Positioned(
+                top: -50,
+                child: CircleAvatar(
+                  radius: 54,
+                  backgroundColor: colorScheme.surface,
+                  child: CircleAvatar(
+                    radius: 48,
+                    backgroundImage: _headImage(headimg),
+                    child: _headImage(headimg) == null
+                        ? Icon(
+                            Icons.person,
+                            size: 48,
+                            color: colorScheme.onSurfaceVariant,
+                          )
+                        : null,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  String _paymentTitle(Map<String, dynamic> payment) {
-    final name = payment['name']?.toString();
-    final payName = payment['payName']?.toString();
-    final code = payment['code']?.toString();
-    return [
-      name,
-      payName,
-      code,
-    ].where((e) => e != null && e.isNotEmpty).join(' · ');
+  ImageProvider? _headImage(String? value) {
+    if (value == null || value.isEmpty) return null;
+    if (value.startsWith('http')) return NetworkImage(value);
+    return NetworkImage('${AdwmhClient.baseUrl}$value');
   }
 
-  String _money(dynamic value) {
-    if (value is num) return (value / 100).toStringAsFixed(2);
-    final parsed = num.tryParse(value?.toString() ?? '');
-    return parsed == null ? '-' : (parsed / 100).toStringAsFixed(2);
-  }
-
-  String _groupCode(String value) {
-    return value
-        .replaceAllMapped(RegExp(r'.{1,4}'), (m) => '${m.group(0)} ')
-        .trim();
-  }
-
-  String _timeText(DateTime? value) {
-    if (value == null) return '-';
-    final h = value.hour.toString().padLeft(2, '0');
-    final m = value.minute.toString().padLeft(2, '0');
-    final s = value.second.toString().padLeft(2, '0');
-    return '$h:$m:$s';
+  String _maskedName(String? value) {
+    if (value == null || value.isEmpty) return '-';
+    if (value.length == 2) return '${value.substring(0, 1)} *';
+    if (value.length == 3) {
+      return '${value.substring(0, 1)} * ${value.substring(2, 3)}';
+    }
+    return '${value.substring(0, 1)} * * ${value.substring(3)}';
   }
 }
