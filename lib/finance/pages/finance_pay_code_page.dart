@@ -1,8 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
-import '../api/adwmh_client.dart';
+import '../api/synjones_client.dart';
+import '../api/synjones_offline_code.dart';
 
 class FinancePayCodePage extends StatefulWidget {
   const FinancePayCodePage({super.key});
@@ -12,34 +15,23 @@ class FinancePayCodePage extends StatefulWidget {
 }
 
 class _FinancePayCodePageState extends State<FinancePayCodePage> {
-  final _client = AdwmhClient();
-  final _usernameController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _captchaController = TextEditingController();
+  final _client = SynjonesClient();
 
   bool _loading = true;
-  bool _loggingIn = false;
   bool _refreshing = false;
-  bool _needsLogin = false;
   String? _error;
   String? _oneCode;
-  String? _time;
-  String? _balance;
-  Uint8List? _captcha;
+  String? _barcode;
+  int? _expires;
+  DateTime? _generatedAt;
   Map<String, dynamic>? _user;
+  Map<String, dynamic>? _payment;
+  List<Map<String, dynamic>> _payments = [];
 
   @override
   void initState() {
     super.initState();
     _load();
-  }
-
-  @override
-  void dispose() {
-    _usernameController.dispose();
-    _passwordController.dispose();
-    _captchaController.dispose();
-    super.dispose();
   }
 
   Future<void> _load() async {
@@ -49,17 +41,35 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
     });
     try {
       await _client.init();
-      final user = await _client.fetchSessionUser();
-      if (user == null) {
-        final captcha = await _client.fetchCaptcha();
-        setState(() {
-          _needsLogin = true;
-          _captcha = captcha;
-          _loading = false;
-        });
-        return;
+      if (!_client.loggedIn) {
+        final result = await _client.casLoginWithCachedSession();
+        if (result == null || !result.success) {
+          throw StateError(result?.message ?? '请先登录一卡通系统');
+        }
       }
-      await _loadOneCode(user);
+      final userResp = await _client.fetchUserInfo();
+      final paymentResp = await _client.getPaymentInfo();
+      _user = userResp['data'] as Map<String, dynamic>?;
+      _payments = ((paymentResp['data'] as List?) ?? [])
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+      if (_payments.isEmpty) {
+        throw StateError('当前账号没有可用付款方式');
+      }
+      _payment = _payments.firstWhere(
+        (payment) => payment['status'] == 1 || payment['status'] == '1',
+        orElse: () => _payments.first,
+      );
+      final code = await _fetchOneCode(_payment!);
+      setState(() {
+        _oneCode = code.code;
+        _barcode = code.barcode;
+        _expires = code.expires;
+        _generatedAt = DateTime.now();
+        _loading = false;
+        _error = null;
+      });
     } catch (e) {
       setState(() {
         _error = e.toString();
@@ -68,67 +78,55 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
     }
   }
 
-  Future<void> _loadOneCode(Map<String, dynamic> user) async {
-    final oneCode = await _client.fetchOneCode();
-    final balance = await _client.fetchBalance();
-    setState(() {
-      _user = user;
-      _oneCode = oneCode.code;
-      _time = oneCode.time;
-      _balance = balance;
-      _needsLogin = false;
-      _loading = false;
-      _refreshing = false;
-      _error = null;
-    });
-  }
-
-  Future<void> _refreshCaptcha() async {
-    final captcha = await _client.fetchCaptcha();
-    setState(() {
-      _captcha = captcha;
-      _captchaController.clear();
-    });
-  }
-
-  Future<void> _login() async {
-    final username = _usernameController.text.trim();
-    final password = _passwordController.text;
-    final captcha = _captchaController.text.trim();
-    if (username.isEmpty || password.isEmpty || captcha.isEmpty) {
-      setState(() => _error = '请输入智慧安大账号、密码和验证码');
-      return;
+  Future<_OneCodeData> _fetchOneCode(Map<String, dynamic> payment) async {
+    if (payment['voucherStatus'] != 1 && payment['voucherStatus'] != '1') {
+      throw StateError('当前付款方式未开通离线一码通参数，无法生成真实一码通二维码');
     }
-    setState(() {
-      _loggingIn = true;
-      _error = null;
-    });
-    try {
-      await _client.login(
-        username: username,
-        password: password,
-        captcha: captcha,
-      );
-      final user = await _client.fetchSessionUser();
-      if (user == null) {
-        throw StateError('智慧安大登录成功但会话未建立');
-      }
-      await _loadOneCode(user);
-      setState(() => _loggingIn = false);
-    } catch (e) {
-      final captcha = await _client.fetchCaptcha();
-      setState(() {
-        _error = e.toString();
-        _captcha = captcha;
-        _captchaController.clear();
-        _loggingIn = false;
-      });
+    final barcodeResp = await _client.generateBarcode(
+      account: payment['account'].toString(),
+      payacc: payment['payacc'].toString(),
+      paytype: payment['paytype'].toString(),
+    );
+    final barcodeData = barcodeResp['data'] as Map?;
+    final barcodes = (barcodeData?['barcode'] as List?) ?? [];
+    if (barcodes.isEmpty) {
+      throw StateError(barcodeResp['msg']?.toString() ?? '一码通接口未返回码值');
     }
+    final barcode = barcodes.first.toString();
+    final frontInfo = await _client.getFrontInfo();
+    final frontConfig = _frontConfig(frontInfo);
+    final privateKey = frontConfig['privateKey']?.toString();
+    if (privateKey == null || privateKey.isEmpty) {
+      throw StateError('一卡通前端配置缺少离线码私钥');
+    }
+    final offlineParams = await _client.getOfflinePayParams(
+      payacc: payment['payacc'].toString(),
+      paytype: payment['paytype'].toString(),
+      voucher: payment['voucher'].toString(),
+    );
+    final offlineData = offlineParams['data'] as Map?;
+    if (offlineData == null) {
+      throw StateError(offlineParams['msg']?.toString() ?? '离线一码通参数为空');
+    }
+    final code = SynjonesOfflineCode.build(
+      barcode: barcode,
+      payment: payment,
+      offlineParams: Map<String, dynamic>.from(offlineData),
+      privateKey: privateKey,
+    );
+    if (!RegExp(r'^\d{20}SP[A-Za-z0-9+/]+=*$').hasMatch(code)) {
+      throw StateError('生成的一码通内容格式异常');
+    }
+    return _OneCodeData(
+      code: code,
+      barcode: barcode,
+      expires: (barcodeData?['expires'] as num?)?.toInt(),
+    );
   }
 
   Future<void> _refreshCode() async {
-    final user = _user ?? await _client.fetchSessionUser();
-    if (user == null) {
+    final payment = _payment;
+    if (payment == null) {
       await _load();
       return;
     }
@@ -137,13 +135,30 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
       _error = null;
     });
     try {
-      await _loadOneCode(user);
+      final code = await _fetchOneCode(payment);
+      setState(() {
+        _oneCode = code.code;
+        _barcode = code.barcode;
+        _expires = code.expires;
+        _generatedAt = DateTime.now();
+        _refreshing = false;
+        _error = null;
+      });
     } catch (e) {
       setState(() {
         _error = e.toString();
         _refreshing = false;
       });
     }
+  }
+
+  Map<String, dynamic> _frontConfig(Map<String, dynamic> resp) {
+    final raw = resp['data']?['getFrontConfig'];
+    if (raw is Map) return Map<String, dynamic>.from(raw);
+    if (raw is String && raw.isNotEmpty) {
+      return Map<String, dynamic>.from(jsonDecode(raw) as Map);
+    }
+    throw StateError('一卡通前端配置为空');
   }
 
   @override
@@ -153,116 +168,47 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: _needsLogin ? _refreshCaptcha : _refreshCode,
+              onRefresh: _refreshCode,
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
-                  if (_needsLogin) _buildLoginCard() else _buildOneCodeCard(),
+                  _buildOneCodeCard(),
+                  if (_payments.length > 1) ...[
+                    const SizedBox(height: 16),
+                    _buildPaymentCard(),
+                  ],
                 ],
               ),
             ),
     );
   }
 
-  Widget _buildLoginCard() {
-    final colorScheme = Theme.of(context).colorScheme;
+  Widget _buildPaymentCard() {
+    final selectedIndex = _payments.indexWhere(
+      (payment) => payment['id'] == _payment?['id'],
+    );
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Icon(Icons.qr_code_2, size: 56, color: colorScheme.primary),
-            const SizedBox(height: 12),
-            const Text(
-              '登录智慧安大后生成一码通',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '一码通二维码来自智慧安大 /xzxcard/qrcode，不再使用一卡通 20 位条码。',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: colorScheme.onSurfaceVariant),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: _usernameController,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: '学号 / 工号',
-                prefixIcon: Icon(Icons.person_outline),
+        padding: const EdgeInsets.all(16),
+        child: DropdownButtonFormField<int>(
+          value: selectedIndex < 0 ? 0 : selectedIndex,
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+            labelText: '付款方式',
+          ),
+          items: [
+            for (var i = 0; i < _payments.length; i++)
+              DropdownMenuItem(
+                value: i,
+                child: Text(_paymentTitle(_payments[i])),
               ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _passwordController,
-              obscureText: true,
-              textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: '智慧安大密码',
-                prefixIcon: Icon(Icons.lock_outline),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _captchaController,
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) {
-                      if (!_loggingIn) _login();
-                    },
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: '验证码',
-                      prefixIcon: Icon(Icons.verified_outlined),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                InkWell(
-                  onTap: _loggingIn ? null : _refreshCaptcha,
-                  child: Container(
-                    width: 96,
-                    height: 56,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: colorScheme.outlineVariant),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: _captcha == null
-                        ? const Icon(Icons.refresh)
-                        : Image.memory(_captcha!, fit: BoxFit.contain),
-                  ),
-                ),
-              ],
-            ),
-            if (_error != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                _error!,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: colorScheme.error),
-              ),
-            ],
-            const SizedBox(height: 20),
-            FilledButton.icon(
-              onPressed: _loggingIn ? null : _login,
-              icon: _loggingIn
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.login),
-              label: Text(_loggingIn ? '登录中...' : '登录并生成一码通'),
-            ),
           ],
+          onChanged: _refreshing
+              ? null
+              : (value) async {
+                  _payment = _payments[value!];
+                  await _refreshCode();
+                },
         ),
       ),
     );
@@ -271,9 +217,11 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
   Widget _buildOneCodeCard() {
     final colorScheme = Theme.of(context).colorScheme;
     final user = _user ?? {};
-    final name = _maskedName(user['userName']?.toString());
-    final idNumber = user['idNumber']?.toString() ?? '';
-    final headimg = user['headimgurl']?.toString();
+    final payment = _payment ?? {};
+    final name = _maskedName(user['name']?.toString());
+    final account =
+        user['sno']?.toString() ?? user['account']?.toString() ?? '';
+    final avatar = user['avatar']?.toString();
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.primary,
@@ -313,7 +261,7 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      idNumber,
+                      account,
                       style: TextStyle(
                         color: colorScheme.onSurfaceVariant,
                         fontSize: 16,
@@ -328,10 +276,19 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
                     else if (_error != null)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 72),
-                        child: Text(
-                          _error!,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: colorScheme.error),
+                        child: Column(
+                          children: [
+                            Text(
+                              _error!,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: colorScheme.error),
+                            ),
+                            const SizedBox(height: 12),
+                            FilledButton(
+                              onPressed: _load,
+                              child: const Text('重试'),
+                            ),
+                          ],
                         ),
                       )
                     else if (_oneCode != null)
@@ -351,7 +308,7 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
                       ),
                     const SizedBox(height: 12),
                     Text(
-                      _time ?? '',
+                      _timeText(),
                       style: TextStyle(
                         color: colorScheme.onSurfaceVariant,
                         fontSize: 16,
@@ -375,19 +332,25 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
                         const SizedBox(width: 16),
                         Expanded(
                           child: Text(
-                            '￥${_balance ?? '-'}',
+                            '￥${_money(payment['elec_accamt'] ?? payment['accinfo_balance'] ?? payment['balance'])}',
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('全部应用'),
-                        ),
                       ],
                     ),
+                    if (_barcode != null) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        '在线码：$_barcode',
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 10),
                     TextButton.icon(
                       onPressed: _refreshing ? null : _refreshCode,
@@ -419,8 +382,8 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
                   backgroundColor: colorScheme.surface,
                   child: CircleAvatar(
                     radius: 48,
-                    backgroundImage: _headImage(headimg),
-                    child: _headImage(headimg) == null
+                    backgroundImage: _headImage(avatar),
+                    child: _headImage(avatar) == null
                         ? Icon(
                             Icons.person,
                             size: 48,
@@ -439,8 +402,29 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
 
   ImageProvider? _headImage(String? value) {
     if (value == null || value.isEmpty) return null;
-    if (value.startsWith('http')) return NetworkImage(value);
-    return NetworkImage('${AdwmhClient.baseUrl}$value');
+    return NetworkImage(value);
+  }
+
+  String _paymentTitle(Map<String, dynamic> payment) {
+    final name = payment['name']?.toString();
+    final code = payment['code']?.toString();
+    return [name, code].where((e) => e != null && e.isNotEmpty).join(' · ');
+  }
+
+  String _money(dynamic value) {
+    if (value is num) return (value / 100).toStringAsFixed(2);
+    final parsed = num.tryParse(value?.toString() ?? '');
+    return parsed == null ? '-' : (parsed / 100).toStringAsFixed(2);
+  }
+
+  String _timeText() {
+    final time = _generatedAt;
+    if (time == null) return '';
+    final h = time.hour.toString().padLeft(2, '0');
+    final m = time.minute.toString().padLeft(2, '0');
+    final s = time.second.toString().padLeft(2, '0');
+    final expires = _expires == null ? '' : '有效期：${_expires}s · ';
+    return '$expires生成时间：$h:$m:$s';
   }
 
   String _maskedName(String? value) {
@@ -451,4 +435,16 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
     }
     return '${value.substring(0, 1)} * * ${value.substring(3)}';
   }
+}
+
+class _OneCodeData {
+  final String code;
+  final String barcode;
+  final int? expires;
+
+  const _OneCodeData({
+    required this.code,
+    required this.barcode,
+    required this.expires,
+  });
 }
