@@ -10,6 +10,14 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
     def abiFilter = System.getenv("ABI_FILTER") ?: ""
+    def abiExcludes = []
+    if (abiFilter == "arm64-v8a") {
+        abiExcludes = ["lib/armeabi-v7a/**", "lib/x86/**", "lib/x86_64/**"]
+    } else if (abiFilter == "x86_64") {
+        abiExcludes = ["lib/arm64-v8a/**", "lib/armeabi-v7a/**", "lib/x86/**"]
+    } else if (abiFilter == "armeabi-v7a") {
+        abiExcludes = ["lib/arm64-v8a/**", "lib/x86/**", "lib/x86_64/**"]
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -45,6 +53,12 @@ android {
                 keyAlias "ahu-aio"
                 keyPassword System.getenv("KEYSTORE_PASSWORD")
             }
+        }
+    }
+
+    packaging {
+        jniLibs {
+            excludes += abiExcludes
         }
     }
 
