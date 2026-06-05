@@ -77,8 +77,10 @@ jobs:
         include:
           - arch: arm64
             target_platform: android-arm64
+            abi_filter: arm64-v8a
           - arch: x86_64
             target_platform: android-x64
+            abi_filter: x86_64
 
     steps:
       - uses: actions/checkout@v6
@@ -112,6 +114,7 @@ jobs:
             --build-name "${{ needs.get-version.outputs.version }}" \
             --build-number "${{ needs.get-version.outputs.build_number }}"
         env:
+          ABI_FILTER: ${{ matrix.abi_filter }}
           KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
 

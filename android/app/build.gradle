@@ -9,6 +9,7 @@ android {
     namespace = "com.example.ahu_aio"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
+    def abiFilter = System.getenv("ABI_FILTER") ?: ""
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
@@ -28,6 +29,11 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        if (abiFilter != "") {
+            ndk {
+                abiFilters abiFilter
+            }
+        }
     }
 
     signingConfigs {
