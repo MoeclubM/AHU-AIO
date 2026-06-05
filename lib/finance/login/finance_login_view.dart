@@ -69,8 +69,8 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
       }
       if (!mounted) return;
       _error = cached.message ?? '一卡通 CAS 会话复用失败';
-    } else if (_error == null) {
-      _error = expiredSessionError;
+    } else {
+      _error ??= expiredSessionError;
     }
     if (mounted) setState(() => _checkingSession = false);
   }
