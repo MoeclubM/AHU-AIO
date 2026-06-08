@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import '../../auth/cas_auth_cache.dart';
 import '../api/synjones_client.dart';
 import '../api/synjones_offline_code.dart';
 
@@ -46,6 +47,7 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
         if (result == null || !result.success) {
           throw StateError(result?.message ?? '请先登录一卡通系统');
         }
+        await CasAuthCache.markLoggedIn('ycard');
       }
       final userResp = await _client.fetchUserInfo();
       final paymentResp = await _client.getPaymentInfo();

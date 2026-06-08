@@ -103,10 +103,9 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
       }
       await CasAuthCache.markLoggedIn('ycard');
       if (!mounted) return;
-      Navigator.pushAndRemoveUntil(
+      Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const FinanceHomePage()),
-        (_) => false,
       );
     } catch (e) {
       if (!mounted) return;

@@ -97,10 +97,9 @@ class _JwLoginPageState extends State<JwLoginPage> {
 
   void _goHome() {
     if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
+    Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const JwHomePage()),
-      (_) => false,
     );
   }
 
