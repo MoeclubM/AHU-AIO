@@ -113,10 +113,10 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
     final t = _tableData;
     if (t == null) return const SizedBox();
     final colorScheme = Theme.of(context).colorScheme;
-    final profile = [t.major, t.adminclass]
-        .whereType<String>()
-        .where((e) => e.isNotEmpty)
-        .join(' · ');
+    final profile = [
+      t.major,
+      t.adminclass,
+    ].whereType<String>().where((e) => e.isNotEmpty).join(' · ');
     final todayCount = activities
         .where((a) => a.weekday == DateTime.now().weekday)
         .length;
@@ -424,15 +424,16 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
 
   Widget _buildDayColumn(int weekday, List<CourseActivity> weekActivities) {
     final colorScheme = Theme.of(context).colorScheme;
-    final dayActivities = weekActivities
-        .where(
-          (a) =>
-              a.weekday == weekday &&
-              a.startUnit != null &&
-              a.endUnit != null,
-        )
-        .toList()
-      ..sort((a, b) => a.startUnit!.compareTo(b.startUnit!));
+    final dayActivities =
+        weekActivities
+            .where(
+              (a) =>
+                  a.weekday == weekday &&
+                  a.startUnit != null &&
+                  a.endUnit != null,
+            )
+            .toList()
+          ..sort((a, b) => a.startUnit!.compareTo(b.startUnit!));
 
     return SizedBox(
       width: _dayWidth,

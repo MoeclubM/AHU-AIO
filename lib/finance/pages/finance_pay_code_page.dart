@@ -462,8 +462,7 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
         version: QrVersions.auto,
         errorCorrectionLevel: QrErrorCorrectLevel.L,
         backgroundColor: Colors.white,
-        errorStateBuilder: (_, error) =>
-            Center(child: Text('二维码生成失败：$error')),
+        errorStateBuilder: (_, error) => Center(child: Text('二维码生成失败：$error')),
       ),
     );
   }
@@ -471,7 +470,8 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
   Widget _buildBalancePanel(Map<String, dynamic> payment) {
     final colorScheme = Theme.of(context).colorScheme;
     final title = _paymentTitle(payment);
-    final balance = payment['elec_accamt'] ??
+    final balance =
+        payment['elec_accamt'] ??
         payment['accinfo_balance'] ??
         payment['balance'];
     return Container(
@@ -482,7 +482,10 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
       ),
       child: Row(
         children: [
-          Icon(Icons.account_balance_wallet_outlined, color: colorScheme.primary),
+          Icon(
+            Icons.account_balance_wallet_outlined,
+            color: colorScheme.primary,
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
