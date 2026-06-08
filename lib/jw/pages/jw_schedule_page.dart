@@ -20,6 +20,9 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
 
   static const _weekdays = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
   static const _maxSlots = 11;
+  static const _slotHeight = 68.0;
+  static const _dayWidth = 118.0;
+  static const _timeColumnWidth = 48.0;
 
   @override
   void initState() {
@@ -66,16 +69,6 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
     }
   }
 
-  List<CourseActivity> _activitiesForSlot(int weekday, int slot) {
-    if (_tableData == null) return [];
-    return _tableData!.activities.where((a) {
-      if (a.weekday != weekday) return false;
-      if (a.startUnit == null || a.endUnit == null) return false;
-      if (!a.weekIndexes.contains(_currentWeek)) return false;
-      return a.startUnit! <= slot && a.endUnit! >= slot;
-    }).toList();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -110,32 +103,108 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
 
     return Column(
       children: [
-        _buildStudentInfo(),
+        _buildStudentInfo(activities),
         Expanded(child: _buildGrid(activities)),
       ],
     );
   }
 
-  Widget _buildStudentInfo() {
+  Widget _buildStudentInfo(List<CourseActivity> activities) {
     final t = _tableData;
     if (t == null) return const SizedBox();
+    final colorScheme = Theme.of(context).colorScheme;
+    final profile = [t.major, t.adminclass]
+        .whereType<String>()
+        .where((e) => e.isNotEmpty)
+        .join(' · ');
+    final todayCount = activities
+        .where((a) => a.weekday == DateTime.now().weekday)
+        .length;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: colorScheme.primaryContainer.withValues(alpha: 0.55),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
+                  child: const Icon(Icons.calendar_month_outlined),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        t.studentName ?? '我的课表',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      if (profile.isNotEmpty)
+                        Text(
+                          profile,
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 13,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                    ],
+                  ),
+                ),
+                if (t.totalCredits != null)
+                  Text(
+                    '${t.totalCredits} 学分',
+                    style: TextStyle(
+                      color: colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _infoPill(Icons.view_week_outlined, '第 $_currentWeek 周'),
+                _infoPill(Icons.school_outlined, '本周 ${activities.length} 节'),
+                _infoPill(Icons.today_outlined, '今日 $todayCount 节'),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _infoPill(IconData icon, String text) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: colorScheme.surface.withValues(alpha: 0.78),
+        borderRadius: BorderRadius.circular(99),
+      ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Expanded(
-            child: Text(
-              '${t.studentName ?? ''}  ${t.major ?? ''}  ${t.adminclass ?? ''}',
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          if (t.totalCredits != null)
-            Text(
-              '已修 ${t.totalCredits} 学分',
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
+          Icon(icon, size: 15, color: colorScheme.primary),
+          const SizedBox(width: 4),
+          Text(text, style: const TextStyle(fontSize: 12)),
         ],
       ),
     );
@@ -234,167 +303,289 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
   }
 
   Widget _buildGrid(List<CourseActivity> weekActivities) {
+    final colorScheme = Theme.of(context).colorScheme;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: SingleChildScrollView(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.fromLTRB(12, 4, 12, 92),
+        child: Column(
           children: [
-            // 时间列
-            Column(
+            Row(
               children: [
-                const SizedBox(
-                  width: 46,
-                  height: 32,
-                  child: Center(
-                    child: Text(
-                      '节次',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                      ),
+                Container(
+                  width: _timeColumnWidth,
+                  height: 44,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(16),
                     ),
                   ),
+                  child: const Text(
+                    '节次',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
                 ),
-                ...List.generate(_maxSlots, (i) {
+                ...List.generate(7, (dayIdx) {
+                  final wd = dayIdx + 1;
+                  final isToday = DateTime.now().weekday == wd;
+                  final count = weekActivities
+                      .where((a) => a.weekday == wd)
+                      .length;
                   return Container(
-                    width: 46,
-                    height: 56,
+                    width: _dayWidth,
+                    height: 44,
                     alignment: Alignment.center,
-                    child: Text(
-                      '${i + 1}',
-                      style: const TextStyle(fontSize: 11, color: Colors.grey),
+                    decoration: BoxDecoration(
+                      color: isToday
+                          ? colorScheme.primaryContainer
+                          : colorScheme.surfaceContainerHighest,
+                      borderRadius: dayIdx == 6
+                          ? const BorderRadius.only(
+                              topRight: Radius.circular(16),
+                            )
+                          : BorderRadius.zero,
+                      border: Border(
+                        left: BorderSide(
+                          color: colorScheme.outlineVariant,
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _weekdays[wd],
+                          style: TextStyle(
+                            color: isToday
+                                ? colorScheme.primary
+                                : colorScheme.onSurface,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        Text(
+                          isToday ? '今天 · $count 节' : '$count 节',
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ],
                     ),
                   );
                 }),
               ],
             ),
-            // 每天列
-            ...List.generate(7, (dayIdx) {
-              final wd = dayIdx + 1;
-              return Column(
-                children: [
-                  SizedBox(
-                    width: 90,
-                    height: 32,
-                    child: Center(
-                      child: Text(
-                        _weekdays[wd],
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                  ...List.generate(_maxSlots, (slotIdx) {
-                    final slot = slotIdx + 1;
-                    final slotActs = _activitiesForSlot(wd, slot);
-                    // 只在开始节次绘制卡片
-                    final startActs = slotActs
-                        .where((a) => a.startUnit == slot)
-                        .toList();
-
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Column(
+                  children: List.generate(_maxSlots, (i) {
                     return Container(
-                      width: 90,
-                      height: 56,
+                      width: _timeColumnWidth,
+                      height: _slotHeight,
+                      alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        border: Border.all(
-                          color: Colors.grey.shade200,
-                          width: 0.5,
+                        color: colorScheme.surfaceContainerHighest.withValues(
+                          alpha: 0.55,
+                        ),
+                        border: Border(
+                          top: BorderSide(
+                            color: colorScheme.outlineVariant,
+                            width: 0.5,
+                          ),
                         ),
                       ),
-                      child: startActs.isNotEmpty
-                          ? _buildActivityCard(startActs.first)
-                          : slotActs.isNotEmpty
-                          ? null // 中间节次不绘制
-                          : null,
+                      child: Text(
+                        '${i + 1}',
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     );
                   }),
-                ],
-              );
-            }),
+                ),
+                ...List.generate(
+                  7,
+                  (dayIdx) => _buildDayColumn(dayIdx + 1, weekActivities),
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildActivityCard(CourseActivity a) {
-    final colors = [
-      Colors.blue.shade50,
-      Colors.green.shade50,
-      Colors.orange.shade50,
-      Colors.purple.shade50,
-      Colors.cyan.shade50,
-      Colors.pink.shade50,
-    ];
-    final colorIdx = a.courseName.hashCode.abs() % colors.length;
+  Widget _buildDayColumn(int weekday, List<CourseActivity> weekActivities) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final dayActivities = weekActivities
+        .where(
+          (a) =>
+              a.weekday == weekday &&
+              a.startUnit != null &&
+              a.endUnit != null,
+        )
+        .toList()
+      ..sort((a, b) => a.startUnit!.compareTo(b.startUnit!));
 
-    return GestureDetector(
-      onTap: () => _showCourseDetail(a),
-      child: Container(
-        margin: const EdgeInsets.all(1),
-        padding: const EdgeInsets.all(2),
-        decoration: BoxDecoration(
-          color: colors[colorIdx],
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              a.courseName ?? '',
-              style: const TextStyle(fontSize: 8, fontWeight: FontWeight.w600),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            if (a.room != null)
+    return SizedBox(
+      width: _dayWidth,
+      height: _slotHeight * _maxSlots,
+      child: Stack(
+        children: [
+          Column(
+            children: List.generate(_maxSlots, (index) {
+              return Container(
+                height: _slotHeight,
+                decoration: BoxDecoration(
+                  color: index.isEven
+                      ? colorScheme.surface
+                      : colorScheme.surfaceContainerHighest.withValues(
+                          alpha: 0.18,
+                        ),
+                  border: Border(
+                    left: BorderSide(
+                      color: colorScheme.outlineVariant,
+                      width: 0.5,
+                    ),
+                    top: BorderSide(
+                      color: colorScheme.outlineVariant,
+                      width: 0.5,
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+          ...dayActivities.map((a) {
+            final top = (a.startUnit! - 1) * _slotHeight;
+            final height = (a.endUnit! - a.startUnit! + 1) * _slotHeight;
+            return Positioned(
+              left: 5,
+              right: 5,
+              top: top + 3,
+              height: height - 6,
+              child: _buildActivityCard(a),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Color _courseColor(CourseActivity a) {
+    const colors = [
+      Color(0xFF2563EB),
+      Color(0xFF059669),
+      Color(0xFFEA580C),
+      Color(0xFF7C3AED),
+      Color(0xFF0891B2),
+      Color(0xFFDB2777),
+      Color(0xFF4F46E5),
+    ];
+    final key = a.courseCode ?? a.courseName ?? '';
+    var sum = 0;
+    for (final unit in key.codeUnits) {
+      sum += unit;
+    }
+    return colors[sum % colors.length];
+  }
+
+  Widget _buildActivityCard(CourseActivity a) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final color = _courseColor(a);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () => _showCourseDetail(a),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.13),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: color.withValues(alpha: 0.35)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
               Text(
-                a.room!,
-                style: const TextStyle(fontSize: 7, color: Colors.grey),
-                maxLines: 1,
+                a.courseName ?? '',
+                style: TextStyle(
+                  color: color,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  height: 1.15,
+                ),
+                maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
-            if (a.teacherStr.isNotEmpty)
-              Text(
-                a.teacherStr,
-                style: const TextStyle(fontSize: 7, color: Colors.grey),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-          ],
+              const SizedBox(height: 5),
+              if (a.room != null)
+                Text(
+                  a.room!,
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    fontSize: 10,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              if (a.teacherStr.isNotEmpty)
+                Text(
+                  a.teacherStr,
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    fontSize: 10,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+            ],
+          ),
         ),
       ),
     );
   }
 
   void _showCourseDetail(CourseActivity a) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(a.courseName ?? '课程详情'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _detailRow('课程代码', a.courseCode),
-            _detailRow('教师', a.teacherStr.isNotEmpty ? a.teacherStr : null),
-            _detailRow('教室', a.room),
-            _detailRow('校区', a.campus),
-            _detailRow('上课时间', '${a.weekdayStr} ${a.slotRange}'),
-            _detailRow('周次', a.weeksStr ?? a.weekIndexes.join(', ')),
-            if (a.credits != null)
-              _detailRow('学分', a.credits!.toStringAsFixed(1)),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('关闭'),
+      showDragHandle: true,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                a.courseName ?? '课程详情',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 14),
+              _detailRow('课程代码', a.courseCode),
+              _detailRow('教师', a.teacherStr.isNotEmpty ? a.teacherStr : null),
+              _detailRow('教室', a.room),
+              _detailRow('校区', a.campus),
+              _detailRow('上课时间', '${a.weekdayStr} ${a.slotRange}'),
+              _detailRow('周次', a.weeksStr ?? a.weekIndexes.join(', ')),
+              if (a.credits != null)
+                _detailRow('学分', a.credits!.toStringAsFixed(1)),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

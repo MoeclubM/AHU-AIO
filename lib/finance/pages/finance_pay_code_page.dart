@@ -127,8 +127,8 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
   }
 
   Future<void> _refreshCode() async {
-    final payment = _payment;
-    if (payment == null) {
+    final selectedPayment = _payment;
+    if (selectedPayment == null) {
       await _load();
       return;
     }
@@ -137,8 +137,28 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
       _error = null;
     });
     try {
+      final paymentResp = await _client.getPaymentInfo();
+      final payments = ((paymentResp['data'] as List?) ?? [])
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+      if (payments.isEmpty) {
+        throw StateError('当前账号没有可用付款方式');
+      }
+      Map<String, dynamic>? payment;
+      for (final item in payments) {
+        if (_samePayment(item, selectedPayment)) {
+          payment = item;
+          break;
+        }
+      }
+      if (payment == null) {
+        throw StateError('当前付款方式已变化，请重新选择付款方式');
+      }
       final code = await _fetchOneCode(payment);
       setState(() {
+        _payments = payments;
+        _payment = payment;
         _oneCode = code.code;
         _barcode = code.barcode;
         _expires = code.expires;
@@ -154,6 +174,14 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
     }
   }
 
+  bool _samePayment(Map<String, dynamic> a, Map<String, dynamic> b) {
+    final aId = a['id']?.toString();
+    final bId = b['id']?.toString();
+    if (aId != null && bId != null) return aId == bId;
+    return a['payacc']?.toString() == b['payacc']?.toString() &&
+        a['paytype']?.toString() == b['paytype']?.toString();
+  }
+
   Map<String, dynamic> _frontConfig(Map<String, dynamic> resp) {
     final raw = resp['data']?['getFrontConfig'];
     if (raw is Map) return Map<String, dynamic>.from(raw);
@@ -165,23 +193,36 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(title: const Text('一码通')),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _refreshCode,
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  _buildOneCodeCard(),
-                  if (_payments.length > 1) ...[
-                    const SizedBox(height: 16),
-                    _buildPaymentCard(),
+      body: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              colorScheme.primaryContainer.withValues(alpha: 0.55),
+              colorScheme.surface,
+            ],
+          ),
+        ),
+        child: _loading
+            ? const Center(child: CircularProgressIndicator())
+            : RefreshIndicator(
+                onRefresh: _refreshCode,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                  children: [
+                    _buildOneCodeCard(),
+                    if (_payments.length > 1) ...[
+                      const SizedBox(height: 16),
+                      _buildPaymentCard(),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
+      ),
     );
   }
 
@@ -224,142 +265,128 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
     final account =
         user['sno']?.toString() ?? user['account']?.toString() ?? '';
     final avatar = user['avatar']?.toString();
+    final headImage = _headImage(avatar);
     return Container(
       decoration: BoxDecoration(
-        color: colorScheme.primary,
-        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [colorScheme.primary, colorScheme.tertiary],
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.primary.withValues(alpha: 0.22),
+            blurRadius: 24,
+            offset: const Offset(0, 14),
+          ),
+        ],
       ),
-      padding: const EdgeInsets.fromLTRB(16, 18, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
       child: Column(
         children: [
-          Text(
-            '一码通',
-            style: TextStyle(
-              color: colorScheme.onPrimary,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 54),
-          Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.topCenter,
+          Row(
             children: [
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(18, 70, 18, 20),
-                decoration: BoxDecoration(
-                  color: colorScheme.surface,
-                  borderRadius: BorderRadius.circular(18),
+              CircleAvatar(
+                radius: 28,
+                backgroundColor: colorScheme.surface,
+                child: CircleAvatar(
+                  radius: 24,
+                  backgroundImage: headImage,
+                  child: headImage == null
+                      ? Icon(Icons.person, color: colorScheme.primary)
+                      : null,
                 ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       name,
-                      style: const TextStyle(
+                      style: TextStyle(
+                        color: colorScheme.onPrimary,
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      account,
-                      style: TextStyle(
-                        color: colorScheme.onSurfaceVariant,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    if (_refreshing)
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 72),
-                        child: Center(child: CircularProgressIndicator()),
-                      )
-                    else if (_error != null)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 72),
-                        child: Column(
-                          children: [
-                            Text(
-                              _error!,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: colorScheme.error),
-                            ),
-                            const SizedBox(height: 12),
-                            FilledButton(
-                              onPressed: _load,
-                              child: const Text('重试'),
-                            ),
-                          ],
-                        ),
-                      )
-                    else if (_oneCode != null)
-                      Container(
-                        width: 250,
-                        height: 250,
-                        padding: const EdgeInsets.all(8),
-                        color: Colors.white,
-                        child: QrImageView(
-                          data: _oneCode!,
-                          version: QrVersions.auto,
-                          errorCorrectionLevel: QrErrorCorrectLevel.L,
-                          backgroundColor: Colors.white,
-                          errorStateBuilder: (_, error) =>
-                              Center(child: Text('二维码生成失败：$error')),
-                        ),
-                      ),
-                    const SizedBox(height: 12),
-                    Text(
-                      _timeText(),
-                      style: TextStyle(
-                        color: colorScheme.onSurfaceVariant,
-                        fontSize: 16,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.account_balance_wallet_outlined,
-                          color: colorScheme.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '余额',
-                          style: TextStyle(
-                            color: colorScheme.onSurfaceVariant,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Text(
-                            '￥${_money(payment['elec_accamt'] ?? payment['accinfo_balance'] ?? payment['balance'])}',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (_barcode != null) ...[
-                      const SizedBox(height: 8),
+                    if (account.isNotEmpty)
                       Text(
-                        '在线码：$_barcode',
+                        account,
                         style: TextStyle(
-                          color: colorScheme.onSurfaceVariant,
-                          fontSize: 12,
+                          color: colorScheme.onPrimary.withValues(alpha: 0.78),
                         ),
                       ),
-                    ],
-                    const SizedBox(height: 10),
-                    TextButton.icon(
-                      onPressed: _refreshing ? null : _refreshCode,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('点击刷新'),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(99),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.28),
+                  ),
+                ),
+                child: Text(
+                  _refreshing ? '刷新中' : '付款码',
+                  style: TextStyle(
+                    color: colorScheme.onPrimary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 16),
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Column(
+              children: [
+                _buildQrBox(colorScheme),
+                const SizedBox(height: 14),
+                Text(
+                  _timeText(),
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildBalancePanel(payment),
+                if (_barcode != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    '在线码：$_barcode',
+                    style: TextStyle(
+                      color: colorScheme.onSurfaceVariant,
+                      fontSize: 12,
                     ),
-                    TextButton.icon(
+                  ),
+                ],
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: _refreshing ? null : _refreshCode,
+                        icon: const Icon(Icons.refresh),
+                        label: Text(_refreshing ? '刷新中' : '刷新码和余额'),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    IconButton.filledTonal(
                       onPressed: _oneCode == null
                           ? null
                           : () async {
@@ -372,30 +399,114 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
                               );
                             },
                       icon: const Icon(Icons.copy),
-                      label: const Text('复制二维码内容'),
+                      tooltip: '复制二维码内容',
                     ),
                   ],
                 ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQrBox(ColorScheme colorScheme) {
+    if (_refreshing) {
+      return const SizedBox(
+        width: 260,
+        height: 260,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_error != null) {
+      return SizedBox(
+        width: 260,
+        height: 260,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline, color: colorScheme.error, size: 38),
+              const SizedBox(height: 10),
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: TextStyle(color: colorScheme.error),
               ),
-              Positioned(
-                top: -50,
-                child: CircleAvatar(
-                  radius: 54,
-                  backgroundColor: colorScheme.surface,
-                  child: CircleAvatar(
-                    radius: 48,
-                    backgroundImage: _headImage(avatar),
-                    child: _headImage(avatar) == null
-                        ? Icon(
-                            Icons.person,
-                            size: 48,
-                            color: colorScheme.onSurfaceVariant,
-                          )
-                        : null,
+              const SizedBox(height: 12),
+              FilledButton(onPressed: _load, child: const Text('重试')),
+            ],
+          ),
+        ),
+      );
+    }
+    if (_oneCode == null) return const SizedBox(width: 260, height: 260);
+    return Container(
+      width: 260,
+      height: 260,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: QrImageView(
+        data: _oneCode!,
+        version: QrVersions.auto,
+        errorCorrectionLevel: QrErrorCorrectLevel.L,
+        backgroundColor: Colors.white,
+        errorStateBuilder: (_, error) =>
+            Center(child: Text('二维码生成失败：$error')),
+      ),
+    );
+  }
+
+  Widget _buildBalancePanel(Map<String, dynamic> payment) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final title = _paymentTitle(payment);
+    final balance = payment['elec_accamt'] ??
+        payment['accinfo_balance'] ??
+        payment['balance'];
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colorScheme.primaryContainer.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.account_balance_wallet_outlined, color: colorScheme.primary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title.isEmpty ? '当前付款账户' : title,
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    fontSize: 13,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '￥${_money(balance)}',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
