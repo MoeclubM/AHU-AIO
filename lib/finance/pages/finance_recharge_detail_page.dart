@@ -457,7 +457,9 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
   Future<void> _confirmSceneBind(bool bind) async {
     final label = _sceneLabel();
     final sceneinfo = bind ? _currentSceneInfo() : null;
-    final text = bind ? _sceneText ?? '' : _sceneTextFromItems(_boundSceneItems);
+    final text = bind
+        ? _sceneText ?? ''
+        : _sceneTextFromItems(_boundSceneItems);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(

@@ -305,9 +305,7 @@ class SynjonesClient {
       options: _chargeOptions('pc'),
     );
     if (resp.statusCode == 302) {
-      throw StateError(
-        '一卡通缴费绑定接口重定向到登录：${resp.headers.value('location')}',
-      );
+      throw StateError('一卡通缴费绑定接口重定向到登录：${resp.headers.value('location')}');
     }
     return Map<String, dynamic>.from(resp.data);
   }
