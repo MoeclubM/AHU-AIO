@@ -287,6 +287,31 @@ class SynjonesClient {
     return Map<String, dynamic>.from(resp.data);
   }
 
+  Future<Map<String, dynamic>> bindFeeItemScene({
+    required int feeitemId,
+    String? sceneinfo,
+  }) async {
+    final data = <String, dynamic>{
+      'synAccessSource': 'pc',
+      'feeitemid': feeitemId,
+    };
+    if (sceneinfo != null && sceneinfo.isNotEmpty) {
+      data['sceneinfo'] = sceneinfo;
+    }
+    final resp = await _ycardDio.post(
+      '/charge/sceneBind/add',
+      queryParameters: {'synAccessSource': 'pc'},
+      data: data,
+      options: _chargeOptions('pc'),
+    );
+    if (resp.statusCode == 302) {
+      throw StateError(
+        '一卡通缴费绑定接口重定向到登录：${resp.headers.value('location')}',
+      );
+    }
+    return Map<String, dynamic>.from(resp.data);
+  }
+
   /// 生活缴费下单。返回 orderid 后继续走 getChargePayInfo / blade-pay 支付确认。
   Future<Map<String, dynamic>> createChargeOrder(
     Map<String, dynamic> data,

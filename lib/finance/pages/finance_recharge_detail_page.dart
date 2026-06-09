@@ -42,6 +42,9 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
   Map<String, dynamic> _thirdInfoRows = {};
   String? _thirdTip;
   String? _sceneText;
+  String? _boundSceneInfo;
+  List<Map<String, String>> _boundSceneItems = [];
+  bool _thirdSceneEditing = true;
   bool _thirdLoading = false;
 
   Map<String, dynamic>? _orderResponse;
@@ -61,6 +64,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
   bool _preparingPay = false;
   bool _paying = false;
   bool _keyboardLoading = false;
+  bool _sceneBinding = false;
   String? _error;
   String? _thirdError;
 
@@ -108,8 +112,12 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       _thirdInfoRows = {};
       _thirdTip = null;
       _sceneText = null;
+      _boundSceneInfo = null;
+      _boundSceneItems = [];
+      _thirdSceneEditing = true;
       _amountController.clear();
       _thirdInputController.clear();
+      _sceneBinding = false;
     });
     try {
       await _client.init();
@@ -207,14 +215,10 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
   Future<void> _initThirdData(String? sceneinfo) async {
     final parsed = _parseSceneInfo(sceneinfo);
     if (parsed.isNotEmpty) {
-      for (final item in parsed) {
-        _thirdSelected[item['key']!] = item['id']!;
-        _thirdSelectedLabels[item['key']!] = item['name']!;
-      }
-      if (_thirdInputMode) {
-        _thirdInputController.text = parsed.last['id']!;
-      }
-      _sceneText = parsed.map((e) => e['name']).join(' ');
+      _boundSceneInfo = sceneinfo;
+      _boundSceneItems = parsed;
+      _thirdSceneEditing = false;
+      _setThirdSelectionsFromScene(parsed);
       await _loadThirdData(type: 'select', level: 0);
       for (final level in _thirdLevels) {
         final levelNo = (level['level'] as num?)?.toInt();
@@ -231,6 +235,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
           : (_thirdLevels.last['level'] as num?)?.toInt() ?? parsed.length);
       await _loadThirdData(type: 'IEC', level: lastLevel);
     } else {
+      _thirdSceneEditing = true;
       await _loadThirdData(type: 'select', level: 0);
     }
   }
@@ -247,6 +252,23 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
         'name': pieces.length > 1 ? pieces[1] : pieces[0].split('&').last,
       };
     }).toList();
+  }
+
+  void _setThirdSelectionsFromScene(List<Map<String, String>> items) {
+    _thirdSelected.clear();
+    _thirdSelectedLabels.clear();
+    for (final item in items) {
+      _thirdSelected[item['key']!] = item['id']!;
+      _thirdSelectedLabels[item['key']!] = item['name']!;
+    }
+    if (_thirdInputMode) {
+      _thirdInputController.text = items.last['id']!;
+    }
+    _sceneText = _sceneTextFromItems(items);
+  }
+
+  String _sceneTextFromItems(List<Map<String, String>> items) {
+    return items.map((e) => e['name']).join(' ');
   }
 
   Future<void> _loadThirdData({
@@ -344,6 +366,9 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
     setState(() {
       _thirdSelected[code] = value;
       _thirdSelectedLabels[code] = _thirdOptionLabel(option);
+      _thirdPartyData = null;
+      _thirdInfoRows = {};
+      _thirdTip = null;
       _sceneText = _thirdLevels
           .map((e) => e['code']?.toString())
           .where((e) => e != null && _thirdSelectedLabels.containsKey(e))
@@ -376,9 +401,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
   Map<String, dynamic>? _nextThirdLevel(int currentLevel) {
     for (final level in _thirdLevels) {
       final levelNo = (level['level'] as num?)?.toInt();
-      if (levelNo != null &&
-          levelNo > currentLevel &&
-          !_thirdSelected.containsKey(level['code']?.toString())) {
+      if (levelNo != null && levelNo > currentLevel) {
         return level;
       }
     }
@@ -404,6 +427,118 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
       _sceneText = value;
     });
     await _loadThirdData(type: 'IEC', level: levelNo);
+  }
+
+  Future<void> _editBoundScene() async {
+    setState(() {
+      _thirdSceneEditing = true;
+      _thirdPartyData = null;
+      _thirdInfoRows = {};
+      _thirdTip = null;
+    });
+    if (_thirdOptions.isEmpty) await _loadThirdData(type: 'select', level: 0);
+  }
+
+  Future<void> _useBoundScene() async {
+    setState(() {
+      _setThirdSelectionsFromScene(_boundSceneItems);
+      _thirdSceneEditing = false;
+      _thirdPartyData = null;
+      _thirdInfoRows = {};
+      _thirdTip = null;
+    });
+    final lastLevel = (_thirdLevels.isEmpty
+        ? _boundSceneItems.length
+        : (_thirdLevels.last['level'] as num?)?.toInt() ??
+              _boundSceneItems.length);
+    await _loadThirdData(type: 'IEC', level: lastLevel);
+  }
+
+  Future<void> _confirmSceneBind(bool bind) async {
+    final label = _sceneLabel();
+    final sceneinfo = bind ? _currentSceneInfo() : null;
+    final text = bind ? _sceneText ?? '' : _sceneTextFromItems(_boundSceneItems);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('${bind ? '添加' : '解绑'}$label信息'),
+        content: Text(text),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('确定'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) await _saveSceneBinding(sceneinfo);
+  }
+
+  Future<void> _saveSceneBinding(String? sceneinfo) async {
+    setState(() => _sceneBinding = true);
+    try {
+      final resp = await _client.bindFeeItemScene(
+        feeitemId: widget.feeitemId,
+        sceneinfo: sceneinfo,
+      );
+      if (resp['code'] != 200) {
+        throw StateError(resp['msg']?.toString() ?? '缴费对象绑定失败');
+      }
+      if (sceneinfo != null) {
+        final parsed = _parseSceneInfo(sceneinfo);
+        setState(() {
+          _boundSceneInfo = sceneinfo;
+          _boundSceneItems = parsed;
+          _thirdSceneEditing = false;
+          _setThirdSelectionsFromScene(parsed);
+          _sceneBinding = false;
+        });
+        _showMessage('添加成功');
+      } else {
+        setState(() {
+          _boundSceneInfo = null;
+          _boundSceneItems = [];
+          _thirdSceneEditing = true;
+          _thirdSelected.clear();
+          _thirdSelectedLabels.clear();
+          _thirdOptions.clear();
+          _thirdPartyData = null;
+          _thirdInfoRows = {};
+          _thirdTip = null;
+          _sceneText = null;
+          _thirdInputController.clear();
+          _sceneBinding = false;
+        });
+        await _loadThirdData(type: 'select', level: 0);
+        _showMessage('解绑成功');
+      }
+    } catch (e) {
+      setState(() => _sceneBinding = false);
+      _showMessage(e.toString());
+    }
+  }
+
+  String _currentSceneInfo() {
+    return _thirdLevels
+        .map((level) {
+          final code = level['code']?.toString();
+          if (code == null || !_thirdSelected.containsKey(code)) return null;
+          final value = _thirdSelected[code]!;
+          final label = _thirdSelectedLabels[code] ?? value.split('&').last;
+          return '$code:$value#\$#$label';
+        })
+        .whereType<String>()
+        .join(';');
+  }
+
+  String _sceneLabel() {
+    return _thirdLevels.isEmpty
+        ? '信息'
+        : (_thirdLevels.last['name']?.toString() ?? '信息');
   }
 
   Future<void> _createCardOrder() async {
@@ -830,10 +965,16 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
 
   Widget _buildThirdSelectors() {
     final colorScheme = Theme.of(context).colorScheme;
+    final canBind = _truthy(_feeitem?['bindStatus']);
+    final hasBoundScene =
+        _boundSceneInfo != null && _boundSceneInfo!.isNotEmpty;
+    final sceneLabel = _sceneLabel();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (_sceneText != null && _sceneText!.isNotEmpty)
+        if (hasBoundScene && !_thirdSceneEditing)
+          _buildBoundScenePanel(colorScheme)
+        else if (_sceneText != null && _sceneText!.isNotEmpty)
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -845,15 +986,51 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
               style: TextStyle(color: colorScheme.onPrimaryContainer),
             ),
           ),
-        if (_thirdInputMode) ...[
+        if (hasBoundScene && _thirdSceneEditing)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton.icon(
+                onPressed: _sceneBinding ? null : _useBoundScene,
+                icon: const Icon(Icons.bookmark),
+                label: Text('我的$sceneLabel'),
+              ),
+            ),
+          ),
+        if (_thirdSceneEditing && _thirdInputMode) ...[
           const SizedBox(height: 12),
           _buildThirdInputQuery(),
-        ] else
+        ] else if (_thirdSceneEditing)
           for (final level in _thirdLevels)
             if (level['code'] != null) ...[
               const SizedBox(height: 12),
               _buildLevelSelector(level),
             ],
+        if (canBind &&
+            _thirdPartyData != null &&
+            (_thirdSceneEditing || !hasBoundScene))
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: hasBoundScene
+                  ? OutlinedButton.icon(
+                      onPressed: _sceneBinding
+                          ? null
+                          : () => _confirmSceneBind(false),
+                      icon: const Icon(Icons.remove_circle_outline),
+                      label: Text('解绑我的$sceneLabel'),
+                    )
+                  : FilledButton.icon(
+                      onPressed: _sceneBinding
+                          ? null
+                          : () => _confirmSceneBind(true),
+                      icon: const Icon(Icons.add_circle_outline),
+                      label: Text('添加为我的$sceneLabel'),
+                    ),
+            ),
+          ),
         if (_thirdLoading)
           const Padding(
             padding: EdgeInsets.only(top: 12),
@@ -881,6 +1058,53 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
           ..._thirdInfoRows.entries.map((e) => _infoRow(e.key, e.value)),
         ],
       ],
+    );
+  }
+
+  Widget _buildBoundScenePanel(ColorScheme colorScheme) {
+    final sceneLabel = _sceneLabel();
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '我的$sceneLabel',
+            style: TextStyle(
+              color: colorScheme.onPrimaryContainer,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _sceneTextFromItems(_boundSceneItems),
+            style: TextStyle(color: colorScheme.onPrimaryContainer),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              TextButton.icon(
+                onPressed: _sceneBinding ? null : _editBoundScene,
+                icon: const Icon(Icons.edit),
+                label: const Text('编辑'),
+              ),
+              OutlinedButton.icon(
+                onPressed: _sceneBinding
+                    ? null
+                    : () => _confirmSceneBind(false),
+                icon: const Icon(Icons.remove_circle_outline),
+                label: Text('解绑我的$sceneLabel'),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
