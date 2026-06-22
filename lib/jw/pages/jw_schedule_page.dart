@@ -73,7 +73,13 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: widget.embed ? null : AppBar(title: const Text('我的课表')),
+      appBar: widget.embed
+          ? null
+          : AppBar(
+              title: Text(_tableData?.studentName != null
+                  ? '${_tableData!.studentName}的课表'
+                  : '我的课表'),
+            ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: _isLoading || _tableData == null
           ? null
@@ -104,7 +110,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
 
     return Column(
       children: [
-        _buildStudentInfo(activities),
+        if (widget.embed) _buildStudentInfo(activities),
         Expanded(child: _buildGrid(activities)),
       ],
     );

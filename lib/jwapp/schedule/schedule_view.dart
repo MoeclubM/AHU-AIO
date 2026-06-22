@@ -7,7 +7,8 @@ import 'schedule_logic.dart';
 import 'schedule_service.dart';
 
 class SchedulePage extends StatefulWidget {
-  const SchedulePage({super.key});
+  final bool embed;
+  const SchedulePage({super.key, this.embed = false});
 
   @override
   State<SchedulePage> createState() => _SchedulePageState();
@@ -25,7 +26,7 @@ class _SchedulePageState extends State<SchedulePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('课程表')),
+      appBar: widget.embed ? null : AppBar(title: const Text('课程表')),
       body: Obx(() {
         final scheduleByDay = _logic.processClasses();
         final isLoading = _logic.isLoading.value;

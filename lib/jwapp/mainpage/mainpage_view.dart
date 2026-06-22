@@ -50,7 +50,7 @@ class _MainPageState extends State<MainPage>
         controller: _tabController,
         children: [
           HomePage(isVisible: _tabController.index == 0),
-          const SchedulePage(),
+          const SchedulePage(embed: true),
           const FuncPage(),
         ],
       ),
