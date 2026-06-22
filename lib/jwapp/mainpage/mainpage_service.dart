@@ -7,6 +7,9 @@ import '../api/getuserinfo_extended.dart';
 
 class MainPageService {
   static Future<void> checkTokenAndNavigate(BuildContext context) async {
+    if (globals.idToken != null && globals.idToken!.isNotEmpty) {
+      return;
+    }
     final prefs = await SharedPreferences.getInstance();
     final String? idToken = prefs.getString('idToken');
     if (idToken != null) {
