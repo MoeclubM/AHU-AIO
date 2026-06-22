@@ -12,5 +12,6 @@ class JwLoginService {
     api.studentId = null;
     globals.jwLoggedIn = false;
     globals.jwStudentNo = null;
+    globals.onLoginStateChanged?.call();
   }
 }

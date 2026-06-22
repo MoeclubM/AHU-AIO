@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../globals.dart' as globals;
 
 import '../../auth/cas_auth_cache.dart';
 import '../api/synjones_client.dart';
@@ -10,7 +11,8 @@ import '../pages/finance_recharge_page.dart';
 
 /// 一卡通首页 — 原生展示余额、一码通入口、电子卡与更多功能。
 class FinanceHomePage extends StatefulWidget {
-  const FinanceHomePage({super.key});
+  final bool embed;
+  const FinanceHomePage({super.key, this.embed = false});
 
   @override
   State<FinanceHomePage> createState() => _FinanceHomePageState();
@@ -70,27 +72,32 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
   void _logout() async {
     await _client.logout();
     await CasAuthCache.clear();
+    globals.onLoginStateChanged?.call();
     if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const FinanceLoginPage()),
-    );
+    if (globals.onLoginStateChanged == null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const FinanceLoginPage()),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('一卡通系统'),
-        actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _logout,
-            tooltip: '退出',
-          ),
-        ],
-      ),
+      appBar: widget.embed
+          ? null
+          : AppBar(
+              title: const Text('一卡通系统'),
+              actions: [
+                IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
+                IconButton(
+                  icon: const Icon(Icons.logout),
+                  onPressed: _logout,
+                  tooltip: '退出',
+                ),
+              ],
+            ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

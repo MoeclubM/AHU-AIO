@@ -3,7 +3,8 @@ import '../api/jw_api.dart';
 import '../models/jw_models.dart';
 
 class JwGradesPage extends StatefulWidget {
-  const JwGradesPage({super.key});
+  final bool embed;
+  const JwGradesPage({super.key, this.embed = false});
 
   @override
   State<JwGradesPage> createState() => _JwGradesPageState();
@@ -110,7 +111,7 @@ class _JwGradesPageState extends State<JwGradesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('成绩查询')),
+      appBar: widget.embed ? null : AppBar(title: const Text('成绩查询')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

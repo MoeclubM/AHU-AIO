@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../globals.dart' as globals;
 import '../api/jw_api.dart';
 import '../login/jw_login_service.dart';
 import '../login/jw_login_view.dart';
@@ -13,7 +14,8 @@ import '../pages/jw_notice_page.dart';
 
 /// 新教务系统首页
 class JwHomePage extends StatefulWidget {
-  const JwHomePage({super.key});
+  final bool embed;
+  const JwHomePage({super.key, this.embed = false});
 
   @override
   State<JwHomePage> createState() => _JwHomePageState();
@@ -67,25 +69,29 @@ class _JwHomePageState extends State<JwHomePage> {
   void _logout() async {
     await JwLoginService.logout();
     if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const JwLoginPage()),
-    );
+    if (globals.onLoginStateChanged == null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const JwLoginPage()),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('安大教务'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _logout,
-            tooltip: '退出登录',
-          ),
-        ],
-      ),
+      appBar: widget.embed
+          ? null
+          : AppBar(
+              title: const Text('安大教务'),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.logout),
+                  onPressed: _logout,
+                  tooltip: '退出登录',
+                ),
+              ],
+            ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

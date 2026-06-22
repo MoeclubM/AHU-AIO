@@ -6,8 +6,13 @@ import '../widgets/code128_barcode.dart';
 
 class FinanceCardsPage extends StatefulWidget {
   final List<dynamic> initialCards;
+  final bool embed;
 
-  const FinanceCardsPage({super.key, this.initialCards = const []});
+  const FinanceCardsPage({
+    super.key,
+    this.initialCards = const [],
+    this.embed = false,
+  });
 
   @override
   State<FinanceCardsPage> createState() => _FinanceCardsPageState();
@@ -120,7 +125,7 @@ class _FinanceCardsPageState extends State<FinanceCardsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('电子卡')),
+      appBar: widget.embed ? null : AppBar(title: const Text('电子卡')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

@@ -12,46 +12,48 @@ class MainPage extends StatefulWidget {
   State<MainPage> createState() => _MainPageState();
 }
 
-class _MainPageState extends State<MainPage> {
-  int _selectedIndex = 0;
-  final PageController _pageController = PageController();
+class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(() {
+      setState(() {});
+    });
     MainPageService.checkTokenAndNavigate(context);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: PageView(
-        controller: _pageController,
-        onPageChanged: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
+      appBar: AppBar(
+        title: const Text('安大微教务'),
+        bottom: TabBar(
+          controller: _tabController,
+          isScrollable: true,
+          tabs: const [
+            Tab(text: '首页', icon: Icon(Icons.home)),
+            Tab(text: '课表', icon: Icon(Icons.schedule)),
+            Tab(text: '更多功能', icon: Icon(Icons.apps)),
+            Tab(text: '设置', icon: Icon(Icons.settings)),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
         children: [
-          HomePage(isVisible: _selectedIndex == 0),
+          HomePage(isVisible: _tabController.index == 0),
           const SchedulePage(),
           const FuncPage(),
           const SettingsPage(),
-        ],
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-          _pageController.jumpToPage(index);
-        },
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home), label: '首页'),
-          NavigationDestination(icon: Icon(Icons.schedule), label: '课表'),
-          NavigationDestination(icon: Icon(Icons.web), label: '更多功能'),
-          NavigationDestination(icon: Icon(Icons.settings), label: '设置'),
         ],
       ),
     );

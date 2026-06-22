@@ -6,7 +6,8 @@ import '../api/jw_api.dart';
 import '../home/jw_home_view.dart';
 
 class JwLoginPage extends StatefulWidget {
-  const JwLoginPage({super.key});
+  final VoidCallback? onLoginSuccess;
+  const JwLoginPage({super.key, this.onLoginSuccess});
 
   @override
   State<JwLoginPage> createState() => _JwLoginPageState();
@@ -40,6 +41,7 @@ class _JwLoginPageState extends State<JwLoginPage> {
       await api.fetchStudentIdDirect();
       globals.jwLoggedIn = true;
       globals.jwStudentNo = api.studentId;
+      globals.onLoginStateChanged?.call();
       _goHome();
       return;
     }
@@ -48,6 +50,7 @@ class _JwLoginPageState extends State<JwLoginPage> {
         await CasAuthCache.markLoggedIn('jw');
         globals.jwLoggedIn = true;
         globals.jwStudentNo = api.studentId;
+        globals.onLoginStateChanged?.call();
         _goHome();
         return;
       }
@@ -83,6 +86,7 @@ class _JwLoginPageState extends State<JwLoginPage> {
       await CasAuthCache.markLoggedIn('jw');
       globals.jwLoggedIn = true;
       globals.jwStudentNo = api.studentId;
+      globals.onLoginStateChanged?.call();
       if (!mounted) return;
       _goHome();
     } catch (e) {
@@ -97,10 +101,14 @@ class _JwLoginPageState extends State<JwLoginPage> {
 
   void _goHome() {
     if (!mounted) return;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const JwHomePage()),
-    );
+    if (widget.onLoginSuccess != null) {
+      widget.onLoginSuccess!();
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const JwHomePage()),
+      );
+    }
   }
 
   @override

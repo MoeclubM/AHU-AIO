@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../api/jw_api.dart';
 
 class JwNoticePage extends StatefulWidget {
-  const JwNoticePage({super.key});
+  final bool embed;
+  const JwNoticePage({super.key, this.embed = false});
 
   @override
   State<JwNoticePage> createState() => _JwNoticePageState();
@@ -52,7 +53,7 @@ class _JwNoticePageState extends State<JwNoticePage> {
     final unread = _counts?['noReadCount'] ?? 0;
 
     return Scaffold(
-      appBar: AppBar(title: Text('通知公告 ($unread)')),
+      appBar: widget.embed ? null : AppBar(title: Text('通知公告 ($unread)')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

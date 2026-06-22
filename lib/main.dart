@@ -9,6 +9,7 @@ import 'jwapp/login/login_view.dart';
 import 'jw/login/jw_login_view.dart';
 import 'finance/login/finance_login_view.dart';
 import 'theme_manager.dart';
+import 'main_layout_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,58 +57,9 @@ class MyApp extends StatelessWidget {
             useMaterial3: true,
           ),
           themeMode: themeManager.themeModeEnum,
-          home: const HomePage(),
+          home: const MainLayoutScreen(),
         );
       },
-    );
-  }
-}
-
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('AHU AIO')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const JWLoginPage()),
-                );
-              },
-              child: const Text('安大微教务'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const JwLoginPage()),
-                );
-              },
-              child: const Text('安大教务'),
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const FinanceLoginPage(),
-                  ),
-                );
-              },
-              child: const Text('一卡通系统'),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

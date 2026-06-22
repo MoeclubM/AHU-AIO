@@ -173,10 +173,7 @@ class Feature {
 
 final List<Feature> _features = [
   const Feature(title: '通知公告', subtitle: '查看学校通知公告', isComingSoon: false),
-  const Feature(title: '培养方案完成情况', subtitle: '查看学分完成进度', isComingSoon: false),
   const Feature(title: '培养方案查询', subtitle: '查看专业培养计划', isComingSoon: false),
   const Feature(title: '成绩查询', subtitle: '查看考试成绩', isComingSoon: false),
   const Feature(title: '空闲教室查询', subtitle: '查找可用教室', isComingSoon: false),
-  const Feature(title: '教室课表查询', subtitle: '查看教室使用情况', isComingSoon: false),
-  const Feature(title: '选课系统', subtitle: '在线选课和退选', isComingSoon: false),
 ];

@@ -6,7 +6,8 @@ import '../mainpage/mainpage_view.dart';
 import '../../globals.dart' as globals;
 
 class JWLoginPage extends StatefulWidget {
-  const JWLoginPage({super.key});
+  final VoidCallback? onLoginSuccess;
+  const JWLoginPage({super.key, this.onLoginSuccess});
 
   @override
   State<JWLoginPage> createState() => _JWLoginPageState();
@@ -35,10 +36,14 @@ class _JWLoginPageState extends State<JWLoginPage> {
 
       if (!context.mounted) return;
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const MainPage()),
-      );
+      if (widget.onLoginSuccess != null) {
+        widget.onLoginSuccess!();
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MainPage()),
+        );
+      }
     }
   }
 
@@ -102,10 +107,14 @@ class _JWLoginPageState extends State<JWLoginPage> {
 
         if (!context.mounted) return;
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const MainPage()),
-        );
+        if (widget.onLoginSuccess != null) {
+          widget.onLoginSuccess!();
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const MainPage()),
+          );
+        }
       }
     } catch (e) {
       _showMessage(e.toString());

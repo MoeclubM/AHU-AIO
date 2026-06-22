@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../globals.dart' as globals;
 
 import '../../auth/cas_auth_cache.dart';
 import '../api/synjones_client.dart';
@@ -6,7 +7,8 @@ import '../home/finance_home_view.dart';
 
 /// 一卡通系统登录页：原生提交学校统一身份认证。
 class FinanceLoginPage extends StatefulWidget {
-  const FinanceLoginPage({super.key});
+  final VoidCallback? onLoginSuccess;
+  const FinanceLoginPage({super.key, this.onLoginSuccess});
 
   @override
   State<FinanceLoginPage> createState() => _FinanceLoginPageState();
@@ -40,11 +42,9 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
     if (client.loggedIn) {
       try {
         await client.fetchUserInfo();
+        globals.onLoginStateChanged?.call();
         if (!mounted) return;
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const FinanceHomePage()),
-        );
+        _goHome();
         return;
       } catch (e) {
         await client.logout();
@@ -60,11 +60,9 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
     if (cached != null) {
       if (cached.success) {
         await CasAuthCache.markLoggedIn('ycard');
+        globals.onLoginStateChanged?.call();
         if (!mounted) return;
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const FinanceHomePage()),
-        );
+        _goHome();
         return;
       }
       if (!mounted) return;
@@ -102,17 +100,26 @@ class _FinanceLoginPageState extends State<FinanceLoginPage> {
         return;
       }
       await CasAuthCache.markLoggedIn('ycard');
+      globals.onLoginStateChanged?.call();
       if (!mounted) return;
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const FinanceHomePage()),
-      );
+      _goHome();
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _loggingIn = false;
         _error = e.toString();
       });
+    }
+  }
+
+  void _goHome() {
+    if (widget.onLoginSuccess != null) {
+      widget.onLoginSuccess!();
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const FinanceHomePage()),
+      );
     }
   }
 

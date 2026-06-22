@@ -41,12 +41,16 @@ class MainPageService {
   static Future<void> _logout(BuildContext context) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('idToken');
+    globals.idToken = null;
+    globals.onLoginStateChanged?.call();
 
     if (!context.mounted) return;
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const JWLoginPage()),
-    );
+    if (globals.onLoginStateChanged == null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const JWLoginPage()),
+      );
+    }
   }
 }

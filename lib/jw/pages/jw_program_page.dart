@@ -3,7 +3,8 @@ import '../api/jw_api.dart';
 import '../models/jw_models.dart';
 
 class JwProgramPage extends StatefulWidget {
-  const JwProgramPage({super.key});
+  final bool embed;
+  const JwProgramPage({super.key, this.embed = false});
 
   @override
   State<JwProgramPage> createState() => _JwProgramPageState();
@@ -45,7 +46,7 @@ class _JwProgramPageState extends State<JwProgramPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('培养方案')),
+      appBar: widget.embed ? null : AppBar(title: const Text('培养方案')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

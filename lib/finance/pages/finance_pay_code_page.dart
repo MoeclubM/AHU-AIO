@@ -9,7 +9,8 @@ import '../api/synjones_client.dart';
 import '../api/synjones_offline_code.dart';
 
 class FinancePayCodePage extends StatefulWidget {
-  const FinancePayCodePage({super.key});
+  final bool embed;
+  const FinancePayCodePage({super.key, this.embed = false});
 
   @override
   State<FinancePayCodePage> createState() => _FinancePayCodePageState();
@@ -195,7 +196,7 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('一码通')),
+      appBar: widget.embed ? null : AppBar(title: const Text('一码通')),
       body: DecoratedBox(
         decoration: BoxDecoration(
           gradient: LinearGradient(

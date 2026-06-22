@@ -5,7 +5,8 @@ import '../api/jw_api.dart';
 import '../models/jw_models.dart';
 
 class JwSchedulePage extends StatefulWidget {
-  const JwSchedulePage({super.key});
+  final bool embed;
+  const JwSchedulePage({super.key, this.embed = false});
 
   @override
   State<JwSchedulePage> createState() => _JwSchedulePageState();
@@ -72,7 +73,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('我的课表')),
+      appBar: widget.embed ? null : AppBar(title: const Text('我的课表')),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: _isLoading || _tableData == null
           ? null

@@ -6,7 +6,8 @@ import '../api/synjones_client.dart';
 import 'finance_recharge_detail_page.dart';
 
 class FinanceRechargePage extends StatefulWidget {
-  const FinanceRechargePage({super.key});
+  final bool embed;
+  const FinanceRechargePage({super.key, this.embed = false});
 
   @override
   State<FinanceRechargePage> createState() => _FinanceRechargePageState();
@@ -106,7 +107,7 @@ class _FinanceRechargePageState extends State<FinanceRechargePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('充值入口')),
+      appBar: widget.embed ? null : AppBar(title: const Text('充值入口')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
