@@ -47,11 +47,13 @@ class MyApp extends StatelessWidget {
             primarySwatch: Colors.blue,
             brightness: Brightness.light,
             useMaterial3: true,
+            appBarTheme: const AppBarTheme(centerTitle: false),
           ),
           darkTheme: ThemeData(
             primarySwatch: Colors.blue,
             brightness: Brightness.dark,
             useMaterial3: true,
+            appBarTheme: const AppBarTheme(centerTitle: false),
           ),
           themeMode: themeManager.themeModeEnum,
           home: const MainLayoutScreen(),

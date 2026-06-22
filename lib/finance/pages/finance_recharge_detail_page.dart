@@ -339,6 +339,20 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
                 : '$label：$_sceneText';
           }
           _thirdPartyData = data;
+          if (_thirdInputMode &&
+              (_sceneText == null || _sceneText!.isEmpty) &&
+              _thirdLevels.isNotEmpty) {
+            final code = _thirdLevels.last['code']?.toString();
+            if (code != null && data[code] != null) {
+              final val = data[code].toString();
+              _thirdSelected[code] = val;
+              _thirdSelectedLabels[code] = val;
+              _thirdInputController.text = val;
+              _sceneText = val;
+              final label = _thirdLevels.last['name']?.toString() ?? '';
+              data['myCustomInfo'] = label.isEmpty ? val : '$label：$val';
+            }
+          }
         }
         _thirdInfoRows = _thirdInfoFromMap(map);
         _thirdTip = map['tipinfo']?.toString();
@@ -1016,21 +1030,27 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
             padding: const EdgeInsets.only(top: 12),
             child: Align(
               alignment: Alignment.centerLeft,
-              child: hasBoundScene
-                  ? OutlinedButton.icon(
+              child: Row(
+                children: [
+                  FilledButton.icon(
+                    onPressed: _sceneBinding
+                        ? null
+                        : () => _confirmSceneBind(true),
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: Text(hasBoundScene ? '保存修改' : '添加为我的$sceneLabel'),
+                  ),
+                  if (hasBoundScene) ...[
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
                       onPressed: _sceneBinding
                           ? null
                           : () => _confirmSceneBind(false),
                       icon: const Icon(Icons.remove_circle_outline),
-                      label: Text('解绑我的$sceneLabel'),
-                    )
-                  : FilledButton.icon(
-                      onPressed: _sceneBinding
-                          ? null
-                          : () => _confirmSceneBind(true),
-                      icon: const Icon(Icons.add_circle_outline),
-                      label: Text('添加为我的$sceneLabel'),
+                      label: const Text('解绑'),
                     ),
+                  ],
+                ],
+              ),
             ),
           ),
         if (_thirdLoading)

@@ -4,7 +4,8 @@ import 'home_service.dart';
 
 class HomePage extends StatefulWidget {
   final bool isVisible;
-  const HomePage({super.key, this.isVisible = true});
+  final bool embed;
+  const HomePage({super.key, this.isVisible = true, this.embed = false});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -97,15 +98,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       child: DefaultTabController(
         length: 2,
         child: Scaffold(
-          appBar: AppBar(
-            title: const Text('首页'),
-            bottom: const TabBar(
-              tabs: [
-                Tab(icon: Icon(Icons.schedule_outlined), text: '日程'),
-                Tab(icon: Icon(Icons.quiz_outlined), text: '考试'),
-              ],
-            ),
-          ),
+          appBar: widget.embed
+              ? null
+              : AppBar(
+                  title: const Text('首页'),
+                  bottom: const TabBar(
+                    tabs: [
+                      Tab(icon: Icon(Icons.schedule_outlined), text: '日程'),
+                      Tab(icon: Icon(Icons.quiz_outlined), text: '考试'),
+                    ],
+                  ),
+                ),
           body: Consumer<HomePageLogic>(
             builder: (context, logic, child) {
               if (logic.isLoading) {
@@ -121,18 +124,38 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 );
               }
 
-              return TabBarView(
+              return Column(
                 children: [
-                  Column(
-                    children: [
-                      _buildDateSelector(logic),
-                      Expanded(
-                        child: _buildSchedules(logic.schedules, logic, context),
+                  if (widget.embed)
+                    Container(
+                      color: Theme.of(context).colorScheme.surface,
+                      child: const TabBar(
+                        tabs: [
+                          Tab(icon: Icon(Icons.schedule_outlined), text: '日程'),
+                          Tab(icon: Icon(Icons.quiz_outlined), text: '考试'),
+                        ],
                       ),
-                    ],
+                    ),
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        Column(
+                          children: [
+                            _buildDateSelector(logic),
+                            Expanded(
+                              child: _buildSchedules(
+                                logic.schedules,
+                                logic,
+                                context,
+                              ),
+                            ),
+                          ],
+                        ),
+                        // Exam tab without date selector
+                        _buildExams(logic.tests, logic, context),
+                      ],
+                    ),
                   ),
-                  // Exam tab without date selector
-                  _buildExams(logic.tests, logic, context),
                 ],
               );
             },

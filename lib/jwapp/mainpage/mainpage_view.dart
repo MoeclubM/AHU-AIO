@@ -49,9 +49,9 @@ class _MainPageState extends State<MainPage>
       body: TabBarView(
         controller: _tabController,
         children: [
-          HomePage(isVisible: _tabController.index == 0),
+          HomePage(isVisible: _tabController.index == 0, embed: true),
           const SchedulePage(embed: true),
-          const FuncPage(),
+          const FuncPage(embed: true),
         ],
       ),
     );

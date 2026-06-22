@@ -21,8 +21,8 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
 
   static const _weekdays = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
   static const _maxSlots = 11;
-  static const _slotHeight = 68.0;
-  static const _dayWidth = 118.0;
+  static const _slotHeight = 60.0;
+  static const _dayWidth = 100.0;
   static const _timeColumnWidth = 48.0;
 
   @override
@@ -514,13 +514,13 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(10),
         onTap: () => _showCourseDetail(a),
         child: Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.13),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(color: color.withValues(alpha: 0.35)),
           ),
           child: Column(
@@ -531,20 +531,20 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
                 a.courseName ?? '',
                 style: TextStyle(
                   color: color,
-                  fontSize: 12,
+                  fontSize: 10.5,
                   fontWeight: FontWeight.w800,
-                  height: 1.15,
+                  height: 1.1,
                 ),
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 3),
               if (a.room != null)
                 Text(
                   a.room!,
                   style: TextStyle(
                     color: colorScheme.onSurfaceVariant,
-                    fontSize: 10,
+                    fontSize: 9.0,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -554,7 +554,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
                   a.teacherStr,
                   style: TextStyle(
                     color: colorScheme.onSurfaceVariant,
-                    fontSize: 10,
+                    fontSize: 9.0,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

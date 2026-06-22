@@ -206,9 +206,15 @@ class _SchedulePageState extends State<SchedulePage> {
               for (var index = 1; index <= 7; index++)
                 index: FixedColumnWidth(courseColumnWidth),
             },
-            border: TableBorder.all(
-              color: isDark ? Colors.grey.shade700 : Colors.grey.shade300,
-              width: 0.5,
+            border: TableBorder(
+              horizontalInside: BorderSide(
+                color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+                width: 0.5,
+              ),
+              verticalInside: BorderSide(
+                color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+                width: 0.5,
+              ),
             ),
             children: [
               // 表头：时间 | 周一 | 周二 | ... | 周日
@@ -324,6 +330,23 @@ class _SchedulePageState extends State<SchedulePage> {
     );
   }
 
+  Color _courseColor(String name) {
+    const colors = [
+      Color(0xFF2563EB),
+      Color(0xFF059669),
+      Color(0xFFEA580C),
+      Color(0xFF7C3AED),
+      Color(0xFF0891B2),
+      Color(0xFFDB2777),
+      Color(0xFF4F46E5),
+    ];
+    var sum = 0;
+    for (final unit in name.codeUnits) {
+      sum += unit;
+    }
+    return colors[sum % colors.length];
+  }
+
   /// 构建课程单元格
   Widget _buildCourseCell(
     List<ScheduleEntry> entries,
@@ -332,29 +355,26 @@ class _SchedulePageState extends State<SchedulePage> {
   ) {
     return Container(
       constraints: const BoxConstraints(minHeight: 64),
-      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 1),
+      padding: const EdgeInsets.symmetric(horizontal: 1.5, vertical: 1),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: entries.map((entry) {
-          final bgColor = isDark
-              ? theme.colorScheme.surfaceContainerHighest
-              : theme.colorScheme.surfaceContainerLow;
-
-          final borderColor = entry.isCurrentWeek
-              ? theme.colorScheme.primary
-              : (isDark ? Colors.grey.shade600 : Colors.grey.shade300);
+          final color = _courseColor(entry.courseName);
+          final double alpha = entry.isCurrentWeek ? 0.13 : 0.04;
+          final double borderAlpha = entry.isCurrentWeek ? 0.45 : 0.15;
 
           return Container(
             width: double.infinity,
             margin: entries.length > 1
-                ? const EdgeInsets.only(bottom: 1)
+                ? const EdgeInsets.only(bottom: 2)
                 : null,
-            padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
             decoration: BoxDecoration(
-              color: bgColor,
+              color: color.withOpacity(alpha),
               borderRadius: BorderRadius.circular(6),
               border: Border.all(
-                color: borderColor,
-                width: entry.isCurrentWeek ? 1.5 : 0.5,
+                color: color.withOpacity(borderAlpha),
+                width: entry.isCurrentWeek ? 1.2 : 0.5,
               ),
             ),
             child: Column(
@@ -363,32 +383,48 @@ class _SchedulePageState extends State<SchedulePage> {
                 // 课程名称
                 Text(
                   entry.courseName,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 11,
+                  style: TextStyle(
+                    color: entry.isCurrentWeek ? color : color.withOpacity(0.6),
+                    fontWeight: FontWeight.w800,
+                    fontSize: 9.5,
+                    height: 1.1,
                   ),
                   softWrap: true,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 2),
-                // 教室
-                Text(
-                  entry.roomName,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                    fontSize: 10,
+                if (entry.roomName.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    entry.roomName,
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurfaceVariant.withOpacity(
+                        entry.isCurrentWeek ? 0.9 : 0.5,
+                      ),
+                      fontSize: 8.0,
+                      height: 1.1,
+                    ),
+                    softWrap: true,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  softWrap: true,
-                ),
-                const SizedBox(height: 2),
-                // 教师
-                Text(
-                  entry.teacherName,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-                    fontSize: 10,
+                ],
+                if (entry.teacherName.isNotEmpty) ...[
+                  const SizedBox(height: 1.5),
+                  Text(
+                    entry.teacherName,
+                    style: TextStyle(
+                      color: theme.colorScheme.onSurfaceVariant.withOpacity(
+                        entry.isCurrentWeek ? 0.9 : 0.5,
+                      ),
+                      fontSize: 8.0,
+                      height: 1.1,
+                    ),
+                    softWrap: true,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  softWrap: true,
-                ),
+                ],
               ],
             ),
           );

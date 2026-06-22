@@ -9,12 +9,13 @@ import '../features/academic_warning_view.dart';
 import '../features/notice_view.dart';
 
 class FuncPage extends StatelessWidget {
-  const FuncPage({super.key});
+  final bool embed;
+  const FuncPage({super.key, this.embed = false});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('更多功能')),
+      appBar: embed ? null : AppBar(title: const Text('更多功能')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: GridView.builder(
