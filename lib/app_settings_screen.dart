@@ -130,8 +130,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
             isLoggedIn: _synjonesClient.loggedIn,
             subtitle: _synjonesClient.loggedIn
                 ? _loadingFinanceInfo
-                    ? '正在加载...'
-                    : '姓名: ${_synjonesClient.userInfo?['name'] ?? '已登录'}'
+                      ? '正在加载...'
+                      : '姓名: ${_synjonesClient.userInfo?['name'] ?? '已登录'}'
                 : '未登录',
             onLoginTap: () => widget.onSwitchTab(2),
             onLogoutTap: _logoutFinance,
@@ -174,21 +174,23 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
             backgroundColor: iconColor.withValues(alpha: 0.12),
             child: Icon(icon, color: iconColor),
           ),
-          title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+          title: Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
           subtitle: Text(subtitle),
           trailing: isLoggedIn
               ? OutlinedButton(
                   onPressed: onLogoutTap,
                   style: OutlinedButton.styleFrom(
                     foregroundColor: colorScheme.error,
-                    side: BorderSide(color: colorScheme.error.withValues(alpha: 0.4)),
+                    side: BorderSide(
+                      color: colorScheme.error.withValues(alpha: 0.4),
+                    ),
                   ),
                   child: const Text('登出'),
                 )
-              : FilledButton(
-                  onPressed: onLoginTap,
-                  child: const Text('去登录'),
-                ),
+              : FilledButton(onPressed: onLoginTap, child: const Text('去登录')),
         ),
       ),
     );

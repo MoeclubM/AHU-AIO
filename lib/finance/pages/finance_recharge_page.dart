@@ -157,7 +157,9 @@ class _FinanceRechargePageState extends State<FinanceRechargePage> {
       iconData = Icons.water_drop;
     } else if (title.contains('电')) {
       iconData = Icons.bolt;
-    } else if (title.contains('网') || title.contains('网络') || title.contains('宽带')) {
+    } else if (title.contains('网') ||
+        title.contains('网络') ||
+        title.contains('宽带')) {
       iconData = Icons.wifi;
     }
 
@@ -189,11 +191,7 @@ class _FinanceRechargePageState extends State<FinanceRechargePage> {
               CircleAvatar(
                 radius: 26,
                 backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
-                child: Icon(
-                  iconData,
-                  color: colorScheme.primary,
-                  size: 28,
-                ),
+                child: Icon(iconData, color: colorScheme.primary, size: 28),
               ),
               const SizedBox(height: 12),
               Text(
