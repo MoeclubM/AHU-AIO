@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -26,7 +27,42 @@ class _SchedulePageState extends State<SchedulePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: widget.embed ? null : AppBar(title: const Text('课程表')),
+      appBar: widget.embed
+          ? null
+          : AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              flexibleSpace: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(99),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surface.withOpacity(0.68),
+                          borderRadius: BorderRadius.circular(99),
+                          border: Border.all(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.outlineVariant.withOpacity(0.5),
+                            width: 0.8,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              title: const Text('课程表'),
+            ),
       body: Obx(() {
         final scheduleByDay = _logic.processClasses();
         final isLoading = _logic.isLoading.value;
@@ -72,59 +108,68 @@ class _SchedulePageState extends State<SchedulePage> {
 
     final weekValue = weeks.contains(selectedWeek) ? selectedWeek : null;
 
-    return Card(
-      margin: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: Row(
-          children: [
-            Expanded(
-              child: DropdownButton<SemesterInfo>(
-                value: semesterValue,
-                isExpanded: true,
-                hint: const Text('请选择学期'),
-                onChanged: isLoading
-                    ? null
-                    : (value) {
-                        if (value != null) {
-                          _logic.selectSemester(value);
-                        }
-                      },
-                items: semesters
-                    .map(
-                      (semester) => DropdownMenuItem<SemesterInfo>(
-                        value: semester,
-                        child: Text(semester.nameZh),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: DropdownButton<int>(
-                value: weekValue,
-                isExpanded: true,
-                hint: const Text('请选择周次'),
-                onChanged: isLoading || weeks.isEmpty
-                    ? null
-                    : (value) {
-                        if (value != null) {
-                          _logic.selectWeek(value);
-                        }
-                      },
-                items: weeks
-                    .map(
-                      (week) => DropdownMenuItem<int>(
-                        value: week,
-                        child: Text('第$week周'),
-                      ),
-                    )
-                    .toList(),
-              ),
-            ),
-          ],
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        border: Border(
+          bottom: BorderSide(
+            color: Theme.of(
+              context,
+            ).colorScheme.outlineVariant.withOpacity(0.5),
+            width: 0.5,
+          ),
         ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: DropdownButton<SemesterInfo>(
+              value: semesterValue,
+              isExpanded: true,
+              hint: const Text('请选择学期'),
+              onChanged: isLoading
+                  ? null
+                  : (value) {
+                      if (value != null) {
+                        _logic.selectSemester(value);
+                      }
+                    },
+              items: semesters
+                  .map(
+                    (semester) => DropdownMenuItem<SemesterInfo>(
+                      value: semester,
+                      child: Text(semester.nameZh),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: DropdownButton<int>(
+              value: weekValue,
+              isExpanded: true,
+              hint: const Text('请选择周次'),
+              onChanged: isLoading || weeks.isEmpty
+                  ? null
+                  : (value) {
+                      if (value != null) {
+                        _logic.selectWeek(value);
+                      }
+                    },
+              items: weeks
+                  .map(
+                    (week) => DropdownMenuItem<int>(
+                      value: week,
+                      child: Text('第$week周'),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -132,7 +177,7 @@ class _SchedulePageState extends State<SchedulePage> {
   Widget _buildErrorNotice(String message) {
     final theme = Theme.of(context);
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -164,7 +209,7 @@ class _SchedulePageState extends State<SchedulePage> {
   Widget _buildEmptyNotice() {
     final theme = Theme.of(context);
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -191,9 +236,8 @@ class _SchedulePageState extends State<SchedulePage> {
       return const SizedBox.shrink();
     }
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 12),
-      clipBehavior: Clip.antiAlias,
+    return Container(
+      margin: EdgeInsets.zero,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final tableWidth = constraints.maxWidth;

@@ -76,6 +76,37 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
       appBar: widget.embed
           ? null
           : AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              flexibleSpace: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(99),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surface.withOpacity(0.68),
+                          borderRadius: BorderRadius.circular(99),
+                          border: Border.all(
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.outlineVariant.withOpacity(0.5),
+                            width: 0.8,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
               title: Text(
                 _tableData?.studentName != null
                     ? '${_tableData!.studentName}的课表'
@@ -130,12 +161,12 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
         .where((a) => a.weekday == DateTime.now().weekday)
         .length;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
       child: Container(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: colorScheme.primaryContainer.withValues(alpha: 0.55),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.zero,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -316,7 +347,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(12, 4, 12, 92),
+        padding: const EdgeInsets.fromLTRB(0, 4, 0, 92),
         child: Column(
           children: [
             Row(

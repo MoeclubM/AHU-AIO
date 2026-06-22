@@ -37,8 +37,8 @@ class DataService {
             if (event is Map<String, dynamic>) {
               try {
                 final schedule = ScheduleModel.fromJson(event, dateKey);
-                // 过滤只显示正式课程(type=1)且已确认的课程(identification=true)
-                if (schedule.type == 1 && schedule.identification) {
+                // 保留所有非空有效课程，防止因硬编码过滤(如type/确认状态)导致漏课
+                if (schedule.context.isNotEmpty) {
                   schedules.add(schedule);
                 }
               } catch (e) {
@@ -60,7 +60,7 @@ class DataService {
                 event['date']?.toString() ??
                 DateTime.now().toString().substring(0, 10);
             final schedule = ScheduleModel.fromJson(event, dateKey);
-            if (schedule.type == 1 && schedule.identification) {
+            if (schedule.context.isNotEmpty) {
               schedules.add(schedule);
             }
           } catch (e) {
