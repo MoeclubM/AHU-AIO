@@ -598,6 +598,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         final exam = exams[index];
         final startTime = logic.formatExamTime(exam['startTime']);
         final endTime = logic.formatExamTime(exam['endTime']);
+        final classroom = exam['classroom'] ?? exam['place'];
 
         return Card(
           margin: const EdgeInsets.symmetric(vertical: 4.0),
@@ -612,9 +613,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   Text(exam['examDate'] ?? '未知日期'),
                   const SizedBox(height: 4),
                   Text('$startTime - $endTime'),
-                  if (exam['place'] != null) ...[
+                  if (classroom != null) ...[
                     const SizedBox(height: 4),
-                    Text(exam['place'] ?? '未知地点'),
+                    Text(classroom),
                   ],
                 ],
               ),
