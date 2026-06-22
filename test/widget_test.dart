@@ -18,11 +18,12 @@ void main() {
       GetMaterialApp(title: 'AHU AIO', home: const MainLayoutScreen()),
     );
 
-    // Wait for the widget to settle
-    await tester.pumpAndSettle();
+    // Wait for the widget to load (limit animation frames to avoid timeout)
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
 
     // Verify that the app loads without errors
     expect(find.byType(Scaffold), findsAtLeastNWidgets(1));
-    expect(find.text('安大微教务登录'), findsOneWidget);
+    expect(find.text('正在自动登录中...'), findsOneWidget);
   });
 }

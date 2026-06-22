@@ -3,7 +3,7 @@ import '../../globals.dart' as globals;
 
 import '../../auth/cas_auth_cache.dart';
 import '../api/synjones_client.dart';
-import '../login/finance_login_view.dart';
+import '../../auth/unified_login_page.dart';
 import '../pages/finance_cards_page.dart';
 
 /// 一卡通首页 — 原生展示余额、一码通入口、电子卡与更多功能。
@@ -74,7 +74,7 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
     if (globals.onLoginStateChanged == null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const FinanceLoginPage()),
+        MaterialPageRoute(builder: (_) => const UnifiedLoginPage()),
       );
     }
   }

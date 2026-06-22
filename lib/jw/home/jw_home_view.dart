@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../globals.dart' as globals;
 import '../api/jw_api.dart';
 import '../login/jw_login_service.dart';
-import '../login/jw_login_view.dart';
+import '../../auth/unified_login_page.dart';
 import '../pages/jw_grades_page.dart';
 import '../pages/jw_schedule_page.dart';
 import '../pages/jw_exam_page.dart';
@@ -72,7 +72,7 @@ class _JwHomePageState extends State<JwHomePage> {
     if (globals.onLoginStateChanged == null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const JwLoginPage()),
+        MaterialPageRoute(builder: (context) => const UnifiedLoginPage()),
       );
     }
   }

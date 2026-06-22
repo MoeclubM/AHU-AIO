@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../globals.dart' as globals;
 import '../../auth/cas_auth_cache.dart';
 import '../api/synjones_client.dart';
-import '../login/finance_login_view.dart';
+import '../../auth/unified_login_page.dart';
 import 'finance_home_view.dart';
 import '../pages/finance_pay_code_page.dart';
 import '../pages/finance_recharge_page.dart';
@@ -26,7 +26,7 @@ class _FinanceMainTabsState extends State<FinanceMainTabs> {
     if (globals.onLoginStateChanged == null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const FinanceLoginPage()),
+        MaterialPageRoute(builder: (_) => const UnifiedLoginPage()),
       );
     }
   }

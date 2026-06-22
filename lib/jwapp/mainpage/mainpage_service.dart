@@ -1,7 +1,7 @@
 // ignore_for_file: use_build_context_synchronously
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../login/login_view.dart';
+import '../../auth/unified_login_page.dart';
 import '../../globals.dart' as globals;
 import '../api/getuserinfo_extended.dart';
 
@@ -49,7 +49,7 @@ class MainPageService {
     if (globals.onLoginStateChanged == null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const JWLoginPage()),
+        MaterialPageRoute(builder: (context) => const UnifiedLoginPage()),
       );
     }
   }

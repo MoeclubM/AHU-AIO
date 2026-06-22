@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'globals.dart' as globals;
-import 'jwapp/login/login_view.dart';
 import 'jwapp/mainpage/mainpage_view.dart';
-import 'jw/login/jw_login_view.dart';
 import 'jw/home/jw_main_tabs.dart';
-import 'finance/login/finance_login_view.dart';
 import 'finance/api/synjones_client.dart';
 import 'finance/home/finance_main_tabs.dart';
 import 'app_settings_screen.dart';
+import 'auth/unified_login_page.dart';
 
 class MainLayoutScreen extends StatefulWidget {
   const MainLayoutScreen({super.key});
@@ -53,7 +51,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     switch (_currentBottomIndex) {
       case 0:
         if (globals.idToken == null) {
-          return JWLoginPage(
+          return UnifiedLoginPage(
             onLoginSuccess: () {
               setState(() {});
             },
@@ -62,7 +60,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
         return const MainPage();
       case 1:
         if (!globals.jwLoggedIn) {
-          return JwLoginPage(
+          return UnifiedLoginPage(
             onLoginSuccess: () {
               setState(() {});
             },
@@ -71,7 +69,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
         return const JwMainTabs();
       case 2:
         if (!_synjonesClient.loggedIn) {
-          return FinanceLoginPage(
+          return UnifiedLoginPage(
             onLoginSuccess: () {
               setState(() {});
             },

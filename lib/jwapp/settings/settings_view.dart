@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../login/login_service.dart';
-import '../login/login_view.dart';
+import '../../auth/unified_login_page.dart';
 import '../api/getuserinfo_extended.dart';
 import '../api/unauthorized_exception.dart';
 import '../../globals.dart' as globals;
@@ -98,7 +98,7 @@ class _SettingsPageState extends State<SettingsPage> {
     if (globals.onLoginStateChanged == null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const JWLoginPage()),
+        MaterialPageRoute(builder: (context) => const UnifiedLoginPage()),
       );
     }
   }

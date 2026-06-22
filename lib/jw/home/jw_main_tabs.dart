@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../globals.dart' as globals;
 import '../login/jw_login_service.dart';
-import '../login/jw_login_view.dart';
+import '../../auth/unified_login_page.dart';
 import 'jw_home_view.dart';
 import '../pages/jw_schedule_page.dart';
 import '../pages/jw_grades_page.dart';
@@ -23,7 +23,7 @@ class _JwMainTabsState extends State<JwMainTabs> {
     if (globals.onLoginStateChanged == null) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const JwLoginPage()),
+        MaterialPageRoute(builder: (context) => const UnifiedLoginPage()),
       );
     }
   }
