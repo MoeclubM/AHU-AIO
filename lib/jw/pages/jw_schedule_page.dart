@@ -76,9 +76,11 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
       appBar: widget.embed
           ? null
           : AppBar(
-              title: Text(_tableData?.studentName != null
-                  ? '${_tableData!.studentName}的课表'
-                  : '我的课表'),
+              title: Text(
+                _tableData?.studentName != null
+                    ? '${_tableData!.studentName}的课表'
+                    : '我的课表',
+              ),
             ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: _isLoading || _tableData == null
