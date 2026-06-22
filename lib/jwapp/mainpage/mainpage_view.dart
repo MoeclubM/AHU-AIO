@@ -12,7 +12,8 @@ class MainPage extends StatefulWidget {
   State<MainPage> createState() => _MainPageState();
 }
 
-class _MainPageState extends State<MainPage> with SingleTickerProviderStateMixin {
+class _MainPageState extends State<MainPage>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override

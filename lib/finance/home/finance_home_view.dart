@@ -90,7 +90,10 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
           : AppBar(
               title: const Text('一卡通系统'),
               actions: [
-                IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
+                IconButton(
+                  icon: const Icon(Icons.refresh),
+                  onPressed: _loadData,
+                ),
                 IconButton(
                   icon: const Icon(Icons.logout),
                   onPressed: _logout,
