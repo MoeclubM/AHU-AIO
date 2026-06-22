@@ -7,6 +7,7 @@ import 'jw/home/jw_main_tabs.dart';
 import 'finance/login/finance_login_view.dart';
 import 'finance/api/synjones_client.dart';
 import 'finance/home/finance_main_tabs.dart';
+import 'app_settings_screen.dart';
 
 class MainLayoutScreen extends StatefulWidget {
   const MainLayoutScreen({super.key});
@@ -77,6 +78,14 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
           );
         }
         return const FinanceMainTabs();
+      case 3:
+        return AppSettingsScreen(
+          onSwitchTab: (index) {
+            setState(() {
+              _currentBottomIndex = index;
+            });
+          },
+        );
       default:
         return const Center(child: Text('未知页面'));
     }
@@ -108,6 +117,11 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
             icon: Icon(Icons.credit_card_outlined),
             selectedIcon: Icon(Icons.credit_card),
             label: '一卡通',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
+            label: '设置',
           ),
         ],
       ),

@@ -48,7 +48,7 @@ class _FinanceMainTabsState extends State<FinanceMainTabs> {
           bottom: const TabBar(
             isScrollable: true,
             tabs: [
-              Tab(text: '余额', icon: Icon(Icons.account_balance_wallet)),
+              Tab(text: '主页', icon: Icon(Icons.home)),
               Tab(text: '一码通', icon: Icon(Icons.qr_code)),
               Tab(text: '充值缴费', icon: Icon(Icons.payment)),
               Tab(text: '电子卡', icon: Icon(Icons.credit_card)),

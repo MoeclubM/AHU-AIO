@@ -194,36 +194,23 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: widget.embed ? null : AppBar(title: const Text('一码通')),
-      body: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              colorScheme.primaryContainer.withValues(alpha: 0.55),
-              colorScheme.surface,
-            ],
-          ),
-        ),
-        child: _loading
-            ? const Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: _refreshCode,
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-                  children: [
-                    _buildOneCodeCard(),
-                    if (_payments.length > 1) ...[
-                      const SizedBox(height: 16),
-                      _buildPaymentCard(),
-                    ],
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _refreshCode,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                children: [
+                  _buildOneCodeCard(),
+                  if (_payments.length > 1) ...[
+                    const SizedBox(height: 16),
+                    _buildPaymentCard(),
                   ],
-                ),
+                ],
               ),
-      ),
+            ),
     );
   }
 

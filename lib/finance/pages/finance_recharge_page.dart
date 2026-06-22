@@ -114,10 +114,16 @@ class _FinanceRechargePageState extends State<FinanceRechargePage> {
           ? _buildError()
           : RefreshIndicator(
               onRefresh: _loadEntries,
-              child: ListView.separated(
+              child: GridView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.all(16),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 1.1,
+                ),
                 itemBuilder: (_, index) => _buildEntry(_entries[index]),
-                separatorBuilder: (_, _) => const SizedBox(height: 12),
                 itemCount: _entries.length,
               ),
             ),
@@ -142,29 +148,27 @@ class _FinanceRechargePageState extends State<FinanceRechargePage> {
 
   Widget _buildEntry(Map<String, dynamic> entry) {
     final isCardRecharge = entry['isCardRecharge'] == true;
+    final title = _title(entry);
+
+    IconData iconData = Icons.payment;
+    if (isCardRecharge) {
+      iconData = Icons.credit_card;
+    } else if (title.contains('水')) {
+      iconData = Icons.water_drop;
+    } else if (title.contains('电')) {
+      iconData = Icons.bolt;
+    } else if (title.contains('网') || title.contains('网络') || title.contains('宽带')) {
+      iconData = Icons.wifi;
+    }
+
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Card(
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: isCardRecharge
-              ? Colors.orange.shade50
-              : Colors.green.shade50,
-          child: Icon(
-            isCardRecharge ? Icons.credit_card : Icons.bolt,
-            color: isCardRecharge ? Colors.orange.shade700 : Colors.green,
-          ),
-        ),
-        title: Text(_title(entry)),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('缴费项：${entry['feeitemId']}'),
-              Text('入口：${entry['appCode'] ?? entry['bh'] ?? '-'}'),
-            ],
-          ),
-        ),
-        trailing: const Icon(Icons.chevron_right),
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
         onTap: () {
           Navigator.push(
             context,
@@ -177,6 +181,34 @@ class _FinanceRechargePageState extends State<FinanceRechargePage> {
             ),
           );
         },
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircleAvatar(
+                radius: 26,
+                backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
+                child: Icon(
+                  iconData,
+                  color: colorScheme.primary,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../home/home_view.dart';
 import '../schedule/schedule_view.dart';
-import '../settings/settings_view.dart';
 import 'mainpage_service.dart';
 import '../funcs/func_view.dart';
 
@@ -19,7 +18,7 @@ class _MainPageState extends State<MainPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
       setState(() {});
     });
@@ -44,7 +43,6 @@ class _MainPageState extends State<MainPage>
             Tab(text: '首页', icon: Icon(Icons.home)),
             Tab(text: '课表', icon: Icon(Icons.schedule)),
             Tab(text: '更多功能', icon: Icon(Icons.apps)),
-            Tab(text: '设置', icon: Icon(Icons.settings)),
           ],
         ),
       ),
@@ -54,7 +52,6 @@ class _MainPageState extends State<MainPage>
           HomePage(isVisible: _tabController.index == 0),
           const SchedulePage(),
           const FuncPage(),
-          const SettingsPage(),
         ],
       ),
     );

@@ -4,10 +4,7 @@ import '../../globals.dart' as globals;
 import '../../auth/cas_auth_cache.dart';
 import '../api/synjones_client.dart';
 import '../login/finance_login_view.dart';
-import '../pages/finance_apps_page.dart';
 import '../pages/finance_cards_page.dart';
-import '../pages/finance_pay_code_page.dart';
-import '../pages/finance_recharge_page.dart';
 
 /// 一卡通首页 — 原生展示余额、一码通入口、电子卡与更多功能。
 class FinanceHomePage extends StatefulWidget {
@@ -113,8 +110,6 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
                   _buildUserCard(),
                   const SizedBox(height: 16),
                   _buildBalanceCard(),
-                  const SizedBox(height: 16),
-                  _buildQuickServices(),
                   const SizedBox(height: 16),
                   _buildCardsPreview(),
                 ],
@@ -232,113 +227,6 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
               '当前余额',
               style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
             ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const FinancePayCodePage(),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.qr_code_2),
-                label: const Text('打开一码通'),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildQuickServices() {
-    final services = [
-      _FinanceService(
-        '一码通',
-        Icons.qr_code_2,
-        Colors.orange,
-        () => const FinancePayCodePage(),
-      ),
-      _FinanceService(
-        '电子卡',
-        Icons.credit_card,
-        Colors.blue,
-        () => FinanceCardsPage(initialCards: _cards),
-      ),
-      _FinanceService(
-        '充值缴费',
-        Icons.currency_yuan,
-        Colors.green,
-        () => const FinanceRechargePage(),
-      ),
-      _FinanceService(
-        '更多功能',
-        Icons.apps,
-        Colors.indigo,
-        () => FinanceAppsPage(initialCards: _cards),
-      ),
-    ];
-
-    return Card(
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '常用功能',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 4,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 12,
-              childAspectRatio: 0.82,
-              children: services.map((service) {
-                return InkWell(
-                  borderRadius: BorderRadius.circular(12),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => service.builder()),
-                    );
-                  },
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 46,
-                        height: 46,
-                        decoration: BoxDecoration(
-                          color: service.color.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          service.icon,
-                          color: service.color,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        service.title,
-                        style: const TextStyle(fontSize: 12),
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
           ],
         ),
       ),
@@ -397,13 +285,4 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
       ),
     );
   }
-}
-
-class _FinanceService {
-  final String title;
-  final IconData icon;
-  final Color color;
-  final Widget Function() builder;
-
-  const _FinanceService(this.title, this.icon, this.color, this.builder);
 }
