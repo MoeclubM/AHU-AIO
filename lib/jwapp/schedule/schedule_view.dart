@@ -30,6 +30,8 @@ class _SchedulePageState extends State<SchedulePage> {
       appBar: widget.embed
           ? null
           : AppBar(
+              toolbarHeight: 52,
+              centerTitle: false,
               backgroundColor: Colors.transparent,
               elevation: 0,
               scrolledUnderElevation: 0,
@@ -61,7 +63,10 @@ class _SchedulePageState extends State<SchedulePage> {
                   ),
                 ),
               ),
-              title: const Text('课程表'),
+              title: const Text(
+                '课程表',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
             ),
       body: Obx(() {
         final scheduleByDay = _logic.processClasses();

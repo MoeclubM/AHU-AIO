@@ -76,6 +76,8 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
       appBar: widget.embed
           ? null
           : AppBar(
+              toolbarHeight: 52,
+              centerTitle: false,
               backgroundColor: Colors.transparent,
               elevation: 0,
               scrolledUnderElevation: 0,
@@ -111,6 +113,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
                 _tableData?.studentName != null
                     ? '${_tableData!.studentName}的课表'
                     : '我的课表',
+                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,

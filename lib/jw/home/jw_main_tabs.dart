@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../../globals.dart' as globals;
 import '../login/jw_login_service.dart';
@@ -15,7 +16,10 @@ class JwMainTabs extends StatefulWidget {
   State<JwMainTabs> createState() => _JwMainTabsState();
 }
 
-class _JwMainTabsState extends State<JwMainTabs> {
+class _JwMainTabsState extends State<JwMainTabs>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
   void _logout() async {
     await JwLoginService.logout();
     globals.onLoginStateChanged?.call();
@@ -29,38 +33,123 @@ class _JwMainTabsState extends State<JwMainTabs> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 5, vsync: this);
+    _tabController.addListener(() {
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 5,
-      child: Scaffold(
-        appBar: AppBar(
-          title: const Text('安大教务'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.logout),
+    return Scaffold(
+      appBar: AppBar(
+        toolbarHeight: 52,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+        flexibleSpace: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface.withOpacity(0.68),
+                    borderRadius: BorderRadius.circular(99),
+                    border: Border.all(
+                      color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+                      width: 0.8,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        title: const Text(
+          '安大教务',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: IconButton(
+              icon: const Icon(Icons.logout, size: 20),
               onPressed: _logout,
               tooltip: '退出登录',
             ),
-          ],
-          bottom: const TabBar(
-            isScrollable: true,
-            tabs: [
-              Tab(text: '首页', icon: Icon(Icons.home)),
-              Tab(text: '课表', icon: Icon(Icons.schedule)),
-              Tab(text: '成绩', icon: Icon(Icons.grade)),
-              Tab(text: '通知', icon: Icon(Icons.notifications)),
-              Tab(text: '方案', icon: Icon(Icons.description)),
-            ],
           ),
-        ),
-        body: const TabBarView(
-          children: [
-            JwHomePage(embed: true),
-            JwSchedulePage(embed: true),
-            JwGradesPage(embed: true),
-            JwNoticePage(embed: true),
-            JwProgramPage(embed: true),
-          ],
+        ],
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          JwHomePage(embed: true),
+          JwSchedulePage(embed: true),
+          JwGradesPage(embed: true),
+          JwNoticePage(embed: true),
+          JwProgramPage(embed: true),
+        ],
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(32),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+              child: Container(
+                height: 64,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface.withOpacity(0.65),
+                  borderRadius: BorderRadius.circular(32),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.35),
+                    width: 0.8,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  isScrollable: false,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicatorPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                  indicator: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  labelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                  unselectedLabelStyle: const TextStyle(fontSize: 10),
+                  labelColor: Theme.of(context).colorScheme.primary,
+                  unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                  tabs: const [
+                    Tab(icon: Icon(Icons.home_outlined, size: 18), text: '首页'),
+                    Tab(icon: Icon(Icons.schedule_outlined, size: 18), text: '课表'),
+                    Tab(icon: Icon(Icons.grade_outlined, size: 18), text: '成绩'),
+                    Tab(icon: Icon(Icons.notifications_outlined, size: 18), text: '通知'),
+                    Tab(icon: Icon(Icons.description_outlined, size: 18), text: '方案'),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
