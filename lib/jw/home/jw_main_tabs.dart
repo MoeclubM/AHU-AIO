@@ -65,10 +65,14 @@ class _JwMainTabsState extends State<JwMainTabs>
                 filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface.withOpacity(0.68),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surface.withOpacity(0.68),
                     borderRadius: BorderRadius.circular(99),
                     border: Border.all(
-                      color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outlineVariant.withOpacity(0.5),
                       width: 0.8,
                     ),
                   ),
@@ -112,10 +116,14 @@ class _JwMainTabsState extends State<JwMainTabs>
               child: Container(
                 height: 64,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface.withOpacity(0.65),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.surface.withOpacity(0.65),
                   borderRadius: BorderRadius.circular(32),
                   border: Border.all(
-                    color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.35),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outlineVariant.withOpacity(0.35),
                     width: 0.8,
                   ),
                   boxShadow: [
@@ -130,21 +138,40 @@ class _JwMainTabsState extends State<JwMainTabs>
                   controller: _tabController,
                   isScrollable: false,
                   indicatorSize: TabBarIndicatorSize.tab,
-                  indicatorPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                  indicatorPadding: const EdgeInsets.symmetric(
+                    horizontal: 4,
+                    vertical: 8,
+                  ),
                   indicator: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(99),
                   ),
-                  labelStyle: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                  labelStyle: const TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
                   unselectedLabelStyle: const TextStyle(fontSize: 10),
                   labelColor: Theme.of(context).colorScheme.primary,
-                  unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                  unselectedLabelColor: Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withOpacity(0.7),
                   tabs: const [
                     Tab(icon: Icon(Icons.home_outlined, size: 18), text: '首页'),
-                    Tab(icon: Icon(Icons.schedule_outlined, size: 18), text: '课表'),
+                    Tab(
+                      icon: Icon(Icons.schedule_outlined, size: 18),
+                      text: '课表',
+                    ),
                     Tab(icon: Icon(Icons.grade_outlined, size: 18), text: '成绩'),
-                    Tab(icon: Icon(Icons.notifications_outlined, size: 18), text: '通知'),
-                    Tab(icon: Icon(Icons.description_outlined, size: 18), text: '方案'),
+                    Tab(
+                      icon: Icon(Icons.notifications_outlined, size: 18),
+                      text: '通知',
+                    ),
+                    Tab(
+                      icon: Icon(Icons.description_outlined, size: 18),
+                      text: '方案',
+                    ),
                   ],
                 ),
               ),

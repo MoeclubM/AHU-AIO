@@ -67,10 +67,14 @@ class _FinanceMainTabsState extends State<FinanceMainTabs>
                 filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface.withOpacity(0.68),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surface.withOpacity(0.68),
                     borderRadius: BorderRadius.circular(99),
                     border: Border.all(
-                      color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outlineVariant.withOpacity(0.5),
                       width: 0.8,
                     ),
                   ),
@@ -113,10 +117,14 @@ class _FinanceMainTabsState extends State<FinanceMainTabs>
               child: Container(
                 height: 64,
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface.withOpacity(0.65),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.surface.withOpacity(0.65),
                   borderRadius: BorderRadius.circular(32),
                   border: Border.all(
-                    color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.35),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outlineVariant.withOpacity(0.35),
                     width: 0.8,
                   ),
                   boxShadow: [
@@ -131,20 +139,39 @@ class _FinanceMainTabsState extends State<FinanceMainTabs>
                   controller: _tabController,
                   isScrollable: false,
                   indicatorSize: TabBarIndicatorSize.tab,
-                  indicatorPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                  indicatorPadding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 8,
+                  ),
                   indicator: BoxDecoration(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(99),
                   ),
-                  labelStyle: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold),
+                  labelStyle: const TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.bold,
+                  ),
                   unselectedLabelStyle: const TextStyle(fontSize: 10.5),
                   labelColor: Theme.of(context).colorScheme.primary,
-                  unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                  unselectedLabelColor: Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withOpacity(0.7),
                   tabs: const [
                     Tab(icon: Icon(Icons.home_outlined, size: 19), text: '主页'),
-                    Tab(icon: Icon(Icons.qr_code_outlined, size: 19), text: '一码通'),
-                    Tab(icon: Icon(Icons.payment_outlined, size: 19), text: '充值缴费'),
-                    Tab(icon: Icon(Icons.credit_card_outlined, size: 19), text: '电子卡'),
+                    Tab(
+                      icon: Icon(Icons.qr_code_outlined, size: 19),
+                      text: '一码通',
+                    ),
+                    Tab(
+                      icon: Icon(Icons.payment_outlined, size: 19),
+                      text: '充值缴费',
+                    ),
+                    Tab(
+                      icon: Icon(Icons.credit_card_outlined, size: 19),
+                      text: '电子卡',
+                    ),
                   ],
                 ),
               ),

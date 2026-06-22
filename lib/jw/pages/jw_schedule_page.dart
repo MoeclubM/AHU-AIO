@@ -113,7 +113,10 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
                 _tableData?.studentName != null
                     ? '${_tableData!.studentName}的课表'
                     : '我的课表',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
