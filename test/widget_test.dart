@@ -9,20 +9,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 
-import 'package:ahu_aio/main.dart';
+import 'package:ahu_aio/main_layout_screen.dart';
 
 void main() {
   testWidgets('App loads correctly', (WidgetTester tester) async {
     // Build our app and trigger a frame.
     await tester.pumpWidget(
-      GetMaterialApp(title: 'AHU AIO', home: const HomePage()),
+      GetMaterialApp(title: 'AHU AIO', home: const MainLayoutScreen()),
     );
 
     // Wait for the widget to settle
     await tester.pumpAndSettle();
 
     // Verify that the app loads without errors
-    expect(find.byType(Scaffold), findsOneWidget);
-    expect(find.text('AHU AIO'), findsOneWidget);
+    expect(find.byType(Scaffold), findsAtLeastNWidgets(1));
+    expect(find.text('安大微教务登录'), findsOneWidget);
   });
 }
