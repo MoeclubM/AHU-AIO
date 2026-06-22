@@ -4,6 +4,7 @@ import '../home/home_view.dart';
 import '../schedule/schedule_view.dart';
 import 'mainpage_service.dart';
 import '../funcs/func_view.dart';
+import '../features/notice_view.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
@@ -69,6 +70,21 @@ class _MainPageState extends State<MainPage>
           '安大微教务',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 24),
+            child: IconButton(
+              icon: const Icon(Icons.notifications_none_outlined, size: 20),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const NoticePage()),
+                );
+              },
+              tooltip: '通知公告',
+            ),
+          ),
+        ],
       ),
       body: TabBarView(
         controller: _tabController,

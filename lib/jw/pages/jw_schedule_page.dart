@@ -22,7 +22,6 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
   static const _weekdays = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
   static const _maxSlots = 11;
   static const _slotHeight = 60.0;
-  static const _dayWidth = 100.0;
   static const _timeColumnWidth = 48.0;
 
   @override
@@ -350,125 +349,138 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
 
   Widget _buildGrid(List<CourseActivity> weekActivities) {
     final colorScheme = Theme.of(context).colorScheme;
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(0, 4, 0, 92),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: _timeColumnWidth,
-                  height: 44,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(16),
-                    ),
-                  ),
-                  child: const Text(
-                    '节次',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                ...List.generate(7, (dayIdx) {
-                  final wd = dayIdx + 1;
-                  final isToday = DateTime.now().weekday == wd;
-                  final count = weekActivities
-                      .where((a) => a.weekday == wd)
-                      .length;
-                  return Container(
-                    width: _dayWidth,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final totalWidth = constraints.maxWidth;
+        final timeColumnWidth = _timeColumnWidth;
+        final dayWidth = (totalWidth - timeColumnWidth) / 7;
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(0, 4, 0, 92),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: timeColumnWidth,
                     height: 44,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: isToday
-                          ? colorScheme.primaryContainer
-                          : colorScheme.surfaceContainerHighest,
-                      borderRadius: dayIdx == 6
-                          ? const BorderRadius.only(
-                              topRight: Radius.circular(16),
-                            )
-                          : BorderRadius.zero,
-                      border: Border(
-                        left: BorderSide(
-                          color: colorScheme.outlineVariant,
-                          width: 0.5,
-                        ),
+                      color: colorScheme.surfaceContainerHighest,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(16),
                       ),
                     ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          _weekdays[wd],
-                          style: TextStyle(
-                            color: isToday
-                                ? colorScheme.primary
-                                : colorScheme.onSurface,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        Text(
-                          isToday ? '今天 · $count 节' : '$count 节',
-                          style: TextStyle(
-                            color: colorScheme.onSurfaceVariant,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ],
+                    child: const Text(
+                      '节次',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  );
-                }),
-              ],
-            ),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Column(
-                  children: List.generate(_maxSlots, (i) {
+                  ),
+                  ...List.generate(7, (dayIdx) {
+                    final wd = dayIdx + 1;
+                    final isToday = DateTime.now().weekday == wd;
+                    final count = weekActivities
+                        .where((a) => a.weekday == wd)
+                        .length;
                     return Container(
-                      width: _timeColumnWidth,
-                      height: _slotHeight,
+                      width: dayWidth,
+                      height: 44,
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: colorScheme.surfaceContainerHighest.withValues(
-                          alpha: 0.55,
-                        ),
+                        color: isToday
+                            ? colorScheme.primaryContainer
+                            : colorScheme.surfaceContainerHighest,
+                        borderRadius: dayIdx == 6
+                            ? const BorderRadius.only(
+                                topRight: Radius.circular(16),
+                              )
+                            : BorderRadius.zero,
                         border: Border(
-                          top: BorderSide(
+                          left: BorderSide(
                             color: colorScheme.outlineVariant,
                             width: 0.5,
                           ),
                         ),
                       ),
-                      child: Text(
-                        '${i + 1}',
-                        style: TextStyle(
-                          color: colorScheme.onSurfaceVariant,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _weekdays[wd],
+                            style: TextStyle(
+                              color: isToday
+                                  ? colorScheme.primary
+                                  : colorScheme.onSurface,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          Text(
+                            isToday ? '今天 · $count 节' : '$count 节',
+                            style: TextStyle(
+                              color: colorScheme.onSurfaceVariant,
+                              fontSize: 10,
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   }),
-                ),
-                ...List.generate(
-                  7,
-                  (dayIdx) => _buildDayColumn(dayIdx + 1, weekActivities),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+                ],
+              ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Column(
+                    children: List.generate(_maxSlots, (i) {
+                      return Container(
+                        width: timeColumnWidth,
+                        height: _slotHeight,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerHighest.withValues(
+                            alpha: 0.55,
+                          ),
+                          border: Border(
+                            top: BorderSide(
+                              color: colorScheme.outlineVariant,
+                              width: 0.5,
+                            ),
+                          ),
+                        ),
+                        child: Text(
+                          '${i + 1}',
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                  ...List.generate(
+                    7,
+                    (dayIdx) =>
+                        _buildDayColumn(dayIdx + 1, weekActivities, dayWidth),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildDayColumn(int weekday, List<CourseActivity> weekActivities) {
+  Widget _buildDayColumn(
+    int weekday,
+    List<CourseActivity> weekActivities,
+    double dayWidth,
+  ) {
     final colorScheme = Theme.of(context).colorScheme;
     final dayActivities =
         weekActivities
@@ -482,7 +494,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
           ..sort((a, b) => a.startUnit!.compareTo(b.startUnit!));
 
     return SizedBox(
-      width: _dayWidth,
+      width: dayWidth,
       height: _slotHeight * _maxSlots,
       child: Stack(
         children: [
@@ -514,8 +526,8 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
             final top = (a.startUnit! - 1) * _slotHeight;
             final height = (a.endUnit! - a.startUnit! + 1) * _slotHeight;
             return Positioned(
-              left: 5,
-              right: 5,
+              left: 2,
+              right: 2,
               top: top + 3,
               height: height - 6,
               child: _buildActivityCard(a),

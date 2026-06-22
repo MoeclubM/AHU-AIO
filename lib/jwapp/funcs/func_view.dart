@@ -101,42 +101,6 @@ class FuncPage extends StatelessWidget {
             MaterialPageRoute(builder: (context) => const RoomPage()),
           );
           break;
-        case '培养方案查询':
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const PlanQueryPage()),
-          );
-          break;
-        case '教室课表查询':
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const ClassroomSchedulePage(),
-            ),
-          );
-          break;
-        case '通知公告':
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const NoticePage()),
-          );
-          break;
-        case '选课系统':
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const CourseSelectionPage(),
-            ),
-          );
-          break;
-        case '培养方案完成情况':
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const AcademicWarningPage(),
-            ),
-          );
-          break;
         default:
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -173,8 +137,6 @@ class Feature {
 }
 
 final List<Feature> _features = [
-  const Feature(title: '通知公告', subtitle: '查看学校通知公告', isComingSoon: false),
-  const Feature(title: '培养方案查询', subtitle: '查看专业培养计划', isComingSoon: false),
   const Feature(title: '成绩查询', subtitle: '查看考试成绩', isComingSoon: false),
   const Feature(title: '空闲教室查询', subtitle: '查找可用教室', isComingSoon: false),
 ];

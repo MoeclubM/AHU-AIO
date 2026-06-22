@@ -64,10 +64,44 @@ class RoomModel {
 
   factory RoomModel.fromJson(Map<String, dynamic> json) {
     final List<TimeSlot> slots = [];
-    if (json['timeSlots'] != null) {
-      final slotsData = json['timeSlots'] as List;
-      for (var slot in slotsData) {
-        slots.add(TimeSlot.fromJson(slot));
+    final occList = json['roomOccupationInfoVms'] as List?;
+    if (occList != null) {
+      for (var occ in occList) {
+        if (occ is Map<String, dynamic>) {
+          final startStr = occ['startTimeString']?.toString() ?? '';
+          final courseName = occ['activityName']?.toString() ?? '';
+          final teacherName = occ['teacherName']?.toString() ?? '';
+
+          String matchedSlot = '';
+          if (startStr.isNotEmpty) {
+            final parts = startStr.split(':');
+            if (parts.isNotEmpty) {
+              final hr = int.tryParse(parts[0]) ?? 0;
+              if (hr == 8) {
+                matchedSlot = '第1-2节(08:00-09:40)';
+              } else if (hr == 9 || hr == 10) {
+                matchedSlot = '第3-4节(10:00-11:40)';
+              } else if (hr == 14 || hr == 13) {
+                matchedSlot = '第5-6节(14:00-15:40)';
+              } else if (hr == 15 || hr == 16) {
+                matchedSlot = '第7-8节(16:00-17:40)';
+              } else if (hr >= 18 && hr <= 20) {
+                matchedSlot = '第9-10节(19:00-20:40)';
+              }
+            }
+          }
+
+          if (matchedSlot.isNotEmpty) {
+            slots.add(
+              TimeSlot(
+                timeSlot: matchedSlot,
+                isOccupied: true,
+                courseName: courseName,
+                teacherName: teacherName,
+              ),
+            );
+          }
+        }
       }
     }
 
@@ -80,7 +114,7 @@ class RoomModel {
 
     return RoomModel(
       id: json['id']?.toString() ?? '',
-      name: json['name']?.toString() ?? '',
+      name: json['nameZh']?.toString() ?? json['name']?.toString() ?? '',
       buildingId: json['buildingId']?.toString() ?? '',
       campusId: json['campusId']?.toString() ?? '',
       roomType: json['roomType']?.toString() ?? '',

@@ -90,9 +90,11 @@ class _RoomPageState extends State<RoomPage> {
         globals.idToken!,
         filter.toJson(),
       );
-      final rooms = (roomsData['rooms'] as List? ?? [])
-          .map((data) => RoomModel.fromJson(data))
-          .toList();
+      final dataObj = roomsData['data'];
+      final List<dynamic> rawList = (dataObj is Map)
+          ? (dataObj['data'] as List? ?? [])
+          : [];
+      final rooms = rawList.map((data) => RoomModel.fromJson(data)).toList();
 
       setState(() {
         _rooms = rooms;

@@ -326,6 +326,28 @@ class _SchedulePageState extends State<SchedulePage> {
     );
   }
 
+  String _getSectionLabel(String start, String end) {
+    final startMin = _timeToMinutes(start);
+    if (startMin >= 460 && startMin <= 500) return '1-2节';
+    if (startMin >= 580 && startMin <= 625) return '3-4节';
+    if (startMin >= 820 && startMin <= 880) return '5-6节';
+    if (startMin >= 940 && startMin <= 1000) return '7-8节';
+    if (startMin >= 1090 && startMin <= 1160) return '9-10节';
+    return '';
+  }
+
+  int _timeToMinutes(String timeStr) {
+    try {
+      final parts = timeStr.split(':');
+      if (parts.length >= 2) {
+        final hours = int.parse(parts[0]);
+        final minutes = int.parse(parts[1]);
+        return hours * 60 + minutes;
+      }
+    } catch (_) {}
+    return 0;
+  }
+
   /// 构建时间段行
   TableRow _buildTimeSlotRow(
     _TimeSlot slot,
@@ -333,9 +355,16 @@ class _SchedulePageState extends State<SchedulePage> {
     ThemeData theme,
     bool isDark,
   ) {
+    final labelStyle = theme.textTheme.labelSmall?.copyWith(
+      color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
+      fontWeight: FontWeight.bold,
+      fontSize: 10,
+    );
     final timeStyle = theme.textTheme.labelSmall?.copyWith(
       color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+      fontSize: 9,
     );
+    final sectionLabel = _getSectionLabel(slot.startTime, slot.endTime);
 
     return TableRow(
       children: [
@@ -343,10 +372,15 @@ class _SchedulePageState extends State<SchedulePage> {
         TableCell(
           verticalAlignment: TableCellVerticalAlignment.middle,
           child: Container(
+            constraints: const BoxConstraints(minHeight: 80),
             padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                if (sectionLabel.isNotEmpty) ...[
+                  Text(sectionLabel, style: labelStyle),
+                  const SizedBox(height: 2),
+                ],
                 Text(slot.startTime, style: timeStyle),
                 Text('-', style: timeStyle),
                 Text(slot.endTime, style: timeStyle),
@@ -365,7 +399,7 @@ class _SchedulePageState extends State<SchedulePage> {
           if (matchingEntries.isEmpty) {
             return TableCell(
               child: Container(
-                constraints: const BoxConstraints(minHeight: 64),
+                constraints: const BoxConstraints(minHeight: 80),
                 padding: const EdgeInsets.all(2),
               ),
             );
@@ -403,7 +437,7 @@ class _SchedulePageState extends State<SchedulePage> {
     bool isDark,
   ) {
     return Container(
-      constraints: const BoxConstraints(minHeight: 64),
+      constraints: const BoxConstraints(minHeight: 80),
       padding: const EdgeInsets.symmetric(horizontal: 1.5, vertical: 1),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -435,7 +469,7 @@ class _SchedulePageState extends State<SchedulePage> {
                   style: TextStyle(
                     color: entry.isCurrentWeek ? color : color.withOpacity(0.6),
                     fontWeight: FontWeight.w800,
-                    fontSize: 9.5,
+                    fontSize: 11.0,
                     height: 1.1,
                   ),
                   softWrap: true,
@@ -450,7 +484,7 @@ class _SchedulePageState extends State<SchedulePage> {
                       color: theme.colorScheme.onSurfaceVariant.withOpacity(
                         entry.isCurrentWeek ? 0.9 : 0.5,
                       ),
-                      fontSize: 8.0,
+                      fontSize: 9.5,
                       height: 1.1,
                     ),
                     softWrap: true,
@@ -466,7 +500,7 @@ class _SchedulePageState extends State<SchedulePage> {
                       color: theme.colorScheme.onSurfaceVariant.withOpacity(
                         entry.isCurrentWeek ? 0.9 : 0.5,
                       ),
-                      fontSize: 8.0,
+                      fontSize: 9.5,
                       height: 1.1,
                     ),
                     softWrap: true,
