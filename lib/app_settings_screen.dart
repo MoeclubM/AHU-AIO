@@ -46,41 +46,6 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     }
   }
 
-  void _logoutJwapp() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('username');
-    await prefs.remove('password');
-    await prefs.setBool('savePassword', false);
-    await prefs.remove('idToken');
-    globals.idToken = null;
-    globals.onLoginStateChanged?.call();
-    setState(() {});
-  }
-
-  void _logoutJw() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('username');
-    await prefs.remove('password');
-    await prefs.setBool('savePassword', false);
-    await prefs.remove('jwStudentNo');
-    await JwLoginService.logout();
-    globals.jwLoggedIn = false;
-    globals.jwStudentNo = null;
-    globals.onLoginStateChanged?.call();
-    setState(() {});
-  }
-
-  void _logoutFinance() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('username');
-    await prefs.remove('password');
-    await prefs.setBool('savePassword', false);
-    await _synjonesClient.logout();
-    await CasAuthCache.clear();
-    globals.onLoginStateChanged?.call();
-    setState(() {});
-  }
-
   void _globalLogout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('username');
@@ -131,7 +96,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
           _buildSectionHeader('账号与登录状态'),
 
           // Jwapp (微教务)
-          _buildAccountCard(
+          _buildAccountStatusTile(
             title: '微教务',
             icon: Icons.bolt,
             iconColor: Colors.amber,
@@ -139,13 +104,11 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
             subtitle: globals.idToken != null
                 ? '学号: ${_jwappUsername ?? '已登录'}'
                 : '未登录',
-            onLoginTap: () => widget.onSwitchTab(0),
-            onLogoutTap: _logoutJwapp,
           ),
           const SizedBox(height: 12),
 
           // Jw (安大教务)
-          _buildAccountCard(
+          _buildAccountStatusTile(
             title: '安大教务',
             icon: Icons.school,
             iconColor: Colors.blue,
@@ -153,13 +116,11 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
             subtitle: globals.jwLoggedIn
                 ? '学号: ${globals.jwStudentNo ?? '已登录'}'
                 : '未登录',
-            onLoginTap: () => widget.onSwitchTab(1),
-            onLogoutTap: _logoutJw,
           ),
           const SizedBox(height: 12),
 
           // Finance (一卡通)
-          _buildAccountCard(
+          _buildAccountStatusTile(
             title: '一卡通系统',
             icon: Icons.credit_card,
             iconColor: Colors.green,
@@ -169,8 +130,6 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                       ? '正在加载...'
                       : '姓名: ${_synjonesClient.userInfo?['name'] ?? '已登录'}'
                 : '未登录',
-            onLoginTap: () => widget.onSwitchTab(2),
-            onLogoutTap: _logoutFinance,
           ),
           const SizedBox(height: 32),
           Padding(
@@ -211,23 +170,19 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     );
   }
 
-  Widget _buildAccountCard({
+  Widget _buildAccountStatusTile({
     required String title,
     required IconData icon,
     required Color iconColor,
     required bool isLoggedIn,
     required String subtitle,
-    required VoidCallback onLoginTap,
-    required VoidCallback onLogoutTap,
   }) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Card(
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         child: ListTile(
           leading: CircleAvatar(
-            backgroundColor: iconColor.withValues(alpha: 0.12),
+            backgroundColor: iconColor.withOpacity(0.12),
             child: Icon(icon, color: iconColor),
           ),
           title: Text(
@@ -235,18 +190,23 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
           subtitle: Text(subtitle),
-          trailing: isLoggedIn
-              ? OutlinedButton(
-                  onPressed: onLogoutTap,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: colorScheme.error,
-                    side: BorderSide(
-                      color: colorScheme.error.withValues(alpha: 0.4),
-                    ),
-                  ),
-                  child: const Text('登出'),
-                )
-              : FilledButton(onPressed: onLoginTap, child: const Text('去登录')),
+          trailing: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: isLoggedIn
+                  ? Colors.green.withOpacity(0.12)
+                  : Colors.red.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              isLoggedIn ? '已连接' : '未连接',
+              style: TextStyle(
+                color: isLoggedIn ? Colors.green.shade700 : Colors.red.shade700,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
         ),
       ),
     );

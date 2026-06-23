@@ -20,7 +20,7 @@ class _JwMainTabsState extends State<JwMainTabs>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(() {
       setState(() {});
     });
@@ -35,6 +35,7 @@ class _JwMainTabsState extends State<JwMainTabs>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       appBar: AppBar(
         toolbarHeight: 52,
         backgroundColor: Colors.transparent,
@@ -70,85 +71,105 @@ class _JwMainTabsState extends State<JwMainTabs>
           '安大教务',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
-        actions: const [],
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 24),
+            child: IconButton(
+              icon: const Icon(Icons.notifications_none_outlined, size: 20),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const JwNoticePage()),
+                );
+              },
+              tooltip: '通知公告',
+            ),
+          ),
+        ],
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
+        children: const [
           JwHomePage(embed: true),
           JwSchedulePage(embed: true),
           JwGradesPage(embed: true),
-          JwNoticePage(embed: true),
           JwProgramPage(embed: true),
         ],
       ),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(32),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-              child: Container(
-                height: 64,
-                decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.surface.withOpacity(0.65),
-                  borderRadius: BorderRadius.circular(32),
-                  border: Border.all(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.outlineVariant.withOpacity(0.35),
-                    width: 0.8,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(32),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
                 ),
-                child: TabBar(
-                  controller: _tabController,
-                  isScrollable: false,
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  indicatorPadding: const EdgeInsets.symmetric(
-                    horizontal: 4,
-                    vertical: 8,
-                  ),
-                  indicator: BoxDecoration(
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(32),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                child: Container(
+                  height: 64,
+                  decoration: BoxDecoration(
                     color: Theme.of(
                       context,
-                    ).colorScheme.primary.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(99),
+                    ).colorScheme.surface.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(32),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outlineVariant.withOpacity(0.35),
+                      width: 0.8,
+                    ),
                   ),
-                  labelStyle: const TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
+                  child: TabBar(
+                    controller: _tabController,
+                    isScrollable: false,
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    indicatorPadding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 8,
+                    ),
+                    indicator: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    labelStyle: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    unselectedLabelStyle: const TextStyle(fontSize: 10),
+                    labelColor: Theme.of(context).colorScheme.primary,
+                    unselectedLabelColor: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                    tabs: const [
+                      Tab(
+                        icon: Icon(Icons.home_outlined, size: 18),
+                        text: '首页',
+                      ),
+                      Tab(
+                        icon: Icon(Icons.schedule_outlined, size: 18),
+                        text: '课表',
+                      ),
+                      Tab(
+                        icon: Icon(Icons.grade_outlined, size: 18),
+                        text: '成绩',
+                      ),
+                      Tab(
+                        icon: Icon(Icons.description_outlined, size: 18),
+                        text: '方案',
+                      ),
+                    ],
                   ),
-                  unselectedLabelStyle: const TextStyle(fontSize: 10),
-                  labelColor: Theme.of(context).colorScheme.primary,
-                  unselectedLabelColor: Theme.of(
-                    context,
-                  ).colorScheme.onSurfaceVariant.withOpacity(0.7),
-                  tabs: const [
-                    Tab(icon: Icon(Icons.home_outlined, size: 18), text: '首页'),
-                    Tab(
-                      icon: Icon(Icons.schedule_outlined, size: 18),
-                      text: '课表',
-                    ),
-                    Tab(icon: Icon(Icons.grade_outlined, size: 18), text: '成绩'),
-                    Tab(
-                      icon: Icon(Icons.notifications_outlined, size: 18),
-                      text: '通知',
-                    ),
-                    Tab(
-                      icon: Icon(Icons.description_outlined, size: 18),
-                      text: '方案',
-                    ),
-                  ],
                 ),
               ),
             ),

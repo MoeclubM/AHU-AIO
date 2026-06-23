@@ -37,6 +37,7 @@ class _MainPageState extends State<MainPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       appBar: AppBar(
         toolbarHeight: 52,
         backgroundColor: Colors.transparent,
@@ -99,65 +100,76 @@ class _MainPageState extends State<MainPage>
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(32),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-              child: Container(
-                height: 64,
-                decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.surface.withOpacity(0.65),
-                  borderRadius: BorderRadius.circular(32),
-                  border: Border.all(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.outlineVariant.withOpacity(0.35),
-                    width: 0.8,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(32),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
                 ),
-                child: TabBar(
-                  controller: _tabController,
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  indicatorPadding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 8,
-                  ),
-                  indicator: BoxDecoration(
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(32),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                child: Container(
+                  height: 64,
+                  decoration: BoxDecoration(
                     color: Theme.of(
                       context,
-                    ).colorScheme.primary.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                  labelStyle: const TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  unselectedLabelStyle: const TextStyle(fontSize: 10.5),
-                  labelColor: Theme.of(context).colorScheme.primary,
-                  unselectedLabelColor: Theme.of(
-                    context,
-                  ).colorScheme.onSurfaceVariant.withOpacity(0.7),
-                  tabs: const [
-                    Tab(icon: Icon(Icons.home_outlined, size: 20), text: '首页'),
-                    Tab(
-                      icon: Icon(Icons.schedule_outlined, size: 20),
-                      text: '课表',
+                    ).colorScheme.surface.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(32),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outlineVariant.withOpacity(0.35),
+                      width: 0.8,
                     ),
-                    Tab(icon: Icon(Icons.grade_outlined, size: 20), text: '成绩'),
-                    Tab(
-                      icon: Icon(Icons.meeting_room_outlined, size: 20),
-                      text: '空闲教室',
+                  ),
+                  child: TabBar(
+                    controller: _tabController,
+                    indicatorSize: TabBarIndicatorSize.tab,
+                    indicatorPadding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 8,
                     ),
-                  ],
+                    indicator: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.primary.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    labelStyle: const TextStyle(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    unselectedLabelStyle: const TextStyle(fontSize: 10.5),
+                    labelColor: Theme.of(context).colorScheme.primary,
+                    unselectedLabelColor: Theme.of(
+                      context,
+                    ).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                    tabs: const [
+                      Tab(
+                        icon: Icon(Icons.home_outlined, size: 20),
+                        text: '首页',
+                      ),
+                      Tab(
+                        icon: Icon(Icons.schedule_outlined, size: 20),
+                        text: '课表',
+                      ),
+                      Tab(
+                        icon: Icon(Icons.grade_outlined, size: 20),
+                        text: '成绩',
+                      ),
+                      Tab(
+                        icon: Icon(Icons.meeting_room_outlined, size: 20),
+                        text: '空闲教室',
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

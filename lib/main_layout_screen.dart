@@ -17,6 +17,7 @@ class MainLayoutScreen extends StatefulWidget {
 }
 
 class _MainLayoutScreenState extends State<MainLayoutScreen> {
+  bool _isInitializing = true;
   int _currentBottomIndex = 0;
   final SynjonesClient _synjonesClient = SynjonesClient();
 
@@ -43,6 +44,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
   }
 
   Future<void> _checkInit() async {
+    setState(() {
+      _isInitializing = true;
+    });
     await _synjonesClient.init();
     final prefs = await SharedPreferences.getInstance();
     final cachedIdToken = prefs.getString('idToken');
@@ -52,38 +56,19 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     globals.jwLoggedIn = await CasAuthCache.isLoggedIn();
     globals.jwStudentNo = prefs.getString('jwStudentNo');
     if (mounted) {
-      setState(() {});
+      setState(() {
+        _isInitializing = false;
+      });
     }
   }
 
   Widget _buildTabContent() {
     switch (_currentBottomIndex) {
       case 0:
-        if (globals.idToken == null) {
-          return UnifiedLoginPage(
-            onLoginSuccess: () {
-              setState(() {});
-            },
-          );
-        }
         return const MainPage();
       case 1:
-        if (!globals.jwLoggedIn) {
-          return UnifiedLoginPage(
-            onLoginSuccess: () {
-              setState(() {});
-            },
-          );
-        }
         return const JwMainTabs();
       case 2:
-        if (!_synjonesClient.loggedIn) {
-          return UnifiedLoginPage(
-            onLoginSuccess: () {
-              setState(() {});
-            },
-          );
-        }
         return const FinanceMainTabs();
       case 3:
         return AppSettingsScreen(
@@ -100,6 +85,23 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isInitializing) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final bool isLoggedIn =
+        globals.idToken != null ||
+        globals.jwLoggedIn ||
+        _synjonesClient.loggedIn;
+
+    if (!isLoggedIn) {
+      return UnifiedLoginPage(
+        onLoginSuccess: () {
+          setState(() {});
+        },
+      );
+    }
+
     return Scaffold(
       body: _buildTabContent(),
       bottomNavigationBar: NavigationBar(

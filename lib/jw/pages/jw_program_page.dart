@@ -71,7 +71,7 @@ class _JwProgramPageState extends State<JwProgramPage> {
     final totalRequired = root.requiredCredits?.toStringAsFixed(1) ?? '-';
 
     return ListView(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 92),
       children: [
         Card(
           color: Theme.of(context).colorScheme.primaryContainer,

@@ -201,7 +201,7 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
           : RefreshIndicator(
               onRefresh: _refreshCode,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 92),
                 children: [
                   _buildOneCodeCard(),
                   if (_payments.length > 1) ...[

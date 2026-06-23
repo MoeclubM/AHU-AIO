@@ -181,7 +181,7 @@ class _JwGradesPageState extends State<JwGradesPage> {
         : null;
 
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 92),
       children: [
         if (gpa != null)
           Card(

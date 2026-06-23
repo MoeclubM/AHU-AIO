@@ -136,7 +136,7 @@ class _FinanceCardsPageState extends State<FinanceCardsPage> {
                 await _loadCards();
               },
               child: ListView.separated(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 92),
                 itemBuilder: (_, index) => _buildCard(_cards[index]),
                 separatorBuilder: (context, index) =>
                     const SizedBox(height: 12),

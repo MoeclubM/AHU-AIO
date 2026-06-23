@@ -105,7 +105,7 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
           : RefreshIndicator(
               onRefresh: _loadData,
               child: ListView(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 92),
                 children: [
                   _buildUserCard(),
                   const SizedBox(height: 16),

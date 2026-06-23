@@ -9,17 +9,26 @@ class JwNoticePage extends StatefulWidget {
   State<JwNoticePage> createState() => _JwNoticePageState();
 }
 
-class _JwNoticePageState extends State<JwNoticePage> {
+class _JwNoticePageState extends State<JwNoticePage>
+    with SingleTickerProviderStateMixin {
   final _api = JwApi();
   List<dynamic> _notices = [];
-  Map<String, dynamic>? _counts;
   bool _isLoading = true;
   String? _error;
+  late TabController _tabController;
+  bool _isUnreadTab = true;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _loadNotices();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadNotices() async {
@@ -32,11 +41,9 @@ class _JwNoticePageState extends State<JwNoticePage> {
         _api.getNoticeCounts(),
         _api.getNotifications(),
       ]);
-      final countData = results[0];
       final notifData = results[1];
 
       setState(() {
-        _counts = countData['noticeCount'] as Map<String, dynamic>?;
         _notices = (notifData['data'] as List?) ?? [];
         _isLoading = false;
       });
@@ -48,146 +55,295 @@ class _JwNoticePageState extends State<JwNoticePage> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final unread = _counts?['noReadCount'] ?? 0;
-
-    return Scaffold(
-      appBar: widget.embed ? null : AppBar(title: Text('通知公告 ($unread)')),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(_error!, style: const TextStyle(color: Colors.red)),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _loadNotices,
-                    child: const Text('重试'),
-                  ),
-                ],
-              ),
-            )
-          : _notices.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    unread > 0
-                        ? Icons.notifications_active
-                        : Icons.notifications_off,
-                    size: 64,
-                    color: Colors.grey,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(unread > 0 ? '有 $unread 条未读通知' : '暂无通知'),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: _notices.length,
-              itemBuilder: (ctx, i) => _buildNoticeCard(_notices[i]),
-            ),
-    );
+  List<dynamic> get _filteredNotices {
+    if (_isUnreadTab) {
+      return _notices.where((notice) {
+        if (notice is! Map) return false;
+        final isRead = notice['isRead'] == true || notice['read'] == true;
+        return !isRead;
+      }).toList();
+    } else {
+      return _notices.where((notice) {
+        if (notice is! Map) return false;
+        final isRead = notice['isRead'] == true || notice['read'] == true;
+        return isRead;
+      }).toList();
+    }
   }
 
-  Widget _buildNoticeCard(dynamic notice) {
-    if (notice is! Map) return const SizedBox();
-    final n = notice as Map<String, dynamic>;
-    final title = n['title']?.toString() ?? '无标题';
-    final content = n['content']?.toString() ?? '';
-    final sender = n['sender']?.toString() ?? '';
-    final sendTime =
-        n['sendTime']?.toString() ?? n['createDateTime']?.toString() ?? '';
-    final isRead = n['isRead'] == true || n['read'] == true;
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => _showDetail(title, content, sender, sendTime),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  if (!isRead)
-                    Container(
-                      width: 8,
-                      height: 8,
-                      margin: const EdgeInsets.only(right: 8),
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  Expanded(
-                    child: Text(
-                      title,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: isRead
-                            ? FontWeight.normal
-                            : FontWeight.w600,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              if (sendTime.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  sendTime,
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: widget.embed
+          ? null
+          : AppBar(
+              title: const Text('通知公告'),
+              actions: [
+                IconButton(
+                  onPressed: _loadNotices,
+                  icon: const Icon(Icons.refresh),
                 ),
               ],
-            ],
+            ),
+      body: Column(
+        children: [
+          // Tab切换栏
+          Container(
+            color: Theme.of(context).colorScheme.surface,
+            child: TabBar(
+              controller: _tabController,
+              onTap: (index) {
+                setState(() {
+                  _isUnreadTab = index == 0;
+                });
+              },
+              indicatorColor: Theme.of(context).colorScheme.primary,
+              labelColor: Theme.of(context).colorScheme.primary,
+              unselectedLabelColor: Theme.of(
+                context,
+              ).colorScheme.onSurfaceVariant.withOpacity(0.7),
+              tabs: const [
+                Tab(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('未读'),
+                      SizedBox(width: 4),
+                      Icon(Icons.notifications_active, size: 16),
+                    ],
+                  ),
+                ),
+                Tab(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('已读'),
+                      SizedBox(width: 4),
+                      Icon(Icons.notifications_none, size: 16),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
+          // 内容区域
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _loadNotices,
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error != null
+                  ? _buildErrorWidget()
+                  : _buildNoticesList(),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  void _showDetail(String title, String content, String sender, String time) {
+  Widget _buildNoticesList() {
+    final filteredNotices = _filteredNotices;
+
+    if (filteredNotices.isEmpty) {
+      return _buildEmptyWidget();
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: filteredNotices.length,
+      itemBuilder: (context, index) {
+        final notice = filteredNotices[index];
+        return _buildNoticeCard(notice, index);
+      },
+    );
+  }
+
+  Widget _buildNoticeCard(dynamic notice, int index) {
+    if (notice is! Map) return const SizedBox();
+    final n = notice as Map<String, dynamic>;
+    final title = n['title']?.toString() ?? '无标题';
+    final content = _removeHtmlTags(n['content']?.toString() ?? '');
+    final publisher =
+        n['sender']?.toString() ?? n['publisher']?.toString() ?? '教务处';
+    final publishTime =
+        n['sendTime']?.toString() ?? n['createDateTime']?.toString() ?? '';
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      child: ListTile(
+        contentPadding: const EdgeInsets.all(16),
+        title: Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 8),
+            if (content.isNotEmpty)
+              Text(
+                content,
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+              ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.person, size: 14, color: Colors.grey.shade500),
+                const SizedBox(width: 4),
+                Text(
+                  publisher,
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                ),
+                const SizedBox(width: 16),
+                Icon(Icons.access_time, size: 14, color: Colors.grey.shade500),
+                const SizedBox(width: 4),
+                Text(
+                  _formatTime(publishTime),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                ),
+              ],
+            ),
+          ],
+        ),
+        trailing: _isUnreadTab
+            ? Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+              )
+            : null,
+        onTap: () => _showNoticeDetail(n),
+      ),
+    );
+  }
+
+  Widget _buildEmptyWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            _isUnreadTab ? Icons.notifications_off : Icons.notifications_none,
+            size: 64,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            _isUnreadTab ? '暂无未读通知' : '暂无已读通知',
+            style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '下拉刷新获取最新通知',
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorWidget() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
+          const SizedBox(height: 16),
+          Text(
+            '加载失败',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.red.shade600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _error!,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(onPressed: _loadNotices, child: const Text('重试')),
+        ],
+      ),
+    );
+  }
+
+  void _showNoticeDetail(Map<String, dynamic> notice) {
+    final title = notice['title']?.toString() ?? '无标题';
+    final content = _removeHtmlTags(notice['content']?.toString() ?? '');
+    final publisher =
+        notice['sender']?.toString() ??
+        notice['publisher']?.toString() ??
+        '教务处';
+    final publishTime =
+        notice['sendTime']?.toString() ??
+        notice['createDateTime']?.toString() ??
+        '';
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (context) => AlertDialog(
         title: Text(title),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (sender.isNotEmpty)
-                Text(
-                  '发送人: $sender',
-                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+        content: SizedBox(
+          width: double.maxFinite,
+          height: 300,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (content.isNotEmpty) ...[
+                  const Text(
+                    '内容：',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(content),
+                  const SizedBox(height: 16),
+                ],
+                Row(children: [const Text('发布者：'), Text(publisher)]),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Text('发布时间：'),
+                    Text(_formatTime(publishTime)),
+                  ],
                 ),
-              if (time.isNotEmpty)
-                Text(
-                  '时间: $time',
-                  style: const TextStyle(color: Colors.grey, fontSize: 13),
-                ),
-              const SizedBox(height: 12),
-              Text(content.isNotEmpty ? content : '暂无详细内容'),
-            ],
+              ],
+            ),
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () => Navigator.of(context).pop(),
             child: const Text('关闭'),
           ),
         ],
       ),
     );
+  }
+
+  String _formatTime(String timeString) {
+    try {
+      final dateTime = DateTime.parse(timeString);
+      return '${dateTime.year}-${dateTime.month.toString().padLeft(2, '0')}-${dateTime.day.toString().padLeft(2, '0')} ${dateTime.hour.toString().padLeft(2, '0')}:${dateTime.minute.toString().padLeft(2, '0')}';
+    } catch (e) {
+      return timeString;
+    }
+  }
+
+  String _removeHtmlTags(String htmlString) {
+    final plainText = htmlString.replaceAll(RegExp(r'<[^>]*>'), '');
+    return plainText.replaceAll(RegExp(r'\s+'), ' ').trim();
   }
 }
