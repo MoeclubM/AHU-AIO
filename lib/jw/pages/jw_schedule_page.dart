@@ -1,6 +1,7 @@
 import 'dart:ui';
-
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../api/jw_api.dart';
 import '../models/jw_models.dart';
 
@@ -18,17 +19,32 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
   int _currentWeek = 1;
   bool _isLoading = true;
   String? _error;
+  bool _isCached = false;
 
   static const _weekdays = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
   static const _maxSlots = 11;
-  double _slotHeight = 65.0;
-  double _baseScaleSlotHeight = 65.0;
+  double _slotHeight = 95.0;
+  double _baseScaleSlotHeight = 95.0;
   static const _timeColumnWidth = 48.0;
 
   @override
   void initState() {
     super.initState();
+    _loadSavedHeight();
     _loadData();
+  }
+
+  Future<void> _loadSavedHeight() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedHeight = prefs.getDouble('jw_schedule_slot_height');
+      if (savedHeight != null) {
+        setState(() {
+          _slotHeight = savedHeight;
+          _baseScaleSlotHeight = savedHeight;
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _loadData() async {
@@ -57,16 +73,44 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
       // 再降级：尝试已知的当前学期 ID
       semId ??= 112;
 
+      final prefs = await SharedPreferences.getInstance();
+      final cacheKey = 'jw_schedule_cache_$semId';
+      final cachedStr = prefs.getString(cacheKey);
+      if (cachedStr != null) {
+        try {
+          final cachedData = CourseTableData.fromJson(jsonDecode(cachedStr));
+          setState(() {
+            _tableData = cachedData;
+            _isCached = true;
+            _isLoading = false;
+          });
+        } catch (_) {}
+      }
+
       final raw = await _api.getCourseTablePrintData(semId);
+      final freshData = CourseTableData.fromJson(raw);
+      
+      await prefs.setString(cacheKey, jsonEncode(raw));
+
       setState(() {
-        _tableData = CourseTableData.fromJson(raw);
+        _tableData = freshData;
+        _isCached = false;
         _isLoading = false;
+        _error = null;
       });
     } catch (e) {
-      setState(() {
-        _error = '加载失败: $e';
-        _isLoading = false;
-      });
+      if (_tableData != null) {
+        setState(() {
+          _isCached = true;
+          _isLoading = false;
+          _error = '更新课表失败，显示为本地缓存';
+        });
+      } else {
+        setState(() {
+          _error = '加载失败: $e';
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -77,7 +121,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
           ? null
           : AppBar(
               toolbarHeight: 52,
-              centerTitle: false,
+              centerTitle: true,
               backgroundColor: Colors.transparent,
               elevation: 0,
               scrolledUnderElevation: 0,
@@ -149,6 +193,43 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
 
     return Column(
       children: [
+        if (_isCached)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(
+              vertical: 6,
+              horizontal: 16,
+            ),
+            color: Theme.of(
+              context,
+            ).colorScheme.primaryContainer.withOpacity(0.7),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.info_outline,
+                  size: 14,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.onPrimaryContainer,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _error != null && _error!.contains('更新课表失败')
+                        ? '更新最新课表失败，当前显示为本地缓存数据'
+                        : '当前为本地缓存数据，正在加载最新数据...',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onPrimaryContainer,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         if (widget.embed) _buildStudentInfo(activities),
         Expanded(child: _buildGrid(activities)),
       ],
@@ -361,9 +442,13 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
             _baseScaleSlotHeight = _slotHeight;
           },
           onScaleUpdate: (details) {
+            final newHeight = (_baseScaleSlotHeight * details.verticalScale)
+                .clamp(45.0, 240.0);
             setState(() {
-              _slotHeight = (_baseScaleSlotHeight * details.verticalScale)
-                  .clamp(45.0, 240.0);
+              _slotHeight = newHeight;
+            });
+            SharedPreferences.getInstance().then((prefs) {
+              prefs.setDouble('jw_schedule_slot_height', newHeight);
             });
           },
           child: SingleChildScrollView(

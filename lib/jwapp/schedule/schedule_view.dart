@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api/getallsemesters.dart';
 import '../utils/time_utils.dart';
@@ -17,13 +18,27 @@ class SchedulePage extends StatefulWidget {
 
 class _SchedulePageState extends State<SchedulePage> {
   late final ScheduleLogic _logic;
-  double _slotHeight = 80.0;
-  double _baseScaleSlotHeight = 80.0;
+  double _slotHeight = 95.0;
+  double _baseScaleSlotHeight = 95.0;
 
   @override
   void initState() {
     super.initState();
     _logic = Get.put(ScheduleLogic());
+    _loadSavedHeight();
+  }
+
+  Future<void> _loadSavedHeight() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedHeight = prefs.getDouble('jwapp_schedule_slot_height');
+      if (savedHeight != null) {
+        setState(() {
+          _slotHeight = savedHeight;
+          _baseScaleSlotHeight = savedHeight;
+        });
+      }
+    } catch (_) {}
   }
 
   @override
@@ -85,9 +100,13 @@ class _SchedulePageState extends State<SchedulePage> {
               _baseScaleSlotHeight = _slotHeight;
             },
             onScaleUpdate: (details) {
+              final newHeight = (_baseScaleSlotHeight * details.verticalScale)
+                  .clamp(50.0, 240.0);
               setState(() {
-                _slotHeight = (_baseScaleSlotHeight * details.verticalScale)
-                    .clamp(50.0, 240.0);
+                _slotHeight = newHeight;
+              });
+              SharedPreferences.getInstance().then((prefs) {
+                prefs.setDouble('jwapp_schedule_slot_height', newHeight);
               });
             },
             child: SingleChildScrollView(

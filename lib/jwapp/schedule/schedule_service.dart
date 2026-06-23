@@ -134,8 +134,10 @@ class ScheduleService extends ChangeNotifier {
       if (schedules is! List) continue;
 
       final course = rawClass['course'] as Map<String, dynamic>?;
+      final lesson = rawClass['lesson'] as Map<String, dynamic>?;
+      final lessonCourse = lesson?['course'] as Map<String, dynamic>?;
       final classWeeks = _extractWeekIndices(rawClass['weekIndices']);
-      final isHonorCourse = _isHonorCourse(course) || _isHonorCourse(rawClass);
+      final isHonorCourse = _isHonorCourse(course) || _isHonorCourse(rawClass) || _isHonorCourse(lesson) || _isHonorCourse(lessonCourse);
 
       for (final schedule in schedules) {
         if (schedule is! Map<String, dynamic>) continue;
@@ -172,16 +174,23 @@ class ScheduleService extends ChangeNotifier {
               derivedWeek: weekFromDate,
             );
 
-        final teacherName = _getTeacherName(rawClass['teacherAssignmentList']);
+        final teacherName = _getTeacherName(rawClass['teacherAssignmentList'] ?? rawClass['teachers'] ?? rawClass['teacher'] ?? lesson?['teachers'] ?? lesson?['teacher']);
         final roomName = _resolveRoomName(schedule);
 
         final rawCourseName =
             _getNotEmpty(course?['nameZh']) ??
             _getNotEmpty(course?['name']) ??
+            _getNotEmpty(lessonCourse?['nameZh']) ??
+            _getNotEmpty(lessonCourse?['name']) ??
+            _getNotEmpty(lesson?['nameZh']) ??
+            _getNotEmpty(lesson?['name']) ??
+            _getNotEmpty(lesson?['courseName']) ??
+            _getNotEmpty(rawClass['courseNameZh']) ??
             _getNotEmpty(rawClass['courseName']) ??
+            _getNotEmpty(rawClass['lessonNameZh']) ??
+            _getNotEmpty(rawClass['lessonName']) ??
             _getNotEmpty(rawClass['nameZh']) ??
             _getNotEmpty(rawClass['name']) ??
-            _getNotEmpty(rawClass['lessonName']) ??
             '未知课程';
 
         result[weekday]!.add(

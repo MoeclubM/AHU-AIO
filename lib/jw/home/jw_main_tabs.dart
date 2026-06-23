@@ -7,7 +7,8 @@ import '../pages/jw_notice_page.dart';
 import '../pages/jw_program_page.dart';
 
 class JwMainTabs extends StatefulWidget {
-  const JwMainTabs({super.key});
+  final bool isActive;
+  const JwMainTabs({super.key, this.isActive = false});
 
   @override
   State<JwMainTabs> createState() => _JwMainTabsState();
@@ -39,7 +40,19 @@ class _JwMainTabsState extends State<JwMainTabs>
       begin: 0.0,
       end: 1.0,
     ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
-    _animController.forward();
+    if (widget.isActive) {
+      _animController.forward();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant JwMainTabs oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      _animController.forward(from: 0.0);
+    } else if (!widget.isActive && oldWidget.isActive) {
+      _animController.reverse();
+    }
   }
 
   @override

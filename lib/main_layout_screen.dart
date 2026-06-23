@@ -100,9 +100,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
           });
         },
         children: [
-          const MainPage(),
-          const JwMainTabs(),
-          const FinanceMainTabs(),
+          MainPage(isActive: _currentBottomIndex == 0),
+          JwMainTabs(isActive: _currentBottomIndex == 1),
+          FinanceMainTabs(isActive: _currentBottomIndex == 2),
           AppSettingsScreen(
             onSwitchTab: (index) {
               _pageController.animateToPage(
@@ -153,53 +153,73 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                       final double bubbleWidth = tabWidth - 24;
                       final double bubbleHeight = 44;
 
-                      return Stack(
-                        children: [
-                          Positioned(
-                            left:
-                                _currentPage * tabWidth +
-                                (tabWidth - bubbleWidth) / 2,
-                            top: (64 - bubbleHeight) / 2,
-                            width: bubbleWidth,
-                            height: bubbleHeight,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.primary.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(22),
+                      return GestureDetector(
+                        behavior: HitTestBehavior.translucent,
+                        onHorizontalDragUpdate: (details) {
+                          if (!_pageController.hasClients) return;
+                          final double pageViewWidth = MediaQuery.of(context).size.width;
+                          final double dragDelta = details.delta.dx;
+                          final double targetOffset = _pageController.offset + dragDelta * (pageViewWidth / tabWidth);
+                          final double maxOffset = pageViewWidth * 3;
+                          _pageController.jumpTo(targetOffset.clamp(0.0, maxOffset));
+                        },
+                        onHorizontalDragEnd: (details) {
+                          if (!_pageController.hasClients) return;
+                          final int targetPage = _currentPage.round();
+                          _pageController.animateToPage(
+                            targetPage,
+                            duration: const Duration(milliseconds: 250),
+                            curve: Curves.easeOut,
+                          );
+                        },
+                        child: Stack(
+                          children: [
+                            Positioned(
+                              left:
+                                  _currentPage * tabWidth +
+                                  (tabWidth - bubbleWidth) / 2,
+                              top: (64 - bubbleHeight) / 2,
+                              width: bubbleWidth,
+                              height: bubbleHeight,
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.primary.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(22),
+                                ),
                               ),
                             ),
-                          ),
-                          Row(
-                            children: [
-                              _buildTabItem(
-                                0,
-                                Icons.bolt_outlined,
-                                Icons.bolt,
-                                '微教务',
-                              ),
-                              _buildTabItem(
-                                1,
-                                Icons.school_outlined,
-                                Icons.school,
-                                '安大教务',
-                              ),
-                              _buildTabItem(
-                                2,
-                                Icons.credit_card_outlined,
-                                Icons.credit_card,
-                                '一卡通',
-                              ),
-                              _buildTabItem(
-                                3,
-                                Icons.settings_outlined,
-                                Icons.settings,
-                                '设置',
-                              ),
-                            ],
-                          ),
-                        ],
+                            Row(
+                              children: [
+                                _buildTabItem(
+                                  0,
+                                  Icons.bolt_outlined,
+                                  Icons.bolt,
+                                  '微教务',
+                                ),
+                                _buildTabItem(
+                                  1,
+                                  Icons.school_outlined,
+                                  Icons.school,
+                                  '安大教务',
+                                ),
+                                _buildTabItem(
+                                  2,
+                                  Icons.credit_card_outlined,
+                                  Icons.credit_card,
+                                  '一卡通',
+                                ),
+                                _buildTabItem(
+                                  3,
+                                  Icons.settings_outlined,
+                                  Icons.settings,
+                                  '设置',
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       );
                     },
                   ),

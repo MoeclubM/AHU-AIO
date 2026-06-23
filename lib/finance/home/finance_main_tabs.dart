@@ -5,7 +5,8 @@ import '../pages/finance_pay_code_page.dart';
 import '../pages/finance_recharge_page.dart';
 
 class FinanceMainTabs extends StatefulWidget {
-  const FinanceMainTabs({super.key});
+  final bool isActive;
+  const FinanceMainTabs({super.key, this.isActive = false});
 
   @override
   State<FinanceMainTabs> createState() => _FinanceMainTabsState();
@@ -37,7 +38,19 @@ class _FinanceMainTabsState extends State<FinanceMainTabs>
       begin: 0.0,
       end: 1.0,
     ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
-    _animController.forward();
+    if (widget.isActive) {
+      _animController.forward();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant FinanceMainTabs oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      _animController.forward(from: 0.0);
+    } else if (!widget.isActive && oldWidget.isActive) {
+      _animController.reverse();
+    }
   }
 
   @override

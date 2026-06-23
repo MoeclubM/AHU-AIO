@@ -8,7 +8,8 @@ import '../features/room_view.dart';
 import '../features/notice_view.dart';
 
 class MainPage extends StatefulWidget {
-  const MainPage({super.key});
+  final bool isActive;
+  const MainPage({super.key, this.isActive = false});
 
   @override
   State<MainPage> createState() => _MainPageState();
@@ -40,8 +41,20 @@ class _MainPageState extends State<MainPage>
       begin: 0.0,
       end: 1.0,
     ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
-    _animController.forward();
+    if (widget.isActive) {
+      _animController.forward();
+    }
     MainPageService.checkTokenAndNavigate(context);
+  }
+
+  @override
+  void didUpdateWidget(covariant MainPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && !oldWidget.isActive) {
+      _animController.forward(from: 0.0);
+    } else if (!widget.isActive && oldWidget.isActive) {
+      _animController.reverse();
+    }
   }
 
   @override
