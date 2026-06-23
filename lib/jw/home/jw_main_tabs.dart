@@ -133,7 +133,7 @@ class _JwMainTabsState extends State<JwMainTabs>
                     isScrollable: false,
                     indicatorSize: TabBarIndicatorSize.tab,
                     indicatorPadding: const EdgeInsets.symmetric(
-                      horizontal: 4,
+                      horizontal: 6,
                       vertical: 8,
                     ),
                     indicator: BoxDecoration(
@@ -143,29 +143,29 @@ class _JwMainTabsState extends State<JwMainTabs>
                       borderRadius: BorderRadius.circular(99),
                     ),
                     labelStyle: const TextStyle(
-                      fontSize: 10,
+                      fontSize: 10.5,
                       fontWeight: FontWeight.bold,
                     ),
-                    unselectedLabelStyle: const TextStyle(fontSize: 10),
+                    unselectedLabelStyle: const TextStyle(fontSize: 10.5),
                     labelColor: Theme.of(context).colorScheme.primary,
                     unselectedLabelColor: Theme.of(
                       context,
                     ).colorScheme.onSurfaceVariant.withOpacity(0.7),
                     tabs: const [
                       Tab(
-                        icon: Icon(Icons.home_outlined, size: 18),
+                        icon: Icon(Icons.home_outlined, size: 20),
                         text: '首页',
                       ),
                       Tab(
-                        icon: Icon(Icons.schedule_outlined, size: 18),
+                        icon: Icon(Icons.schedule_outlined, size: 20),
                         text: '课表',
                       ),
                       Tab(
-                        icon: Icon(Icons.grade_outlined, size: 18),
+                        icon: Icon(Icons.grade_outlined, size: 20),
                         text: '成绩',
                       ),
                       Tab(
-                        icon: Icon(Icons.description_outlined, size: 18),
+                        icon: Icon(Icons.description_outlined, size: 20),
                         text: '方案',
                       ),
                     ],

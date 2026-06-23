@@ -136,15 +136,15 @@ class _FinanceMainTabsState extends State<FinanceMainTabs>
                     ).colorScheme.onSurfaceVariant.withOpacity(0.7),
                     tabs: const [
                       Tab(
-                        icon: Icon(Icons.home_outlined, size: 19),
+                        icon: Icon(Icons.home_outlined, size: 20),
                         text: '主页',
                       ),
                       Tab(
-                        icon: Icon(Icons.qr_code_outlined, size: 19),
+                        icon: Icon(Icons.qr_code_outlined, size: 20),
                         text: '一码通',
                       ),
                       Tab(
-                        icon: Icon(Icons.payment_outlined, size: 19),
+                        icon: Icon(Icons.payment_outlined, size: 20),
                         text: '充值缴费',
                       ),
                     ],
