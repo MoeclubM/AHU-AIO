@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'finance_home_view.dart';
 import '../pages/finance_pay_code_page.dart';
 import '../pages/finance_recharge_page.dart';
-import '../pages/finance_cards_page.dart';
 
 class FinanceMainTabs extends StatefulWidget {
   const FinanceMainTabs({super.key});
@@ -19,7 +18,7 @@ class _FinanceMainTabsState extends State<FinanceMainTabs>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
       setState(() {});
     });
@@ -78,7 +77,6 @@ class _FinanceMainTabsState extends State<FinanceMainTabs>
           FinanceHomePage(embed: true),
           FinancePayCodePage(embed: true),
           FinanceRechargePage(embed: true),
-          FinanceCardsPage(embed: true),
         ],
       ),
       bottomNavigationBar: SafeArea(
@@ -148,10 +146,6 @@ class _FinanceMainTabsState extends State<FinanceMainTabs>
                       Tab(
                         icon: Icon(Icons.payment_outlined, size: 19),
                         text: '充值缴费',
-                      ),
-                      Tab(
-                        icon: Icon(Icons.credit_card_outlined, size: 19),
-                        text: '电子卡',
                       ),
                     ],
                   ),
