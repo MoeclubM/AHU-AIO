@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../auth/cas_auth_cache.dart';
 import '../../auth/cas_native_client.dart';
 import '../models/jw_models.dart';
@@ -16,6 +17,7 @@ class JwApi {
   late final PersistCookieJar _cookieJar;
   String? studentId;
   bool _initialized = false;
+  bool _isReLoggingIn = false;
 
   JwApi._internal() {
     _dio = Dio(
@@ -39,7 +41,96 @@ class JwApi {
     if (_initialized) return;
     _cookieJar = await CasAuthCache.cookieJar();
     _dio.interceptors.add(CookieManager(_cookieJar));
+
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onResponse: (response, handler) async {
+          // 如果返回了包含 html 的文本，代表会话已失效重定向到了登录页
+          if (response.data is String &&
+              (response.data.toString().contains('<!DOCTYPE html>') ||
+                  response.data.toString().contains('<html>') ||
+                  response.data.toString().contains('login') ||
+                  response.data.toString().contains('教务学生学生综合业务'))) {
+            final success = await _attemptSilentReLogin();
+            if (success) {
+              final opts = response.requestOptions;
+              try {
+                final retryResp = await _dio.request(
+                  opts.path,
+                  data: opts.data,
+                  queryParameters: opts.queryParameters,
+                  options: Options(method: opts.method, headers: opts.headers),
+                );
+                return handler.resolve(retryResp);
+              } catch (e) {
+                return handler.reject(
+                  DioException(requestOptions: opts, error: e),
+                );
+              }
+            }
+          }
+          return handler.next(response);
+        },
+        onError: (err, handler) async {
+          final isUnauthorized =
+              err.response?.statusCode == 401 ||
+              err.response?.statusCode == 302;
+          final isHtmlError =
+              err.response?.data is String &&
+              (err.response!.data.toString().contains('<!DOCTYPE html>') ||
+                  err.response!.data.toString().contains('login'));
+
+          if (isUnauthorized || isHtmlError) {
+            final success = await _attemptSilentReLogin();
+            if (success) {
+              final opts = err.requestOptions;
+              try {
+                final retryResp = await _dio.request(
+                  opts.path,
+                  data: opts.data,
+                  queryParameters: opts.queryParameters,
+                  options: Options(method: opts.method, headers: opts.headers),
+                );
+                return handler.resolve(retryResp);
+              } catch (e) {
+                return handler.reject(
+                  DioException(requestOptions: opts, error: e),
+                );
+              }
+            }
+          }
+          return handler.next(err);
+        },
+      ),
+    );
+
     _initialized = true;
+  }
+
+  Future<bool> _attemptSilentReLogin() async {
+    if (_isReLoggingIn) return false;
+    _isReLoggingIn = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final u = prefs.getString('username');
+      final p = prefs.getString('password');
+      if (u != null && p != null && u.isNotEmpty && p.isNotEmpty) {
+        final cas = CasNativeClient(cookieJar: _cookieJar);
+        await cas.login(
+          loginUri: CasNativeClient.loginUriForService(ssoLoginUrl),
+          username: u,
+          password: p,
+          trustDevice: true,
+        );
+        studentId = await _fetchStudentId();
+        return studentId != null;
+      }
+      return false;
+    } catch (_) {
+      return false;
+    } finally {
+      _isReLoggingIn = false;
+    }
   }
 
   PersistCookieJar get cookieJar {

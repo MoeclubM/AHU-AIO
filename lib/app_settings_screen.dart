@@ -17,33 +17,10 @@ class AppSettingsScreen extends StatefulWidget {
 class _AppSettingsScreenState extends State<AppSettingsScreen> {
   final _themeManager = ThemeManager();
   final _synjonesClient = SynjonesClient();
-  String? _jwappUsername;
-  bool _loadingFinanceInfo = false;
 
   @override
   void initState() {
     super.initState();
-    _loadJwappUsername();
-    _loadFinanceInfoIfNeeded();
-  }
-
-  Future<void> _loadJwappUsername() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _jwappUsername = prefs.getString('username');
-    });
-  }
-
-  Future<void> _loadFinanceInfoIfNeeded() async {
-    if (_synjonesClient.loggedIn && _synjonesClient.userInfo == null) {
-      setState(() => _loadingFinanceInfo = true);
-      try {
-        await _synjonesClient.fetchUserInfo();
-      } catch (_) {}
-      if (mounted) {
-        setState(() => _loadingFinanceInfo = false);
-      }
-    }
   }
 
   void _globalLogout() async {
@@ -94,44 +71,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
 
           // Accounts Section
           _buildSectionHeader('账号与登录状态'),
-
-          // Jwapp (微教务)
-          _buildAccountStatusTile(
-            title: '微教务',
-            icon: Icons.bolt,
-            iconColor: Colors.amber,
-            isLoggedIn: globals.idToken != null,
-            subtitle: globals.idToken != null
-                ? '学号: ${_jwappUsername ?? '已登录'}'
-                : '未登录',
-          ),
-          const SizedBox(height: 12),
-
-          // Jw (安大教务)
-          _buildAccountStatusTile(
-            title: '安大教务',
-            icon: Icons.school,
-            iconColor: Colors.blue,
-            isLoggedIn: globals.jwLoggedIn,
-            subtitle: globals.jwLoggedIn
-                ? '学号: ${globals.jwStudentNo ?? '已登录'}'
-                : '未登录',
-          ),
-          const SizedBox(height: 12),
-
-          // Finance (一卡通)
-          _buildAccountStatusTile(
-            title: '一卡通系统',
-            icon: Icons.credit_card,
-            iconColor: Colors.green,
-            isLoggedIn: _synjonesClient.loggedIn,
-            subtitle: _synjonesClient.loggedIn
-                ? _loadingFinanceInfo
-                      ? '正在加载...'
-                      : '姓名: ${_synjonesClient.userInfo?['name'] ?? '已登录'}'
-                : '未登录',
-          ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 8),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: FilledButton.icon(
@@ -165,48 +105,6 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
           fontSize: 14,
           fontWeight: FontWeight.bold,
           color: Theme.of(context).colorScheme.primary,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAccountStatusTile({
-    required String title,
-    required IconData icon,
-    required Color iconColor,
-    required bool isLoggedIn,
-    required String subtitle,
-  }) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-        child: ListTile(
-          leading: CircleAvatar(
-            backgroundColor: iconColor.withOpacity(0.12),
-            child: Icon(icon, color: iconColor),
-          ),
-          title: Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          subtitle: Text(subtitle),
-          trailing: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: isLoggedIn
-                  ? Colors.green.withOpacity(0.12)
-                  : Colors.red.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              isLoggedIn ? '已连接' : '未连接',
-              style: TextStyle(
-                color: isLoggedIn ? Colors.green.shade700 : Colors.red.shade700,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
         ),
       ),
     );

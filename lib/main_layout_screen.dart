@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'globals.dart' as globals;
 import 'jwapp/mainpage/mainpage_view.dart';
@@ -104,35 +105,121 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
 
     return Scaffold(
       body: _buildTabContent(),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentBottomIndex,
-        onDestinationSelected: (index) {
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(32),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 16,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(32),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                child: Container(
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.surface.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(32),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outlineVariant.withOpacity(0.35),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      _buildTabItem(0, Icons.bolt_outlined, Icons.bolt, '微教务'),
+                      _buildTabItem(
+                        1,
+                        Icons.school_outlined,
+                        Icons.school,
+                        '安大教务',
+                      ),
+                      _buildTabItem(
+                        2,
+                        Icons.credit_card_outlined,
+                        Icons.credit_card,
+                        '一卡通',
+                      ),
+                      _buildTabItem(
+                        3,
+                        Icons.settings_outlined,
+                        Icons.settings,
+                        '设置',
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTabItem(
+    int index,
+    IconData icon,
+    IconData activeIcon,
+    String label,
+  ) {
+    final bool isSelected = _currentBottomIndex == index;
+    final colorScheme = Theme.of(context).colorScheme;
+    return Expanded(
+      child: InkWell(
+        onTap: () {
           setState(() {
             _currentBottomIndex = index;
           });
         },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.bolt_outlined),
-            selectedIcon: Icon(Icons.bolt),
-            label: '微教务',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.school_outlined),
-            selectedIcon: Icon(Icons.school),
-            label: '安大教务',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.credit_card_outlined),
-            selectedIcon: Icon(Icons.credit_card),
-            label: '一卡通',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
-            label: '设置',
-          ),
-        ],
+        borderRadius: BorderRadius.circular(32),
+        highlightColor: Colors.transparent,
+        splashColor: colorScheme.primary.withOpacity(0.1),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? colorScheme.primary.withOpacity(0.12)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(
+                isSelected ? activeIcon : icon,
+                color: isSelected
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant.withOpacity(0.7),
+                size: 20,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                color: isSelected
+                    ? colorScheme.primary
+                    : colorScheme.onSurfaceVariant.withOpacity(0.7),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
