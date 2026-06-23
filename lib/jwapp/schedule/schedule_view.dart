@@ -33,7 +33,7 @@ class _SchedulePageState extends State<SchedulePage> {
           ? null
           : AppBar(
               toolbarHeight: 52,
-              centerTitle: false,
+              centerTitle: true,
               backgroundColor: Colors.transparent,
               elevation: 0,
               scrolledUnderElevation: 0,
@@ -87,13 +87,52 @@ class _SchedulePageState extends State<SchedulePage> {
             onScaleUpdate: (details) {
               setState(() {
                 _slotHeight = (_baseScaleSlotHeight * details.verticalScale)
-                    .clamp(50.0, 160.0);
+                    .clamp(50.0, 240.0);
               });
             },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               child: Column(
                 children: [
+                  Obx(() {
+                    if (_logic.isCached.value) {
+                      return Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 6,
+                          horizontal: 16,
+                        ),
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.primaryContainer.withOpacity(0.7),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              size: 14,
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onPrimaryContainer,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '当前为本地缓存数据，正在加载最新数据...',
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onPrimaryContainer,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  }),
                   _buildSelectionArea(isLoading),
                   if (isLoading)
                     const Padding(
@@ -450,7 +489,7 @@ class _SchedulePageState extends State<SchedulePage> {
     bool isDark,
   ) {
     final maxLines = _slotHeight > 100
-        ? (_slotHeight / 22).floor().clamp(3, 8)
+        ? (_slotHeight / 22).floor().clamp(3, 12)
         : 3;
     return Container(
       constraints: BoxConstraints(minHeight: _slotHeight),
@@ -504,7 +543,9 @@ class _SchedulePageState extends State<SchedulePage> {
                       height: 1.1,
                     ),
                     softWrap: true,
-                    maxLines: _slotHeight > 110 ? 2 : 1,
+                    maxLines: _slotHeight > 160
+                        ? 3
+                        : (_slotHeight > 110 ? 2 : 1),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
@@ -520,7 +561,9 @@ class _SchedulePageState extends State<SchedulePage> {
                       height: 1.1,
                     ),
                     softWrap: true,
-                    maxLines: _slotHeight > 110 ? 2 : 1,
+                    maxLines: _slotHeight > 160
+                        ? 3
+                        : (_slotHeight > 110 ? 2 : 1),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],

@@ -11,6 +11,7 @@ class ScheduleLogic extends GetxController {
   var scheduleData = <String, dynamic>{}.obs;
   var isLoading = false.obs;
   var errorMessage = ''.obs;
+  var isCached = false.obs;
 
   // 防抖定时器
   Timer? _debounceTimer;
@@ -98,20 +99,31 @@ class ScheduleLogic extends GetxController {
       isLoading.value = true;
       errorMessage.value = '';
 
-      // 使用选中的学期ID
       final semesterId = selectedSemester.value?.id;
-      if (semesterId != null) {
-        await _scheduleService.fetchData(semesterId: semesterId.toString());
+      final semIdStr = semesterId?.toString();
+
+      // 1. 先尝试加载缓存并立即展示
+      await _scheduleService.loadCache(semesterId: semIdStr);
+      scheduleData.assignAll({'classes': _scheduleService.classes ?? []});
+      isCached.value = _scheduleService.isCached;
+      if (scheduleData['classes'] != null &&
+          scheduleData['classes'].isNotEmpty) {
+        update();
+      }
+
+      // 2. 发起 API 请求拉取最新数据
+      if (semIdStr != null) {
+        await _scheduleService.fetchData(semesterId: semIdStr);
       } else {
         await _scheduleService.fetchData();
       }
-
-      // 构建课程数据结构
-      scheduleData.value = {'classes': _scheduleService.classes ?? []};
+      scheduleData.assignAll({'classes': _scheduleService.classes ?? []});
+      isCached.value = false;
     } catch (e) {
       errorMessage.value = e.toString();
     } finally {
       isLoading.value = false;
+      update();
     }
   }
 

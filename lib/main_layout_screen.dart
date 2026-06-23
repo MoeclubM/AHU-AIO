@@ -21,10 +21,18 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
   bool _isInitializing = true;
   int _currentBottomIndex = 0;
   final SynjonesClient _synjonesClient = SynjonesClient();
+  late PageController _pageController;
+  double _currentPage = 0.0;
 
   @override
   void initState() {
     super.initState();
+    _pageController = PageController();
+    _pageController.addListener(() {
+      setState(() {
+        _currentPage = _pageController.page ?? 0.0;
+      });
+    });
     // Register the global state change notifier
     globals.onLoginStateChanged = _onLoginStateChanged;
     _checkInit();
@@ -35,6 +43,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     if (globals.onLoginStateChanged == _onLoginStateChanged) {
       globals.onLoginStateChanged = null;
     }
+    _pageController.dispose();
     super.dispose();
   }
 
@@ -63,27 +72,6 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     }
   }
 
-  Widget _buildTabContent() {
-    switch (_currentBottomIndex) {
-      case 0:
-        return const MainPage();
-      case 1:
-        return const JwMainTabs();
-      case 2:
-        return const FinanceMainTabs();
-      case 3:
-        return AppSettingsScreen(
-          onSwitchTab: (index) {
-            setState(() {
-              _currentBottomIndex = index;
-            });
-          },
-        );
-      default:
-        return const Center(child: Text('未知页面'));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isInitializing) {
@@ -104,7 +92,28 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     }
 
     return Scaffold(
-      body: _buildTabContent(),
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: (index) {
+          setState(() {
+            _currentBottomIndex = index;
+          });
+        },
+        children: [
+          const MainPage(),
+          const JwMainTabs(),
+          const FinanceMainTabs(),
+          AppSettingsScreen(
+            onSwitchTab: (index) {
+              _pageController.animateToPage(
+                index,
+                duration: const Duration(milliseconds: 350),
+                curve: Curves.easeInOut,
+              );
+            },
+          ),
+        ],
+      ),
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
@@ -137,28 +146,62 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                       width: 0.8,
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      _buildTabItem(0, Icons.bolt_outlined, Icons.bolt, '微教务'),
-                      _buildTabItem(
-                        1,
-                        Icons.school_outlined,
-                        Icons.school,
-                        '安大教务',
-                      ),
-                      _buildTabItem(
-                        2,
-                        Icons.credit_card_outlined,
-                        Icons.credit_card,
-                        '一卡通',
-                      ),
-                      _buildTabItem(
-                        3,
-                        Icons.settings_outlined,
-                        Icons.settings,
-                        '设置',
-                      ),
-                    ],
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final double totalWidth = constraints.maxWidth;
+                      final double tabWidth = totalWidth / 4;
+                      final double bubbleWidth = tabWidth - 24;
+                      final double bubbleHeight = 44;
+
+                      return Stack(
+                        children: [
+                          Positioned(
+                            left:
+                                _currentPage * tabWidth +
+                                (tabWidth - bubbleWidth) / 2,
+                            top: (64 - bubbleHeight) / 2,
+                            width: bubbleWidth,
+                            height: bubbleHeight,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.primary.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(22),
+                              ),
+                            ),
+                          ),
+                          Row(
+                            children: [
+                              _buildTabItem(
+                                0,
+                                Icons.bolt_outlined,
+                                Icons.bolt,
+                                '微教务',
+                              ),
+                              _buildTabItem(
+                                1,
+                                Icons.school_outlined,
+                                Icons.school,
+                                '安大教务',
+                              ),
+                              _buildTabItem(
+                                2,
+                                Icons.credit_card_outlined,
+                                Icons.credit_card,
+                                '一卡通',
+                              ),
+                              _buildTabItem(
+                                3,
+                                Icons.settings_outlined,
+                                Icons.settings,
+                                '设置',
+                              ),
+                            ],
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),
@@ -180,9 +223,11 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     return Expanded(
       child: InkWell(
         onTap: () {
-          setState(() {
-            _currentBottomIndex = index;
-          });
+          _pageController.animateToPage(
+            index,
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeInOut,
+          );
         },
         borderRadius: BorderRadius.circular(32),
         highlightColor: Colors.transparent,
@@ -190,22 +235,12 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? colorScheme.primary.withOpacity(0.12)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(
-                isSelected ? activeIcon : icon,
-                color: isSelected
-                    ? colorScheme.primary
-                    : colorScheme.onSurfaceVariant.withOpacity(0.7),
-                size: 20,
-              ),
+            Icon(
+              isSelected ? activeIcon : icon,
+              color: isSelected
+                  ? colorScheme.primary
+                  : colorScheme.onSurfaceVariant.withOpacity(0.7),
+              size: 20,
             ),
             const SizedBox(height: 2),
             Text(

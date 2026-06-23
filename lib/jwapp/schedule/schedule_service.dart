@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api/getclass.dart';
 import '../utils/time_utils.dart';
@@ -34,9 +36,29 @@ class ScheduleEntry {
 class ScheduleService extends ChangeNotifier {
   List<dynamic>? _classes;
   bool _isLoading = false;
+  bool _isCached = false;
 
   List<dynamic>? get classes => _classes;
   bool get isLoading => _isLoading;
+  bool get isCached => _isCached;
+
+  Future<void> loadCache({String? semesterId}) async {
+    try {
+      String? actualSemesterId = semesterId;
+      if (actualSemesterId == null) {
+        actualSemesterId = await SemesterConfig.getCurrentSemesterId();
+        if (actualSemesterId == null) return;
+      }
+      final prefs = await SharedPreferences.getInstance();
+      final cacheKey = 'jwapp_schedule_cache_$actualSemesterId';
+      final cachedStr = prefs.getString(cacheKey);
+      if (cachedStr != null) {
+        _classes = jsonDecode(cachedStr) as List<dynamic>;
+        _isCached = true;
+        notifyListeners();
+      }
+    } catch (_) {}
+  }
 
   Future<void> fetchData({String? semesterId}) async {
     _isLoading = true;
@@ -56,9 +78,18 @@ class ScheduleService extends ChangeNotifier {
         }
       }
 
-      _classes = await getClass(token, semesterId: actualSemesterId);
+      final freshClasses = await getClass(token, semesterId: actualSemesterId);
+      if (freshClasses != null) {
+        _classes = freshClasses;
+        _isCached = false;
+        final prefs = await SharedPreferences.getInstance();
+        final cacheKey = 'jwapp_schedule_cache_$actualSemesterId';
+        await prefs.setString(cacheKey, jsonEncode(freshClasses));
+      }
     } catch (e) {
-      _classes = null;
+      if (_classes == null || _classes!.isEmpty) {
+        _classes = null;
+      }
       rethrow;
     } finally {
       _isLoading = false;
@@ -144,16 +175,19 @@ class ScheduleService extends ChangeNotifier {
         final teacherName = _getTeacherName(rawClass['teacherAssignmentList']);
         final roomName = _resolveRoomName(schedule);
 
+        final rawCourseName =
+            _getNotEmpty(course?['nameZh']) ??
+            _getNotEmpty(course?['name']) ??
+            _getNotEmpty(rawClass['courseName']) ??
+            _getNotEmpty(rawClass['nameZh']) ??
+            _getNotEmpty(rawClass['name']) ??
+            _getNotEmpty(rawClass['lessonName']) ??
+            '未知课程';
+
         result[weekday]!.add(
           ScheduleEntry(
             weekday: weekday,
-            courseName:
-                course?['nameZh']?.toString() ??
-                course?['name']?.toString() ??
-                rawClass['courseName']?.toString() ??
-                rawClass['nameZh']?.toString() ??
-                rawClass['name']?.toString() ??
-                '未知课程',
+            courseName: rawCourseName,
             teacherName: teacherName,
             roomName: roomName,
             startTime: startTime,
@@ -467,5 +501,11 @@ class ScheduleService extends ChangeNotifier {
     }
 
     return '未知教师';
+  }
+
+  String? _getNotEmpty(dynamic val) {
+    if (val == null) return null;
+    final s = val.toString().trim();
+    return s.isEmpty ? null : s;
   }
 }

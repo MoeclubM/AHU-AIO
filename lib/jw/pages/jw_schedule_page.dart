@@ -363,7 +363,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
           onScaleUpdate: (details) {
             setState(() {
               _slotHeight = (_baseScaleSlotHeight * details.verticalScale)
-                  .clamp(45.0, 150.0);
+                  .clamp(45.0, 240.0);
             });
           },
           child: SingleChildScrollView(
@@ -571,7 +571,11 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
     final colorScheme = Theme.of(context).colorScheme;
     final color = _courseColor(a);
     final duration = (a.endUnit ?? 0) - (a.startUnit ?? 0) + 1;
-    final maxLines = duration > 1 ? duration * 3 : (_slotHeight > 70 ? 4 : 3);
+    final maxLines = duration > 1
+        ? duration * 3
+        : (_slotHeight > 160
+              ? 8
+              : (_slotHeight > 100 ? 5 : (_slotHeight > 70 ? 4 : 3)));
 
     return Material(
       color: Colors.transparent,
@@ -608,7 +612,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
                     color: colorScheme.onSurfaceVariant,
                     fontSize: 9.0,
                   ),
-                  maxLines: duration > 1 ? 2 : 1,
+                  maxLines: _slotHeight > 160 ? 3 : (duration > 1 ? 2 : 1),
                   overflow: TextOverflow.ellipsis,
                 ),
               if (a.teacherStr.isNotEmpty)
@@ -618,7 +622,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
                     color: colorScheme.onSurfaceVariant,
                     fontSize: 9.0,
                   ),
-                  maxLines: duration > 1 ? 2 : 1,
+                  maxLines: _slotHeight > 160 ? 3 : (duration > 1 ? 2 : 1),
                   overflow: TextOverflow.ellipsis,
                 ),
             ],
