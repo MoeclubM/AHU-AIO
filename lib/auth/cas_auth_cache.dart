@@ -26,6 +26,11 @@ class CasAuthCache {
     await prefs.setString(_lastServiceKey, service);
   }
 
+  static Future<bool> isLoggedIn() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.containsKey(_loggedInAtKey);
+  }
+
   static Future<void> clear() async {
     final prefs = await SharedPreferences.getInstance();
     final jar = await cookieJar();

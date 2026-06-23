@@ -144,6 +144,10 @@ class _UnifiedLoginPageState extends State<UnifiedLoginPage> {
         await prefs.setString('idToken', globals.idToken!);
       }
 
+      if (globals.jwStudentNo != null) {
+        await prefs.setString('jwStudentNo', globals.jwStudentNo!);
+      }
+
       globals.onLoginStateChanged?.call();
 
       if (widget.onLoginSuccess != null) {

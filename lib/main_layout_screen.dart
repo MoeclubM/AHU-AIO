@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'globals.dart' as globals;
 import 'jwapp/mainpage/mainpage_view.dart';
 import 'jw/home/jw_main_tabs.dart';
@@ -6,6 +7,7 @@ import 'finance/api/synjones_client.dart';
 import 'finance/home/finance_main_tabs.dart';
 import 'app_settings_screen.dart';
 import 'auth/unified_login_page.dart';
+import 'auth/cas_auth_cache.dart';
 
 class MainLayoutScreen extends StatefulWidget {
   const MainLayoutScreen({super.key});
@@ -42,6 +44,13 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
 
   Future<void> _checkInit() async {
     await _synjonesClient.init();
+    final prefs = await SharedPreferences.getInstance();
+    final cachedIdToken = prefs.getString('idToken');
+    if (cachedIdToken != null) {
+      globals.idToken = cachedIdToken;
+    }
+    globals.jwLoggedIn = await CasAuthCache.isLoggedIn();
+    globals.jwStudentNo = prefs.getString('jwStudentNo');
     if (mounted) {
       setState(() {});
     }

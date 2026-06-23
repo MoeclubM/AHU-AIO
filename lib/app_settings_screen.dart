@@ -48,6 +48,9 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
 
   void _logoutJwapp() async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('username');
+    await prefs.remove('password');
+    await prefs.setBool('savePassword', false);
     await prefs.remove('idToken');
     globals.idToken = null;
     globals.onLoginStateChanged?.call();
@@ -55,16 +58,49 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
   }
 
   void _logoutJw() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('username');
+    await prefs.remove('password');
+    await prefs.setBool('savePassword', false);
+    await prefs.remove('jwStudentNo');
     await JwLoginService.logout();
+    globals.jwLoggedIn = false;
+    globals.jwStudentNo = null;
     globals.onLoginStateChanged?.call();
     setState(() {});
   }
 
   void _logoutFinance() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('username');
+    await prefs.remove('password');
+    await prefs.setBool('savePassword', false);
     await _synjonesClient.logout();
     await CasAuthCache.clear();
     globals.onLoginStateChanged?.call();
     setState(() {});
+  }
+
+  void _globalLogout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('username');
+    await prefs.remove('password');
+    await prefs.setBool('savePassword', false);
+    await prefs.remove('idToken');
+    await prefs.remove('jwStudentNo');
+
+    globals.idToken = null;
+    globals.jwLoggedIn = false;
+    globals.jwStudentNo = null;
+
+    await JwLoginService.logout();
+    await _synjonesClient.logout();
+    await CasAuthCache.clear();
+
+    globals.onLoginStateChanged?.call();
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -135,6 +171,26 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 : '未登录',
             onLoginTap: () => widget.onSwitchTab(2),
             onLogoutTap: _logoutFinance,
+          ),
+          const SizedBox(height: 32),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: FilledButton.icon(
+              onPressed: _globalLogout,
+              style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.errorContainer,
+                foregroundColor: Theme.of(context).colorScheme.onErrorContainer,
+                minimumSize: const Size.fromHeight(52),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              icon: const Icon(Icons.logout_rounded),
+              label: const Text(
+                '退出登录 (清除所有账号与缓存)',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
           ),
         ],
       ),

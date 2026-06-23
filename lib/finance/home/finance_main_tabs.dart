@@ -1,9 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../../globals.dart' as globals;
-import '../../auth/cas_auth_cache.dart';
-import '../api/synjones_client.dart';
-import '../../auth/unified_login_page.dart';
 import 'finance_home_view.dart';
 import '../pages/finance_pay_code_page.dart';
 import '../pages/finance_recharge_page.dart';
@@ -18,21 +14,7 @@ class FinanceMainTabs extends StatefulWidget {
 
 class _FinanceMainTabsState extends State<FinanceMainTabs>
     with SingleTickerProviderStateMixin {
-  final _client = SynjonesClient();
   late TabController _tabController;
-
-  void _logout() async {
-    await _client.logout();
-    await CasAuthCache.clear();
-    globals.onLoginStateChanged?.call();
-    if (!mounted) return;
-    if (globals.onLoginStateChanged == null) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const UnifiedLoginPage()),
-      );
-    }
-  }
 
   @override
   void initState() {
@@ -87,16 +69,7 @@ class _FinanceMainTabsState extends State<FinanceMainTabs>
           '一卡通系统',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: IconButton(
-              icon: const Icon(Icons.logout, size: 20),
-              onPressed: _logout,
-              tooltip: '退出登录',
-            ),
-          ),
-        ],
+        actions: const [],
       ),
       body: TabBarView(
         controller: _tabController,

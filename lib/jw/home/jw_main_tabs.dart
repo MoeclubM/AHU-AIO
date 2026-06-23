@@ -1,8 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import '../../globals.dart' as globals;
-import '../login/jw_login_service.dart';
-import '../../auth/unified_login_page.dart';
 import 'jw_home_view.dart';
 import '../pages/jw_schedule_page.dart';
 import '../pages/jw_grades_page.dart';
@@ -19,18 +16,6 @@ class JwMainTabs extends StatefulWidget {
 class _JwMainTabsState extends State<JwMainTabs>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
-
-  void _logout() async {
-    await JwLoginService.logout();
-    globals.onLoginStateChanged?.call();
-    if (!mounted) return;
-    if (globals.onLoginStateChanged == null) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const UnifiedLoginPage()),
-      );
-    }
-  }
 
   @override
   void initState() {
@@ -85,16 +70,7 @@ class _JwMainTabsState extends State<JwMainTabs>
           '安大教务',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: IconButton(
-              icon: const Icon(Icons.logout, size: 20),
-              onPressed: _logout,
-              tooltip: '退出登录',
-            ),
-          ),
-        ],
+        actions: const [],
       ),
       body: TabBarView(
         controller: _tabController,
