@@ -175,7 +175,9 @@ class _SchedulePageState extends State<SchedulePage> {
         final hasData = _logic.processClasses().values.any(
           (entries) => entries.isNotEmpty,
         );
-        return isLoading || !hasData ? const SizedBox.shrink() : _buildFloatingWeekSelector();
+        return isLoading || !hasData
+            ? const SizedBox.shrink()
+            : _buildFloatingWeekSelector();
       }),
     );
   }
@@ -278,7 +280,9 @@ class _SchedulePageState extends State<SchedulePage> {
                 label: Text(
                   isRealCurrent ? '第 $week 周(本周)' : '第 $week 周',
                   style: TextStyle(
-                    fontWeight: isRealCurrent ? FontWeight.bold : FontWeight.normal,
+                    fontWeight: isRealCurrent
+                        ? FontWeight.bold
+                        : FontWeight.normal,
                   ),
                 ),
                 selected: isSelected,

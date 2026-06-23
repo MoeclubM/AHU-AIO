@@ -427,7 +427,9 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
                 label: Text(
                   isRealCurrent ? '第 $week 周(本周)' : '第 $week 周',
                   style: TextStyle(
-                    fontWeight: isRealCurrent ? FontWeight.bold : FontWeight.normal,
+                    fontWeight: isRealCurrent
+                        ? FontWeight.bold
+                        : FontWeight.normal,
                   ),
                 ),
                 selected: isSelected,
