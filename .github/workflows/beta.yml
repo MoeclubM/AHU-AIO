@@ -30,8 +30,9 @@ jobs:
 
       - name: Check Formatting
         run: |
-          dart format --output=diff lib test
-          dart format --set-exit-if-changed lib test
+          dart format lib test
+          git diff
+          git diff --quiet || (echo "Formatting violations found! Please apply the diff above." && exit 1)
 
       - name: Analyze
         run: flutter analyze
