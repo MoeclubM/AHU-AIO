@@ -136,14 +136,12 @@ class _JwMainTabsState extends State<JwMainTabs>
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
                   child: Container(
                     decoration: const BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.transparent,
-                        ),
-                      ],
+                      boxShadow: [BoxShadow(color: Colors.transparent)],
                     ),
                     child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(28),
+                      ),
                       child: BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
                         child: Container(
@@ -152,7 +150,9 @@ class _JwMainTabsState extends State<JwMainTabs>
                             color: Theme.of(
                               context,
                             ).colorScheme.surface.withOpacity(0.08),
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(28),
+                            ),
                             border: Border.all(
                               color: Theme.of(
                                 context,
@@ -186,21 +186,30 @@ class _JwMainTabsState extends State<JwMainTabs>
                                   unselectedLabelStyle: const TextStyle(
                                     fontSize: 10.5,
                                   ),
-                                  labelColor: Theme.of(context).colorScheme.primary,
-                                  unselectedLabelColor: Theme.of(
+                                  labelColor: Theme.of(
                                     context,
-                                  ).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                                  ).colorScheme.primary,
+                                  unselectedLabelColor: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant
+                                      .withOpacity(0.7),
                                   tabs: const [
                                     Tab(
                                       icon: Icon(Icons.home_outlined, size: 20),
                                       text: '首页',
                                     ),
                                     Tab(
-                                      icon: Icon(Icons.schedule_outlined, size: 20),
+                                      icon: Icon(
+                                        Icons.schedule_outlined,
+                                        size: 20,
+                                      ),
                                       text: '课表',
                                     ),
                                     Tab(
-                                      icon: Icon(Icons.grade_outlined, size: 20),
+                                      icon: Icon(
+                                        Icons.grade_outlined,
+                                        size: 20,
+                                      ),
                                       text: '成绩',
                                     ),
                                     Tab(

@@ -119,14 +119,12 @@ class _FinanceMainTabsState extends State<FinanceMainTabs>
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
                   child: Container(
                     decoration: const BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.transparent,
-                        ),
-                      ],
+                      boxShadow: [BoxShadow(color: Colors.transparent)],
                     ),
                     child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(28),
+                      ),
                       child: BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
                         child: Container(
@@ -135,7 +133,9 @@ class _FinanceMainTabsState extends State<FinanceMainTabs>
                             color: Theme.of(
                               context,
                             ).colorScheme.surface.withOpacity(0.08),
-                            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(28),
+                            ),
                             border: Border.all(
                               color: Theme.of(
                                 context,
@@ -169,21 +169,30 @@ class _FinanceMainTabsState extends State<FinanceMainTabs>
                                   unselectedLabelStyle: const TextStyle(
                                     fontSize: 10.5,
                                   ),
-                                  labelColor: Theme.of(context).colorScheme.primary,
-                                  unselectedLabelColor: Theme.of(
+                                  labelColor: Theme.of(
                                     context,
-                                  ).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                                  ).colorScheme.primary,
+                                  unselectedLabelColor: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant
+                                      .withOpacity(0.7),
                                   tabs: const [
                                     Tab(
                                       icon: Icon(Icons.home_outlined, size: 20),
                                       text: '主页',
                                     ),
                                     Tab(
-                                      icon: Icon(Icons.qr_code_outlined, size: 20),
+                                      icon: Icon(
+                                        Icons.qr_code_outlined,
+                                        size: 20,
+                                      ),
                                       text: '一码通',
                                     ),
                                     Tab(
-                                      icon: Icon(Icons.payment_outlined, size: 20),
+                                      icon: Icon(
+                                        Icons.payment_outlined,
+                                        size: 20,
+                                      ),
                                       text: '充值缴费',
                                     ),
                                   ],
