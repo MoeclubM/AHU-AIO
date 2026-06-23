@@ -169,6 +169,15 @@ class ScheduleLogic extends GetxController {
     update();
   }
 
+  // 获取真实的当前周，如果不在当前学期则返回null
+  int? get realCurrentWeek {
+    if (currentSemesterInfo.value != null &&
+        selectedSemester.value?.id == currentSemesterInfo.value!.id) {
+      return _getCurrentWeek(currentSemesterInfo.value!);
+    }
+    return null;
+  }
+
   // 格式化时间
   String formatTime(int time) {
     return _scheduleService.formatTime(time);

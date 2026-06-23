@@ -133,7 +133,7 @@ class _JwMainTabsState extends State<JwMainTabs>
                 top: false,
                 bottom: true,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 88),
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 76),
                   child: Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(32),

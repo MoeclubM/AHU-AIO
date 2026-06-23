@@ -169,20 +169,139 @@ class _SchedulePageState extends State<SchedulePage> {
           ),
         );
       }),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: Obx(() {
+        final isLoading = _logic.isLoading.value;
+        final hasData = _logic.processClasses().values.any(
+          (entries) => entries.isNotEmpty,
+        );
+        return isLoading || !hasData ? const SizedBox.shrink() : _buildFloatingWeekSelector();
+      }),
     );
+  }
+
+  Widget _buildFloatingWeekSelector() {
+    final selectedWeek = _logic.selectedWeek.value;
+    return SafeArea(
+      top: false,
+      bottom: true,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 136),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+            child: Container(
+              height: 52,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.22),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.35),
+                  width: 0.8,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left),
+                    color: Colors.white,
+                    onPressed: selectedWeek > 1
+                        ? () => _logic.selectWeek(selectedWeek - 1)
+                        : null,
+                  ),
+                  GestureDetector(
+                    onTap: _showWeekPicker,
+                    child: Container(
+                      constraints: const BoxConstraints(minWidth: 96),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '第 $selectedWeek 周',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right),
+                    color: Colors.white,
+                    onPressed: selectedWeek < 20
+                        ? () => _logic.selectWeek(selectedWeek + 1)
+                        : null,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showWeekPicker() async {
+    final currentWeek = _logic.selectedWeek.value;
+    final realCurrent = _logic.realCurrentWeek;
+    final selectedWeek = await showModalBottomSheet<int>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final bottomPadding = MediaQuery.of(ctx).viewPadding.bottom;
+        return Container(
+          padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomPadding),
+          decoration: BoxDecoration(
+            color: Theme.of(ctx).colorScheme.surface.withOpacity(0.95),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+          ),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: List.generate(20, (index) {
+              final week = index + 1;
+              final isSelected = week == currentWeek;
+              final isRealCurrent = week == realCurrent;
+              return ChoiceChip(
+                avatar: isRealCurrent
+                    ? Icon(
+                        Icons.star,
+                        size: 14,
+                        color: isSelected
+                            ? Theme.of(ctx).colorScheme.onPrimary
+                            : Theme.of(ctx).colorScheme.primary,
+                      )
+                    : null,
+                label: Text(
+                  isRealCurrent ? '第 $week 周(本周)' : '第 $week 周',
+                  style: TextStyle(
+                    fontWeight: isRealCurrent ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+                selected: isSelected,
+                onSelected: (_) => Navigator.pop(ctx, week),
+              );
+            }),
+          ),
+        );
+      },
+    );
+
+    if (selectedWeek != null && mounted) {
+      _logic.selectWeek(selectedWeek);
+    }
   }
 
   Widget _buildSelectionArea(bool isLoading) {
     final semesters = _logic.allSemesters.toList();
     final selectedSemester = _logic.selectedSemester.value;
-    final weeks = _logic.availableWeeks.toList();
-    final selectedWeek = _logic.selectedWeek.value;
 
     final semesterValue = semesters.firstWhereOrNull(
       (semester) => semester.id == selectedSemester?.id,
     );
-
-    final weekValue = weeks.contains(selectedWeek) ? selectedWeek : null;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -198,54 +317,25 @@ class _SchedulePageState extends State<SchedulePage> {
           ),
         ),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: DropdownButton<SemesterInfo>(
-              value: semesterValue,
-              isExpanded: true,
-              hint: const Text('请选择学期'),
-              onChanged: isLoading
-                  ? null
-                  : (value) {
-                      if (value != null) {
-                        _logic.selectSemester(value);
-                      }
-                    },
-              items: semesters
-                  .map(
-                    (semester) => DropdownMenuItem<SemesterInfo>(
-                      value: semester,
-                      child: Text(semester.nameZh),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: DropdownButton<int>(
-              value: weekValue,
-              isExpanded: true,
-              hint: const Text('请选择周次'),
-              onChanged: isLoading || weeks.isEmpty
-                  ? null
-                  : (value) {
-                      if (value != null) {
-                        _logic.selectWeek(value);
-                      }
-                    },
-              items: weeks
-                  .map(
-                    (week) => DropdownMenuItem<int>(
-                      value: week,
-                      child: Text('第$week周'),
-                    ),
-                  )
-                  .toList(),
-            ),
-          ),
-        ],
+      child: DropdownButton<SemesterInfo>(
+        value: semesterValue,
+        isExpanded: true,
+        hint: const Text('请选择学期'),
+        onChanged: isLoading
+            ? null
+            : (value) {
+                if (value != null) {
+                  _logic.selectSemester(value);
+                }
+              },
+        items: semesters
+            .map(
+              (semester) => DropdownMenuItem<SemesterInfo>(
+                value: semester,
+                child: Text(semester.nameZh),
+              ),
+            )
+            .toList(),
       ),
     );
   }

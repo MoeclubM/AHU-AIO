@@ -20,6 +20,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
   bool _isLoading = true;
   String? _error;
   bool _isCached = false;
+  int? _realCurrentWeek;
 
   static const _weekdays = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
   static const _maxSlots = 11;
@@ -56,6 +57,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
       final weekRaw = await _api.getCurrentTeachWeek();
       final weekInfo = TeachWeekInfo.fromJson(weekRaw);
       _currentWeek = weekInfo.weekIndex ?? 1;
+      _realCurrentWeek = weekInfo.weekIndex;
 
       // 从成绩 API 获取学期列表，匹配当前学期名
       final semList = await _api.getSemesters();
@@ -332,55 +334,60 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
 
   Widget _buildFloatingWeekSelector() {
     return SafeArea(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-          child: Container(
-            height: 52,
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.22),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.35),
-                width: 0.8,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.chevron_left),
-                  color: Colors.white,
-                  onPressed: _currentWeek > 1
-                      ? () => setState(() => _currentWeek--)
-                      : null,
+      top: false,
+      bottom: true,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 136),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+            child: Container(
+              height: 52,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.22),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.35),
+                  width: 0.8,
                 ),
-                GestureDetector(
-                  onTap: _showWeekPicker,
-                  child: Container(
-                    constraints: const BoxConstraints(minWidth: 96),
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    alignment: Alignment.center,
-                    child: Text(
-                      '第 $_currentWeek 周',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left),
+                    color: Colors.white,
+                    onPressed: _currentWeek > 1
+                        ? () => setState(() => _currentWeek--)
+                        : null,
+                  ),
+                  GestureDetector(
+                    onTap: _showWeekPicker,
+                    child: Container(
+                      constraints: const BoxConstraints(minWidth: 96),
+                      padding: const EdgeInsets.symmetric(horizontal: 10),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '第 $_currentWeek 周',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.chevron_right),
-                  color: Colors.white,
-                  onPressed: _currentWeek < 20
-                      ? () => setState(() => _currentWeek++)
-                      : null,
-                ),
-              ],
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right),
+                    color: Colors.white,
+                    onPressed: _currentWeek < 20
+                        ? () => setState(() => _currentWeek++)
+                        : null,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -406,8 +413,23 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
             children: List.generate(20, (index) {
               final week = index + 1;
               final isSelected = week == _currentWeek;
+              final isRealCurrent = week == _realCurrentWeek;
               return ChoiceChip(
-                label: Text('第$week周'),
+                avatar: isRealCurrent
+                    ? Icon(
+                        Icons.star,
+                        size: 14,
+                        color: isSelected
+                            ? Theme.of(ctx).colorScheme.onPrimary
+                            : Theme.of(ctx).colorScheme.primary,
+                      )
+                    : null,
+                label: Text(
+                  isRealCurrent ? '第 $week 周(本周)' : '第 $week 周',
+                  style: TextStyle(
+                    fontWeight: isRealCurrent ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
                 selected: isSelected,
                 onSelected: (_) => Navigator.pop(ctx, week),
               );
