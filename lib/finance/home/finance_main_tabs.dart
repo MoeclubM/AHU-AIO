@@ -30,7 +30,7 @@ class _FinanceMainTabsState extends State<FinanceMainTabs>
       duration: const Duration(milliseconds: 650),
     );
     _slideAnimation =
-        Tween<Offset>(begin: const Offset(0, 1.2), end: Offset.zero).animate(
+        Tween<Offset>(begin: const Offset(0, 1.5), end: Offset.zero).animate(
           CurvedAnimation(parent: _animController, curve: Curves.easeOutBack),
         );
     if (widget.isActive) {
@@ -116,29 +116,26 @@ class _FinanceMainTabsState extends State<FinanceMainTabs>
                 top: false,
                 bottom: true,
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 76),
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
                   child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(32),
+                    decoration: const BoxDecoration(
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.06),
-                          blurRadius: 16,
-                          offset: const Offset(0, 4),
+                          color: Colors.transparent,
                         ),
                       ],
                     ),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(32),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
                       child: BackdropFilter(
                         filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
                         child: Container(
-                          height: 64,
+                          height: 120,
                           decoration: BoxDecoration(
                             color: Theme.of(
                               context,
                             ).colorScheme.surface.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(32),
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
                             border: Border.all(
                               color: Theme.of(
                                 context,
@@ -146,44 +143,53 @@ class _FinanceMainTabsState extends State<FinanceMainTabs>
                               width: 0.8,
                             ),
                           ),
-                          child: TabBar(
-                            controller: _tabController,
-                            isScrollable: false,
-                            indicatorSize: TabBarIndicatorSize.tab,
-                            indicatorPadding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 8,
-                            ),
-                            indicator: BoxDecoration(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.primary.withOpacity(0.12),
-                              borderRadius: BorderRadius.circular(99),
-                            ),
-                            labelStyle: const TextStyle(
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.bold,
-                            ),
-                            unselectedLabelStyle: const TextStyle(
-                              fontSize: 10.5,
-                            ),
-                            labelColor: Theme.of(context).colorScheme.primary,
-                            unselectedLabelColor: Theme.of(
-                              context,
-                            ).colorScheme.onSurfaceVariant.withOpacity(0.7),
-                            tabs: const [
-                              Tab(
-                                icon: Icon(Icons.home_outlined, size: 20),
-                                text: '主页',
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              SizedBox(
+                                height: 56,
+                                child: TabBar(
+                                  controller: _tabController,
+                                  isScrollable: false,
+                                  indicatorSize: TabBarIndicatorSize.tab,
+                                  indicatorPadding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 8,
+                                  ),
+                                  indicator: BoxDecoration(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary.withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(99),
+                                  ),
+                                  labelStyle: const TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  unselectedLabelStyle: const TextStyle(
+                                    fontSize: 10.5,
+                                  ),
+                                  labelColor: Theme.of(context).colorScheme.primary,
+                                  unselectedLabelColor: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                                  tabs: const [
+                                    Tab(
+                                      icon: Icon(Icons.home_outlined, size: 20),
+                                      text: '主页',
+                                    ),
+                                    Tab(
+                                      icon: Icon(Icons.qr_code_outlined, size: 20),
+                                      text: '一码通',
+                                    ),
+                                    Tab(
+                                      icon: Icon(Icons.payment_outlined, size: 20),
+                                      text: '充值缴费',
+                                    ),
+                                  ],
+                                ),
                               ),
-                              Tab(
-                                icon: Icon(Icons.qr_code_outlined, size: 20),
-                                text: '一码通',
-                              ),
-                              Tab(
-                                icon: Icon(Icons.payment_outlined, size: 20),
-                                text: '充值缴费',
-                              ),
+                              const SizedBox(height: 64),
                             ],
                           ),
                         ),
