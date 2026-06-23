@@ -147,7 +147,8 @@ class ScheduleService extends ChangeNotifier {
         result[weekday]!.add(
           ScheduleEntry(
             weekday: weekday,
-            courseName: course?['nameZh']?.toString() ??
+            courseName:
+                course?['nameZh']?.toString() ??
                 course?['name']?.toString() ??
                 rawClass['courseName']?.toString() ??
                 rawClass['nameZh']?.toString() ??
