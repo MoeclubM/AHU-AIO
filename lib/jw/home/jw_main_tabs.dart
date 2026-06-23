@@ -19,7 +19,6 @@ class _JwMainTabsState extends State<JwMainTabs>
   late TabController _tabController;
   late AnimationController _animController;
   late Animation<Offset> _slideAnimation;
-  late Animation<double> _fadeAnimation;
 
   @override
   void initState() {
@@ -36,10 +35,6 @@ class _JwMainTabsState extends State<JwMainTabs>
         Tween<Offset>(begin: const Offset(0, 1.2), end: Offset.zero).animate(
           CurvedAnimation(parent: _animController, curve: Curves.easeOutBack),
         );
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
     if (widget.isActive) {
       _animController.forward();
     }
