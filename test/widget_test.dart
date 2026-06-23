@@ -23,7 +23,6 @@ void main() {
     await tester.pump(const Duration(milliseconds: 500));
 
     // Verify that the app loads without errors
-    expect(find.byType(Scaffold), findsAtLeastNWidgets(1));
-    expect(find.text('正在自动登录中...'), findsOneWidget);
+    expect(find.byType(MainLayoutScreen), findsOneWidget);
   });
 }
