@@ -29,10 +29,7 @@ jobs:
       - run: flutter pub get
 
       - name: Check Formatting
-        run: |
-          dart format lib test
-          git diff
-          git diff --quiet || (echo "Formatting violations found! Please apply the diff above." && exit 1)
+        run: dart format --set-exit-if-changed lib test
 
       - name: Analyze
         run: flutter analyze

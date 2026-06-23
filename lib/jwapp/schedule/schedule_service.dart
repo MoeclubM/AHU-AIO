@@ -137,7 +137,8 @@ class ScheduleService extends ChangeNotifier {
       final lesson = rawClass['lesson'] as Map<String, dynamic>?;
       final lessonCourse = lesson?['course'] as Map<String, dynamic>?;
       final classWeeks = _extractWeekIndices(rawClass['weekIndices']);
-      final isHonorCourse = _isHonorCourse(course) ||
+      final isHonorCourse =
+          _isHonorCourse(course) ||
           _isHonorCourse(rawClass) ||
           _isHonorCourse(lesson) ||
           _isHonorCourse(lessonCourse);
@@ -177,11 +178,13 @@ class ScheduleService extends ChangeNotifier {
               derivedWeek: weekFromDate,
             );
 
-        final teacherName = _getTeacherName(rawClass['teacherAssignmentList'] ??
-            rawClass['teachers'] ??
-            rawClass['teacher'] ??
-            lesson?['teachers'] ??
-            lesson?['teacher']);
+        final teacherName = _getTeacherName(
+          rawClass['teacherAssignmentList'] ??
+              rawClass['teachers'] ??
+              rawClass['teacher'] ??
+              lesson?['teachers'] ??
+              lesson?['teacher'],
+        );
         final roomName = _resolveRoomName(schedule);
 
         final rawCourseName =
