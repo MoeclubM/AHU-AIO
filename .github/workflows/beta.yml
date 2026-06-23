@@ -14,12 +14,15 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
-  # ──── CI 检查 ────
   check:
     name: Format · Analyze · Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref || github.ref }}
 
       - uses: subosito/flutter-action@v2
         with:
@@ -28,8 +31,15 @@ jobs:
 
       - run: flutter pub get
 
-      - name: Check Formatting
-        run: dart format --set-exit-if-changed lib test
+      - name: Auto Format and Push
+        run: |
+          dart format lib test
+          if [ -n "$(git status --porcelain)" ]; then
+            git config --global user.name 'github-actions[bot]'
+            git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+            git commit -am "style: auto format code by CI"
+            git push origin HEAD:${{ github.ref }}
+          fi
 
       - name: Analyze
         run: flutter analyze
