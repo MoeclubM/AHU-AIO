@@ -4,7 +4,8 @@ import '../models/room_model.dart';
 import '../../globals.dart' as globals;
 
 class RoomPage extends StatefulWidget {
-  const RoomPage({super.key});
+  final bool embed;
+  const RoomPage({super.key, this.embed = false});
 
   @override
   State<RoomPage> createState() => _RoomPageState();
@@ -84,6 +85,8 @@ class _RoomPageState extends State<RoomPage> {
         campusId: _selectedCampus!.id,
         buildingId: _selectedBuilding!.id,
         date: DateTime.now().toString().substring(0, 10),
+        currentPage: 1,
+        pageSize: 150,
       );
 
       final roomsData = await RoomApi.getRooms(
@@ -111,7 +114,7 @@ class _RoomPageState extends State<RoomPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('空闲教室查询')),
+      appBar: widget.embed ? null : AppBar(title: const Text('空闲教室查询')),
       body: Column(
         children: [
           _buildFilterSection(),
@@ -315,7 +318,7 @@ class _RoomPageState extends State<RoomPage> {
                         ),
                       ),
                       Text(
-                        '${room.roomType} | 容量: ${room.capacity}人',
+                        '${room.roomType} | 容量: ${room.capacity > 0 ? "${room.capacity}人" : "未知"}',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey.shade600,

@@ -5,7 +5,8 @@ import '../models/grade_model.dart';
 import '../../globals.dart' as globals;
 
 class GradesPage extends StatefulWidget {
-  const GradesPage({super.key});
+  final bool embed;
+  const GradesPage({super.key, this.embed = false});
 
   @override
   State<GradesPage> createState() => _GradesPageState();
@@ -87,7 +88,7 @@ class _GradesPageState extends State<GradesPage> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('成绩查询')),
+      appBar: widget.embed ? null : AppBar(title: const Text('成绩查询')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

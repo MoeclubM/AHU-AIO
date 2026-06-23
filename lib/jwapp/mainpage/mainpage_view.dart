@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import '../home/home_view.dart';
 import '../schedule/schedule_view.dart';
 import 'mainpage_service.dart';
-import '../funcs/func_view.dart';
+import '../features/grades_view.dart';
+import '../features/room_view.dart';
 import '../features/notice_view.dart';
 
 class MainPage extends StatefulWidget {
@@ -20,7 +21,7 @@ class _MainPageState extends State<MainPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(() {
       setState(() {});
     });
@@ -91,7 +92,8 @@ class _MainPageState extends State<MainPage>
         children: [
           HomePage(isVisible: _tabController.index == 0, embed: true),
           const SchedulePage(embed: true),
-          const FuncPage(embed: true),
+          const GradesPage(embed: true),
+          const RoomPage(embed: true),
         ],
       ),
       bottomNavigationBar: SafeArea(
@@ -126,7 +128,7 @@ class _MainPageState extends State<MainPage>
                   controller: _tabController,
                   indicatorSize: TabBarIndicatorSize.tab,
                   indicatorPadding: const EdgeInsets.symmetric(
-                    horizontal: 8,
+                    horizontal: 6,
                     vertical: 8,
                   ),
                   indicator: BoxDecoration(
@@ -136,10 +138,10 @@ class _MainPageState extends State<MainPage>
                     borderRadius: BorderRadius.circular(99),
                   ),
                   labelStyle: const TextStyle(
-                    fontSize: 11,
+                    fontSize: 10.5,
                     fontWeight: FontWeight.bold,
                   ),
-                  unselectedLabelStyle: const TextStyle(fontSize: 11),
+                  unselectedLabelStyle: const TextStyle(fontSize: 10.5),
                   labelColor: Theme.of(context).colorScheme.primary,
                   unselectedLabelColor: Theme.of(
                     context,
@@ -150,7 +152,11 @@ class _MainPageState extends State<MainPage>
                       icon: Icon(Icons.schedule_outlined, size: 20),
                       text: '课表',
                     ),
-                    Tab(icon: Icon(Icons.apps, size: 20), text: '更多'),
+                    Tab(icon: Icon(Icons.grade_outlined, size: 20), text: '成绩'),
+                    Tab(
+                      icon: Icon(Icons.meeting_room_outlined, size: 20),
+                      text: '空闲教室',
+                    ),
                   ],
                 ),
               ),

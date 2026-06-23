@@ -193,6 +193,8 @@ class RoomFilter {
   String? endTime;
   bool? hasProjector;
   bool? hasComputer;
+  int? currentPage;
+  int? pageSize;
 
   RoomFilter({
     this.campusId,
@@ -206,6 +208,8 @@ class RoomFilter {
     this.endTime,
     this.hasProjector,
     this.hasComputer,
+    this.currentPage,
+    this.pageSize,
   });
 
   Map<String, dynamic> toJson() {
@@ -223,6 +227,8 @@ class RoomFilter {
     if (endTime != null) data['endTime'] = endTime;
     if (hasProjector != null) data['hasProjector'] = hasProjector;
     if (hasComputer != null) data['hasComputer'] = hasComputer;
+    if (currentPage != null) data['currentPage'] = currentPage;
+    if (pageSize != null) data['pageSize'] = pageSize;
     return data;
   }
 }
