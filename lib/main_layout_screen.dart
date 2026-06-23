@@ -157,11 +157,17 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                         behavior: HitTestBehavior.translucent,
                         onHorizontalDragUpdate: (details) {
                           if (!_pageController.hasClients) return;
-                          final double pageViewWidth = MediaQuery.of(context).size.width;
+                          final double pageViewWidth = MediaQuery.of(
+                            context,
+                          ).size.width;
                           final double dragDelta = details.delta.dx;
-                          final double targetOffset = _pageController.offset + dragDelta * (pageViewWidth / tabWidth);
+                          final double targetOffset =
+                              _pageController.offset +
+                              dragDelta * (pageViewWidth / tabWidth);
                           final double maxOffset = pageViewWidth * 3;
-                          _pageController.jumpTo(targetOffset.clamp(0.0, maxOffset));
+                          _pageController.jumpTo(
+                            targetOffset.clamp(0.0, maxOffset),
+                          );
                         },
                         onHorizontalDragEnd: (details) {
                           if (!_pageController.hasClients) return;

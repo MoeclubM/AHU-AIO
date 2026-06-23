@@ -89,7 +89,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
 
       final raw = await _api.getCourseTablePrintData(semId);
       final freshData = CourseTableData.fromJson(raw);
-      
+
       await prefs.setString(cacheKey, jsonEncode(raw));
 
       setState(() {
@@ -196,10 +196,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
         if (_isCached)
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(
-              vertical: 6,
-              horizontal: 16,
-            ),
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
             color: Theme.of(
               context,
             ).colorScheme.primaryContainer.withOpacity(0.7),
@@ -208,9 +205,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
                 Icon(
                   Icons.info_outline,
                   size: 14,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onPrimaryContainer,
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -220,9 +215,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
                         : '当前为本地缓存数据，正在加载最新数据...',
                     style: TextStyle(
                       fontSize: 11.5,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onPrimaryContainer,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
