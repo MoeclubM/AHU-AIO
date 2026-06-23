@@ -17,6 +17,8 @@ class SchedulePage extends StatefulWidget {
 
 class _SchedulePageState extends State<SchedulePage> {
   late final ScheduleLogic _logic;
+  double _slotHeight = 80.0;
+  double _baseScaleSlotHeight = 80.0;
 
   @override
   void initState() {
@@ -78,22 +80,33 @@ class _SchedulePageState extends State<SchedulePage> {
 
         return RefreshIndicator(
           onRefresh: _logic.refreshData,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Column(
-              children: [
-                _buildSelectionArea(isLoading),
-                if (isLoading)
-                  const Padding(
-                    padding: EdgeInsets.only(top: 8.0),
-                    child: LinearProgressIndicator(),
-                  ),
-                if (errorText.isNotEmpty) _buildErrorNotice(errorText),
-                if (!isLoading && errorText.isEmpty && !hasData)
-                  _buildEmptyNotice(),
-                if (hasData) _buildScheduleTable(scheduleByDay),
-                const SizedBox(height: 16),
-              ],
+          child: GestureDetector(
+            onScaleStart: (details) {
+              _baseScaleSlotHeight = _slotHeight;
+            },
+            onScaleUpdate: (details) {
+              setState(() {
+                _slotHeight = (_baseScaleSlotHeight * details.verticalScale)
+                    .clamp(50.0, 160.0);
+              });
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                children: [
+                  _buildSelectionArea(isLoading),
+                  if (isLoading)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 8.0),
+                      child: LinearProgressIndicator(),
+                    ),
+                  if (errorText.isNotEmpty) _buildErrorNotice(errorText),
+                  if (!isLoading && errorText.isEmpty && !hasData)
+                    _buildEmptyNotice(),
+                  if (hasData) _buildScheduleTable(scheduleByDay),
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
           ),
         );
@@ -372,7 +385,7 @@ class _SchedulePageState extends State<SchedulePage> {
         TableCell(
           verticalAlignment: TableCellVerticalAlignment.middle,
           child: Container(
-            constraints: const BoxConstraints(minHeight: 80),
+            constraints: BoxConstraints(minHeight: _slotHeight),
             padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -399,7 +412,7 @@ class _SchedulePageState extends State<SchedulePage> {
           if (matchingEntries.isEmpty) {
             return TableCell(
               child: Container(
-                constraints: const BoxConstraints(minHeight: 80),
+                constraints: BoxConstraints(minHeight: _slotHeight),
                 padding: const EdgeInsets.all(2),
               ),
             );
@@ -436,8 +449,11 @@ class _SchedulePageState extends State<SchedulePage> {
     ThemeData theme,
     bool isDark,
   ) {
+    final maxLines = _slotHeight > 100
+        ? (_slotHeight / 22).floor().clamp(3, 8)
+        : 3;
     return Container(
-      constraints: const BoxConstraints(minHeight: 80),
+      constraints: BoxConstraints(minHeight: _slotHeight),
       padding: const EdgeInsets.symmetric(horizontal: 1.5, vertical: 1),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -473,7 +489,7 @@ class _SchedulePageState extends State<SchedulePage> {
                     height: 1.1,
                   ),
                   softWrap: true,
-                  maxLines: 3,
+                  maxLines: maxLines,
                   overflow: TextOverflow.ellipsis,
                 ),
                 if (entry.roomName.isNotEmpty) ...[
@@ -488,7 +504,7 @@ class _SchedulePageState extends State<SchedulePage> {
                       height: 1.1,
                     ),
                     softWrap: true,
-                    maxLines: 1,
+                    maxLines: _slotHeight > 110 ? 2 : 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
@@ -504,7 +520,7 @@ class _SchedulePageState extends State<SchedulePage> {
                       height: 1.1,
                     ),
                     softWrap: true,
-                    maxLines: 1,
+                    maxLines: _slotHeight > 110 ? 2 : 1,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],
