@@ -136,8 +136,9 @@ class _MainPageState extends State<MainPage>
             bottom: 0,
             child: SlideTransition(
               position: _slideAnimation,
-              child: FadeTransition(
-                opacity: _fadeAnimation,
+              child: SafeArea(
+                top: false,
+                bottom: true,
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(24, 0, 24, 88),
                   child: Container(

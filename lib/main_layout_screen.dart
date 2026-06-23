@@ -93,6 +93,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
 
     return Scaffold(
       body: PageView(
+        physics: const NeverScrollableScrollPhysics(),
         controller: _pageController,
         onPageChanged: (index) {
           setState(() {
@@ -150,8 +151,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                     builder: (context, constraints) {
                       final double totalWidth = constraints.maxWidth;
                       final double tabWidth = totalWidth / 4;
-                      final double bubbleWidth = tabWidth - 24;
-                      final double bubbleHeight = 44;
+                      final double bubbleWidth = tabWidth - 8;
+                      final double bubbleHeight = 48;
 
                       return GestureDetector(
                         behavior: HitTestBehavior.translucent,
@@ -192,7 +193,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
                                   color: Theme.of(
                                     context,
                                   ).colorScheme.primary.withOpacity(0.12),
-                                  borderRadius: BorderRadius.circular(22),
+                                  borderRadius: BorderRadius.circular(24),
                                 ),
                               ),
                             ),
