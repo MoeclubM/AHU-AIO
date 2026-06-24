@@ -4,7 +4,7 @@ import '../home/home_view.dart';
 import '../schedule/schedule_view.dart';
 import '../features/grades_view.dart';
 import '../features/room_view.dart';
-import '../notice/notice_view.dart';
+import '../features/notice_view.dart';
 import 'mainpage_service.dart';
 
 class MainPage extends StatefulWidget {
