@@ -169,23 +169,14 @@ class _JwMainTabsState extends State<JwMainTabs>
                     context,
                   ).colorScheme.onSurfaceVariant.withOpacity(0.7),
                   tabs: const [
-                    Tab(
-                      icon: Icon(Icons.home_outlined, size: 20),
-                      text: '首页',
-                    ),
+                    Tab(icon: Icon(Icons.home_outlined, size: 20), text: '首页'),
                     Tab(
                       icon: Icon(Icons.schedule_outlined, size: 20),
                       text: '课表',
                     ),
+                    Tab(icon: Icon(Icons.grade_outlined, size: 20), text: '成绩'),
                     Tab(
-                      icon: Icon(Icons.grade_outlined, size: 20),
-                      text: '成绩',
-                    ),
-                    Tab(
-                      icon: Icon(
-                        Icons.description_outlined,
-                        size: 20,
-                      ),
+                      icon: Icon(Icons.description_outlined, size: 20),
                       text: '方案',
                     ),
                   ],
