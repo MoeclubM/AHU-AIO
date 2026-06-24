@@ -386,8 +386,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                       child: GestureDetector(
                                         behavior: HitTestBehavior.translucent,
                                         onHorizontalDragUpdate: (details) {
-                                          if (!_pageController.hasClients)
+                                          if (!_pageController.hasClients) {
                                             return;
+                                          }
                                           final double pageViewWidth =
                                               MediaQuery.of(context).size.width;
                                           final double dragDelta =
@@ -403,8 +404,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                           );
                                         },
                                         onHorizontalDragEnd: (details) {
-                                          if (!_pageController.hasClients)
+                                          if (!_pageController.hasClients) {
                                             return;
+                                          }
                                           final int targetPage = _currentPage
                                               .round();
                                           _pageController.animateToPage(
