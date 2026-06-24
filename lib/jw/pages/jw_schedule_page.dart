@@ -337,7 +337,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
       top: false,
       bottom: true,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 68),
+        padding: const EdgeInsets.only(bottom: 148),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(28),
           child: BackdropFilter(
@@ -469,7 +469,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
             });
           },
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(0, 4, 0, 92),
+            padding: const EdgeInsets.fromLTRB(0, 4, 0, 148),
             child: Column(
               children: [
                 Row(

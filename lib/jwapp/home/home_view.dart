@@ -388,7 +388,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   ),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 148),
                   itemCount: groupedSchedules.keys.length,
                   itemBuilder: (context, index) {
                     final timeSlot = groupedSchedules.keys.elementAt(index);
@@ -592,7 +592,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 148),
       itemCount: exams.length,
       itemBuilder: (context, index) {
         final exam = exams[index];

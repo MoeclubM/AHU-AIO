@@ -30,7 +30,6 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
   late TabController _financeTabController;
 
   late AnimationController _subTabAnimController;
-  late Animation<Offset> _subTabSlideAnimation;
 
   @override
   void initState() {
@@ -58,12 +57,11 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
 
     _subTabAnimController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 350),
+      duration: const Duration(milliseconds: 250),
     );
-    _subTabSlideAnimation =
-        Tween<Offset>(begin: const Offset(0, 1.5), end: Offset.zero).animate(
-          CurvedAnimation(parent: _subTabAnimController, curve: Curves.easeOut),
-        );
+    _subTabAnimController.addListener(() {
+      setState(() {});
+    });
 
     if (_currentBottomIndex >= 0 && _currentBottomIndex <= 2) {
       _subTabAnimController.value = 1.0;
@@ -117,8 +115,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
   Widget _buildSubTabBarChild() {
     TabController? controller;
     List<Tab> tabs = [];
+    final activeIndex = _currentPage.round();
 
-    if (_currentBottomIndex == 0) {
+    if (activeIndex == 0) {
       controller = _microTabController;
       tabs = const [
         Tab(icon: Icon(Icons.home_outlined, size: 20), text: '首页'),
@@ -126,7 +125,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
         Tab(icon: Icon(Icons.grade_outlined, size: 20), text: '成绩'),
         Tab(icon: Icon(Icons.meeting_room_outlined, size: 20), text: '空闲教室'),
       ];
-    } else if (_currentBottomIndex == 1) {
+    } else if (activeIndex == 1) {
       controller = _jwTabController;
       tabs = const [
         Tab(icon: Icon(Icons.home_outlined, size: 20), text: '首页'),
@@ -134,7 +133,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
         Tab(icon: Icon(Icons.grade_outlined, size: 20), text: '成绩'),
         Tab(icon: Icon(Icons.description_outlined, size: 20), text: '方案'),
       ];
-    } else if (_currentBottomIndex == 2) {
+    } else if (activeIndex == 2) {
       controller = _financeTabController;
       tabs = const [
         Tab(icon: Icon(Icons.home_outlined, size: 20), text: '主页'),
@@ -146,7 +145,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     if (controller == null) return const SizedBox.shrink();
 
     return TabBar(
-      key: ValueKey(_currentBottomIndex),
+      key: ValueKey(activeIndex),
       controller: controller,
       isScrollable: false,
       indicatorSize: TabBarIndicatorSize.tab,
@@ -163,6 +162,56 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
       ).colorScheme.onSurfaceVariant.withOpacity(0.7),
       tabs: tabs,
     );
+  }
+
+  double _getSubTabVisibility(double page) {
+    int left = page.floor();
+    int right = page.ceil();
+    double t = page - left;
+
+    bool leftHasSub = left >= 0 && left <= 2;
+    bool rightHasSub = right >= 0 && right <= 2;
+
+    if (leftHasSub && rightHasSub) {
+      return (1.0 - 2.0 * t).abs();
+    } else if (leftHasSub && !rightHasSub) {
+      if (t < 0.5) {
+        return 1.0 - 2.0 * t;
+      } else {
+        return 0.0;
+      }
+    } else if (!leftHasSub && rightHasSub) {
+      if (t > 0.5) {
+        return 2.0 * (t - 0.5);
+      } else {
+        return 0.0;
+      }
+    } else {
+      return 0.0;
+    }
+  }
+
+  Future<void> _handleTabSwitch(int index) async {
+    if (index == _currentBottomIndex) return;
+
+    final hasSubCurrent = _currentBottomIndex >= 0 && _currentBottomIndex <= 2;
+
+    if (hasSubCurrent) {
+      await _subTabAnimController.reverse();
+    }
+
+    if (mounted) {
+      await _pageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+      
+      setState(() {
+        _currentBottomIndex = index;
+        _currentPage = index.toDouble();
+      });
+    }
   }
 
   @override
@@ -214,13 +263,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                 tabController: _financeTabController,
               ),
               AppSettingsScreen(
-                onSwitchTab: (index) {
-                  _pageController.animateToPage(
-                    index,
-                    duration: const Duration(milliseconds: 350),
-                    curve: Curves.easeInOut,
-                  );
-                },
+                onSwitchTab: _handleTabSwitch,
               ),
             ],
           ),
@@ -234,55 +277,63 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
               child: Stack(
                 alignment: Alignment.bottomCenter,
                 children: [
-                  SlideTransition(
-                    position: _subTabSlideAnimation,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(64, 0, 64, 76),
-                      child: ClipRRect(
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(20),
-                        ),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                          child: Container(
-                            height: 56,
-                            decoration: BoxDecoration(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.surface.withOpacity(0.08),
-                              borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(20),
-                              ),
-                              border: Border(
-                                top: BorderSide(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .outlineVariant
-                                      .withOpacity(0.35),
-                                  width: 0.8,
+                  Builder(
+                    builder: (context) {
+                      final gestureVisibility = _getSubTabVisibility(_currentPage);
+                      final finalVisibility = _subTabAnimController.value * gestureVisibility;
+                      final double yOffset = (1.0 - finalVisibility) * 76.0;
+
+                      return Transform.translate(
+                        offset: Offset(0, yOffset),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(64, 0, 64, 76),
+                          child: ClipRRect(
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(20),
+                            ),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                              child: Container(
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.surface.withOpacity(0.08),
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(20),
+                                  ),
+                                  border: Border(
+                                    top: BorderSide(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .outlineVariant
+                                          .withOpacity(0.35),
+                                      width: 0.8,
+                                    ),
+                                    left: BorderSide(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .outlineVariant
+                                          .withOpacity(0.35),
+                                      width: 0.8,
+                                    ),
+                                    right: BorderSide(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .outlineVariant
+                                          .withOpacity(0.35),
+                                      width: 0.8,
+                                    ),
+                                    bottom: BorderSide.none,
+                                  ),
                                 ),
-                                left: BorderSide(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .outlineVariant
-                                      .withOpacity(0.35),
-                                  width: 0.8,
-                                ),
-                                right: BorderSide(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .outlineVariant
-                                      .withOpacity(0.35),
-                                  width: 0.8,
-                                ),
-                                bottom: BorderSide.none,
+                                child: _buildSubTabBarChild(),
                               ),
                             ),
-                            child: _buildSubTabBarChild(),
                           ),
                         ),
-                      ),
-                    ),
+                      );
+                    }
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
@@ -322,42 +373,42 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                 final double bubbleWidth = tabWidth - 8;
                                 final double bubbleHeight = 48;
 
-                                return GestureDetector(
-                                  behavior: HitTestBehavior.translucent,
-                                  onHorizontalDragUpdate: (details) {
-                                    if (!_pageController.hasClients) return;
-                                    final double pageViewWidth = MediaQuery.of(
-                                      context,
-                                    ).size.width;
-                                    final double dragDelta = details.delta.dx;
-                                    final double targetOffset =
-                                        _pageController.offset +
-                                        dragDelta * (pageViewWidth / tabWidth);
-                                    final double maxOffset = pageViewWidth * 3;
-                                    _pageController.jumpTo(
-                                      targetOffset.clamp(0.0, maxOffset),
-                                    );
-                                  },
-                                  onHorizontalDragEnd: (details) {
-                                    if (!_pageController.hasClients) return;
-                                    final int targetPage = _currentPage.round();
-                                    _pageController.animateToPage(
-                                      targetPage,
-                                      duration: const Duration(
-                                        milliseconds: 250,
-                                      ),
-                                      curve: Curves.easeOut,
-                                    );
-                                  },
-                                  child: Stack(
-                                    children: [
-                                      Positioned(
-                                        left:
-                                            _currentPage * tabWidth +
-                                            (tabWidth - bubbleWidth) / 2,
-                                        top: (64 - bubbleHeight) / 2,
-                                        width: bubbleWidth,
-                                        height: bubbleHeight,
+                                return Stack(
+                                  children: [
+                                    Positioned(
+                                      left:
+                                          _currentPage * tabWidth +
+                                          (tabWidth - bubbleWidth) / 2,
+                                      top: (64 - bubbleHeight) / 2,
+                                      width: bubbleWidth,
+                                      height: bubbleHeight,
+                                      child: GestureDetector(
+                                        behavior: HitTestBehavior.translucent,
+                                        onHorizontalDragUpdate: (details) {
+                                          if (!_pageController.hasClients) return;
+                                          final double pageViewWidth = MediaQuery.of(
+                                            context,
+                                          ).size.width;
+                                          final double dragDelta = details.delta.dx;
+                                          final double targetOffset =
+                                              _pageController.offset +
+                                              dragDelta * (pageViewWidth / tabWidth);
+                                          final double maxOffset = pageViewWidth * 3;
+                                          _pageController.jumpTo(
+                                            targetOffset.clamp(0.0, maxOffset),
+                                          );
+                                        },
+                                        onHorizontalDragEnd: (details) {
+                                          if (!_pageController.hasClients) return;
+                                          final int targetPage = _currentPage.round();
+                                          _pageController.animateToPage(
+                                            targetPage,
+                                            duration: const Duration(
+                                              milliseconds: 250,
+                                            ),
+                                            curve: Curves.easeOut,
+                                          );
+                                        },
                                         child: Container(
                                           decoration: BoxDecoration(
                                             color: Theme.of(context)
@@ -370,36 +421,36 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                           ),
                                         ),
                                       ),
-                                      Row(
-                                        children: [
-                                          _buildTabItem(
-                                            0,
-                                            Icons.bolt_outlined,
-                                            Icons.bolt,
-                                            '微教务',
-                                          ),
-                                          _buildTabItem(
-                                            1,
-                                            Icons.school_outlined,
-                                            Icons.school,
-                                            '安大教务',
-                                          ),
-                                          _buildTabItem(
-                                            2,
-                                            Icons.credit_card_outlined,
-                                            Icons.credit_card,
-                                            '一卡通',
-                                          ),
-                                          _buildTabItem(
-                                            3,
-                                            Icons.settings_outlined,
-                                            Icons.settings,
-                                            '设置',
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
+                                    ),
+                                    Row(
+                                      children: [
+                                        _buildTabItem(
+                                          0,
+                                          Icons.bolt_outlined,
+                                          Icons.bolt,
+                                          '微教务',
+                                        ),
+                                        _buildTabItem(
+                                          1,
+                                          Icons.school_outlined,
+                                          Icons.school,
+                                          '安大教务',
+                                        ),
+                                        _buildTabItem(
+                                          2,
+                                          Icons.credit_card_outlined,
+                                          Icons.credit_card,
+                                          '一卡通',
+                                        ),
+                                        _buildTabItem(
+                                          3,
+                                          Icons.settings_outlined,
+                                          Icons.settings,
+                                          '设置',
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 );
                               },
                             ),
@@ -427,13 +478,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     final colorScheme = Theme.of(context).colorScheme;
     return Expanded(
       child: InkWell(
-        onTap: () {
-          _pageController.animateToPage(
-            index,
-            duration: const Duration(milliseconds: 350),
-            curve: Curves.easeInOut,
-          );
-        },
+        onTap: () => _handleTabSwitch(index),
         borderRadius: BorderRadius.circular(32),
         highlightColor: Colors.transparent,
         splashColor: colorScheme.primary.withOpacity(0.1),

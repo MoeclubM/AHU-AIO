@@ -162,7 +162,7 @@ class _SchedulePageState extends State<SchedulePage> {
                   if (!isLoading && errorText.isEmpty && !hasData)
                     _buildEmptyNotice(),
                   if (hasData) _buildScheduleTable(scheduleByDay),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 148),
                 ],
               ),
             ),
@@ -188,7 +188,7 @@ class _SchedulePageState extends State<SchedulePage> {
       top: false,
       bottom: true,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 68),
+        padding: const EdgeInsets.only(bottom: 148),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(28),
           child: BackdropFilter(

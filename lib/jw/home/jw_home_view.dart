@@ -108,7 +108,7 @@ class _JwHomePageState extends State<JwHomePage> {
           : RefreshIndicator(
               onRefresh: _loadData,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 92),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 148),
                 children: [
                   _buildTeachWeekCard(),
                   const SizedBox(height: 16),

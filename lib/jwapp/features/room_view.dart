@@ -127,9 +127,12 @@ class _RoomPageState extends State<RoomPage> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _searchRooms,
-        child: const Icon(Icons.search),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 148.0),
+        child: FloatingActionButton(
+          onPressed: _searchRooms,
+          child: const Icon(Icons.search),
+        ),
       ),
     );
   }
@@ -267,7 +270,7 @@ class _RoomPageState extends State<RoomPage> {
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 148),
       itemCount: _rooms.length,
       itemBuilder: (context, index) {
         final room = _rooms[index];

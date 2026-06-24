@@ -116,7 +116,7 @@ class _FinanceRechargePageState extends State<FinanceRechargePage> {
               onRefresh: _loadEntries,
               child: GridView.builder(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 92),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 148),
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 2,
                   crossAxisSpacing: 12,

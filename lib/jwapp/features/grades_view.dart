@@ -218,7 +218,7 @@ class _GradesPageState extends State<GradesPage> {
       ..sort((a, b) => b.compareTo(a));
 
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 148),
       itemCount: sortedSemesters.length,
       itemBuilder: (context, index) {
         final semester = sortedSemesters[index];
