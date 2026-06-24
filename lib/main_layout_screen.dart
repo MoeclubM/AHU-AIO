@@ -92,7 +92,6 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     }
 
     return Scaffold(
-      extendBody: true,
       body: PageView(
         physics: const NeverScrollableScrollPhysics(),
         controller: _pageController,

@@ -96,120 +96,80 @@ class _FinanceMainTabsState extends State<FinanceMainTabs>
         ),
         actions: const [],
       ),
-      body: Stack(
+      body: TabBarView(
+        controller: _tabController,
         children: [
-          TabBarView(
-            controller: _tabController,
-            children: [
-              FinanceHomePage(embed: true),
-              FinancePayCodePage(embed: true),
-              FinanceRechargePage(embed: true),
-            ],
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: SlideTransition(
-              position: _slideAnimation,
-              child: SafeArea(
-                top: false,
-                bottom: true,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      boxShadow: [BoxShadow(color: Colors.transparent)],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(28),
-                      ),
-                      child: BackdropFilter(
-                        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                        child: Container(
-                          height: 120,
-                          decoration: BoxDecoration(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.surface.withOpacity(0.08),
-                            borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(28),
-                            ),
-                            border: Border.all(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.outlineVariant.withOpacity(0.35),
-                              width: 0.8,
-                            ),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: [
-                              SizedBox(
-                                height: 56,
-                                child: TabBar(
-                                  controller: _tabController,
-                                  isScrollable: false,
-                                  indicatorSize: TabBarIndicatorSize.tab,
-                                  indicatorPadding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 8,
-                                  ),
-                                  indicator: BoxDecoration(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary.withOpacity(0.12),
-                                    borderRadius: BorderRadius.circular(99),
-                                  ),
-                                  labelStyle: const TextStyle(
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  unselectedLabelStyle: const TextStyle(
-                                    fontSize: 10.5,
-                                  ),
-                                  labelColor: Theme.of(
-                                    context,
-                                  ).colorScheme.primary,
-                                  unselectedLabelColor: Theme.of(context)
-                                      .colorScheme
-                                      .onSurfaceVariant
-                                      .withOpacity(0.7),
-                                  tabs: const [
-                                    Tab(
-                                      icon: Icon(Icons.home_outlined, size: 20),
-                                      text: '主页',
-                                    ),
-                                    Tab(
-                                      icon: Icon(
-                                        Icons.qr_code_outlined,
-                                        size: 20,
-                                      ),
-                                      text: '一码通',
-                                    ),
-                                    Tab(
-                                      icon: Icon(
-                                        Icons.payment_outlined,
-                                        size: 20,
-                                      ),
-                                      text: '充值缴费',
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 64),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
+          FinanceHomePage(embed: true),
+          FinancePayCodePage(embed: true),
+          FinanceRechargePage(embed: true),
+        ],
+      ),
+      bottomNavigationBar: SlideTransition(
+        position: _slideAnimation,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+              child: Container(
+                height: 56,
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.surface.withOpacity(0.08),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(28),
                   ),
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outlineVariant.withOpacity(0.35),
+                    width: 0.8,
+                  ),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  isScrollable: false,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicatorPadding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 8,
+                  ),
+                  indicator: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primary.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  labelStyle: const TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  unselectedLabelStyle: const TextStyle(fontSize: 10.5),
+                  labelColor: Theme.of(context).colorScheme.primary,
+                  unselectedLabelColor: Theme.of(
+                    context,
+                  ).colorScheme.onSurfaceVariant.withOpacity(0.7),
+                  tabs: const [
+                    Tab(
+                      icon: Icon(Icons.home_outlined, size: 20),
+                      text: '主页',
+                    ),
+                    Tab(
+                      icon: Icon(Icons.qr_code_outlined, size: 20),
+                      text: '一码通',
+                    ),
+                    Tab(
+                      icon: Icon(Icons.payment_outlined, size: 20),
+                      text: '充值缴费',
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

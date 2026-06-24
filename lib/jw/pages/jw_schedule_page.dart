@@ -337,7 +337,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
       top: false,
       bottom: true,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 136),
+        padding: const EdgeInsets.only(bottom: 68),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(28),
           child: BackdropFilter(
