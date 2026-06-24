@@ -206,7 +206,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
-      
+
       setState(() {
         _currentBottomIndex = index;
         _currentPage = index.toDouble();
@@ -262,9 +262,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                 isActive: _currentBottomIndex == 2,
                 tabController: _financeTabController,
               ),
-              AppSettingsScreen(
-                onSwitchTab: _handleTabSwitch,
-              ),
+              AppSettingsScreen(onSwitchTab: _handleTabSwitch),
             ],
           ),
           Positioned(
@@ -279,8 +277,11 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                 children: [
                   Builder(
                     builder: (context) {
-                      final gestureVisibility = _getSubTabVisibility(_currentPage);
-                      final finalVisibility = _subTabAnimController.value * gestureVisibility;
+                      final gestureVisibility = _getSubTabVisibility(
+                        _currentPage,
+                      );
+                      final finalVisibility =
+                          _subTabAnimController.value * gestureVisibility;
                       final double yOffset = (1.0 - finalVisibility) * 76.0;
 
                       return Transform.translate(
@@ -333,7 +334,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                           ),
                         ),
                       );
-                    }
+                    },
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
@@ -385,22 +386,27 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                       child: GestureDetector(
                                         behavior: HitTestBehavior.translucent,
                                         onHorizontalDragUpdate: (details) {
-                                          if (!_pageController.hasClients) return;
-                                          final double pageViewWidth = MediaQuery.of(
-                                            context,
-                                          ).size.width;
-                                          final double dragDelta = details.delta.dx;
+                                          if (!_pageController.hasClients)
+                                            return;
+                                          final double pageViewWidth =
+                                              MediaQuery.of(context).size.width;
+                                          final double dragDelta =
+                                              details.delta.dx;
                                           final double targetOffset =
                                               _pageController.offset +
-                                              dragDelta * (pageViewWidth / tabWidth);
-                                          final double maxOffset = pageViewWidth * 3;
+                                              dragDelta *
+                                                  (pageViewWidth / tabWidth);
+                                          final double maxOffset =
+                                              pageViewWidth * 3;
                                           _pageController.jumpTo(
                                             targetOffset.clamp(0.0, maxOffset),
                                           );
                                         },
                                         onHorizontalDragEnd: (details) {
-                                          if (!_pageController.hasClients) return;
-                                          final int targetPage = _currentPage.round();
+                                          if (!_pageController.hasClients)
+                                            return;
+                                          final int targetPage = _currentPage
+                                              .round();
                                           _pageController.animateToPage(
                                             targetPage,
                                             duration: const Duration(
