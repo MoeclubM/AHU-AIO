@@ -23,7 +23,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
   int _currentBottomIndex = 0;
   final SynjonesClient _synjonesClient = SynjonesClient();
   late PageController _pageController;
-  double _currentPage = 0.0;
+  final ValueNotifier<double> _pagePercentNotifier = ValueNotifier(0.0);
+  bool _isDraggingBubble = false;
 
   late TabController _microTabController;
   late TabController _jwTabController;
@@ -36,9 +37,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     super.initState();
     _pageController = PageController();
     _pageController.addListener(() {
-      setState(() {
-        _currentPage = _pageController.page ?? 0.0;
-      });
+      _pagePercentNotifier.value = _pageController.page ?? 0.0;
     });
 
     _microTabController = TabController(length: 4, vsync: this);
@@ -59,9 +58,6 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
       vsync: this,
       duration: const Duration(milliseconds: 250),
     );
-    _subTabAnimController.addListener(() {
-      setState(() {});
-    });
 
     if (_currentBottomIndex >= 0 && _currentBottomIndex <= 2) {
       _subTabAnimController.value = 1.0;
@@ -80,6 +76,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
       globals.onLoginStateChanged = null;
     }
     _pageController.dispose();
+    _pagePercentNotifier.dispose();
     _microTabController.dispose();
     _jwTabController.dispose();
     _financeTabController.dispose();
@@ -112,10 +109,10 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     }
   }
 
-  Widget _buildSubTabBarChild() {
+  Widget _buildSubTabBarChild(double currentPage) {
     TabController? controller;
     List<Tab> tabs = [];
-    final activeIndex = _currentPage.round();
+    final activeIndex = currentPage.round();
 
     if (activeIndex == 0) {
       controller = _microTabController;
@@ -209,7 +206,6 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
 
       setState(() {
         _currentBottomIndex = index;
-        _currentPage = index.toDouble();
       });
     }
   }
@@ -272,19 +268,18 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
             child: SafeArea(
               top: false,
               bottom: true,
-              child: Stack(
-                alignment: Alignment.bottomCenter,
-                children: [
-                  Builder(
-                    builder: (context) {
-                      final gestureVisibility = _getSubTabVisibility(
-                        _currentPage,
-                      );
-                      final finalVisibility =
-                          _subTabAnimController.value * gestureVisibility;
-                      final double yOffset = (1.0 - finalVisibility) * 76.0;
+              child: AnimatedBuilder(
+                animation: Listenable.merge([_pagePercentNotifier, _subTabAnimController]),
+                builder: (context, child) {
+                  final double currentPage = _pagePercentNotifier.value;
+                  final gestureVisibility = _getSubTabVisibility(currentPage);
+                  final finalVisibility = _subTabAnimController.value * gestureVisibility;
+                  final double yOffset = (1.0 - finalVisibility) * 44.0;
 
-                      return Transform.translate(
+                  return Stack(
+                    alignment: Alignment.bottomCenter,
+                    children: [
+                      Transform.translate(
                         offset: Offset(0, yOffset),
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(64, 0, 64, 76),
@@ -328,146 +323,148 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                     bottom: BorderSide.none,
                                   ),
                                 ),
-                                child: _buildSubTabBarChild(),
+                                child: _buildSubTabBarChild(currentPage),
                               ),
                             ),
                           ),
                         ),
-                      );
-                    },
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(32),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.06),
-                            blurRadius: 16,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
                       ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(32),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                          child: Container(
-                            height: 64,
-                            decoration: BoxDecoration(
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.surface.withOpacity(0.08),
-                              borderRadius: BorderRadius.circular(32),
-                              border: Border.all(
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.outlineVariant.withOpacity(0.35),
-                                width: 0.8,
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(32),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.06),
+                                blurRadius: 16,
+                                offset: const Offset(0, 4),
                               ),
-                            ),
-                            child: LayoutBuilder(
-                              builder: (context, constraints) {
-                                final double totalWidth = constraints.maxWidth;
-                                final double tabWidth = totalWidth / 4;
-                                final double bubbleWidth = tabWidth - 8;
-                                final double bubbleHeight = 48;
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(32),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                              child: Container(
+                                height: 64,
+                                decoration: BoxDecoration(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.surface.withOpacity(0.08),
+                                  borderRadius: BorderRadius.circular(32),
+                                  border: Border.all(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.outlineVariant.withOpacity(0.35),
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: LayoutBuilder(
+                                  builder: (context, constraints) {
+                                    final double totalWidth = constraints.maxWidth;
+                                    final double tabWidth = totalWidth / 4;
+                                    final double bubbleWidth = tabWidth - 8;
+                                    final double bubbleHeight = 48;
 
-                                return Stack(
-                                  children: [
-                                    Positioned(
-                                      left:
-                                          _currentPage * tabWidth +
-                                          (tabWidth - bubbleWidth) / 2,
-                                      top: (64 - bubbleHeight) / 2,
-                                      width: bubbleWidth,
-                                      height: bubbleHeight,
-                                      child: GestureDetector(
-                                        behavior: HitTestBehavior.translucent,
-                                        onHorizontalDragUpdate: (details) {
-                                          if (!_pageController.hasClients) {
-                                            return;
-                                          }
-                                          final double pageViewWidth =
-                                              MediaQuery.of(context).size.width;
-                                          final double dragDelta =
-                                              details.delta.dx;
-                                          final double targetOffset =
-                                              _pageController.offset +
-                                              dragDelta *
-                                                  (pageViewWidth / tabWidth);
-                                          final double maxOffset =
-                                              pageViewWidth * 3;
-                                          _pageController.jumpTo(
-                                            targetOffset.clamp(0.0, maxOffset),
-                                          );
-                                        },
-                                        onHorizontalDragEnd: (details) {
-                                          if (!_pageController.hasClients) {
-                                            return;
-                                          }
-                                          final int targetPage = _currentPage
-                                              .round();
-                                          _pageController.animateToPage(
-                                            targetPage,
-                                            duration: const Duration(
-                                              milliseconds: 250,
-                                            ),
-                                            curve: Curves.easeOut,
-                                          );
-                                        },
-                                        child: Container(
-                                          decoration: BoxDecoration(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .primary
-                                                .withOpacity(0.12),
-                                            borderRadius: BorderRadius.circular(
-                                              24,
+                                    return GestureDetector(
+                                      behavior: HitTestBehavior.translucent,
+                                      onHorizontalDragStart: (details) {
+                                        final double bubbleLeft =
+                                            currentPage * tabWidth +
+                                            (tabWidth - bubbleWidth) / 2;
+                                        final double bubbleRight = bubbleLeft + bubbleWidth;
+                                        final double touchX = details.localPosition.dx;
+                                        _isDraggingBubble = touchX >= bubbleLeft && touchX <= bubbleRight;
+                                      },
+                                      onHorizontalDragUpdate: (details) {
+                                        if (!_isDraggingBubble) return;
+                                        if (!_pageController.hasClients) return;
+                                        final double pageViewWidth =
+                                            MediaQuery.of(context).size.width;
+                                        final double dragDelta = details.delta.dx;
+                                        final double targetOffset =
+                                            _pageController.offset +
+                                            dragDelta * (pageViewWidth / tabWidth);
+                                        final double maxOffset = pageViewWidth * 3;
+                                        _pageController.jumpTo(
+                                          targetOffset.clamp(0.0, maxOffset),
+                                        );
+                                      },
+                                      onHorizontalDragEnd: (details) {
+                                        if (!_isDraggingBubble) return;
+                                        if (!_pageController.hasClients) return;
+                                        final int targetPage = currentPage.round();
+                                        _pageController.animateToPage(
+                                          targetPage,
+                                          duration: const Duration(
+                                            milliseconds: 250,
+                                          ),
+                                          curve: Curves.easeOut,
+                                        );
+                                      },
+                                      child: Stack(
+                                        children: [
+                                          Positioned(
+                                            left:
+                                                currentPage * tabWidth +
+                                                (tabWidth - bubbleWidth) / 2,
+                                            top: (64 - bubbleHeight) / 2,
+                                            width: bubbleWidth,
+                                            height: bubbleHeight,
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .primary
+                                                    .withOpacity(0.12),
+                                                borderRadius: BorderRadius.circular(
+                                                  24,
+                                                ),
+                                              ),
                                             ),
                                           ),
-                                        ),
+                                          Row(
+                                            children: [
+                                              _buildTabItem(
+                                                0,
+                                                Icons.bolt_outlined,
+                                                Icons.bolt,
+                                                '微教务',
+                                              ),
+                                              _buildTabItem(
+                                                1,
+                                                Icons.school_outlined,
+                                                Icons.school,
+                                                '安大教务',
+                                              ),
+                                              _buildTabItem(
+                                                2,
+                                                Icons.credit_card_outlined,
+                                                Icons.credit_card,
+                                                '一卡通',
+                                              ),
+                                              _buildTabItem(
+                                                3,
+                                                Icons.settings_outlined,
+                                                Icons.settings,
+                                                '设置',
+                                              ),
+                                            ],
+                                          ),
+                                        ],
                                       ),
-                                    ),
-                                    Row(
-                                      children: [
-                                        _buildTabItem(
-                                          0,
-                                          Icons.bolt_outlined,
-                                          Icons.bolt,
-                                          '微教务',
-                                        ),
-                                        _buildTabItem(
-                                          1,
-                                          Icons.school_outlined,
-                                          Icons.school,
-                                          '安大教务',
-                                        ),
-                                        _buildTabItem(
-                                          2,
-                                          Icons.credit_card_outlined,
-                                          Icons.credit_card,
-                                          '一卡通',
-                                        ),
-                                        _buildTabItem(
-                                          3,
-                                          Icons.settings_outlined,
-                                          Icons.settings,
-                                          '设置',
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                );
-                              },
+                                    );
+                                  },
+                                ),
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
             ),
           ),

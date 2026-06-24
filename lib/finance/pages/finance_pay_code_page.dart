@@ -256,11 +256,7 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
     final headImage = _headImage(avatar);
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [colorScheme.primary, colorScheme.tertiary],
-        ),
+        color: colorScheme.primary,
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
