@@ -6,59 +6,26 @@ import '../pages/finance_recharge_page.dart';
 
 class FinanceMainTabs extends StatefulWidget {
   final bool isActive;
-  const FinanceMainTabs({super.key, this.isActive = false});
+  final TabController tabController;
+  const FinanceMainTabs({
+    super.key,
+    this.isActive = false,
+    required this.tabController,
+  });
 
   @override
   State<FinanceMainTabs> createState() => _FinanceMainTabsState();
 }
 
-class _FinanceMainTabsState extends State<FinanceMainTabs>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  late AnimationController _animController;
-  late Animation<Offset> _slideAnimation;
-
+class _FinanceMainTabsState extends State<FinanceMainTabs> {
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    _tabController.addListener(() {
-      setState(() {});
-    });
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 650),
-    );
-    _slideAnimation =
-        Tween<Offset>(begin: const Offset(0, 1.5), end: Offset.zero).animate(
-          CurvedAnimation(parent: _animController, curve: Curves.easeOutBack),
-        );
-    if (widget.isActive) {
-      _animController.forward();
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant FinanceMainTabs oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isActive && !oldWidget.isActive) {
-      _animController.forward(from: 0.0);
-    } else if (!widget.isActive && oldWidget.isActive) {
-      _animController.reverse();
-    }
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    _animController.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true,
       appBar: AppBar(
         toolbarHeight: 52,
         backgroundColor: Colors.transparent,
@@ -97,91 +64,12 @@ class _FinanceMainTabsState extends State<FinanceMainTabs>
         actions: const [],
       ),
       body: TabBarView(
-        controller: _tabController,
+        controller: widget.tabController,
         children: [
           FinanceHomePage(embed: true),
           FinancePayCodePage(embed: true),
           FinanceRechargePage(embed: true),
         ],
-      ),
-      bottomNavigationBar: SlideTransition(
-        position: _slideAnimation,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(64, 0, 64, 0),
-          child: ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-              child: Container(
-                height: 56,
-                decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.surface.withOpacity(0.08),
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(20),
-                  ),
-                  border: Border(
-                    top: BorderSide(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outlineVariant.withOpacity(0.35),
-                      width: 0.8,
-                    ),
-                    left: BorderSide(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outlineVariant.withOpacity(0.35),
-                      width: 0.8,
-                    ),
-                    right: BorderSide(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outlineVariant.withOpacity(0.35),
-                      width: 0.8,
-                    ),
-                    bottom: BorderSide.none,
-                  ),
-                ),
-                child: TabBar(
-                  controller: _tabController,
-                  isScrollable: false,
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  indicatorPadding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 8,
-                  ),
-                  indicator: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                  labelStyle: const TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  unselectedLabelStyle: const TextStyle(fontSize: 10.5),
-                  labelColor: Theme.of(context).colorScheme.primary,
-                  unselectedLabelColor: Theme.of(
-                    context,
-                  ).colorScheme.onSurfaceVariant.withOpacity(0.7),
-                  tabs: const [
-                    Tab(icon: Icon(Icons.home_outlined, size: 20), text: '主页'),
-                    Tab(
-                      icon: Icon(Icons.qr_code_outlined, size: 20),
-                      text: '一码通',
-                    ),
-                    Tab(
-                      icon: Icon(Icons.payment_outlined, size: 20),
-                      text: '充值缴费',
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

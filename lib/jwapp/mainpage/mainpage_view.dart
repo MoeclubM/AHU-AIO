@@ -2,67 +2,34 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../home/home_view.dart';
 import '../schedule/schedule_view.dart';
-import 'mainpage_service.dart';
 import '../features/grades_view.dart';
 import '../features/room_view.dart';
-import '../features/notice_view.dart';
+import '../notice/notice_view.dart';
+import 'mainpage_service.dart';
 
 class MainPage extends StatefulWidget {
   final bool isActive;
-  const MainPage({super.key, this.isActive = false});
+  final TabController tabController;
+  const MainPage({
+    super.key,
+    this.isActive = false,
+    required this.tabController,
+  });
 
   @override
   State<MainPage> createState() => _MainPageState();
 }
 
-class _MainPageState extends State<MainPage>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  late AnimationController _animController;
-  late Animation<Offset> _slideAnimation;
-
+class _MainPageState extends State<MainPage> {
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
-    _tabController.addListener(() {
-      setState(() {});
-    });
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 650),
-    );
-    _slideAnimation =
-        Tween<Offset>(begin: const Offset(0, 1.5), end: Offset.zero).animate(
-          CurvedAnimation(parent: _animController, curve: Curves.easeOutBack),
-        );
-    if (widget.isActive) {
-      _animController.forward();
-    }
     MainPageService.checkTokenAndNavigate(context);
-  }
-
-  @override
-  void didUpdateWidget(covariant MainPage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isActive && !oldWidget.isActive) {
-      _animController.forward(from: 0.0);
-    } else if (!widget.isActive && oldWidget.isActive) {
-      _animController.reverse();
-    }
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    _animController.dispose();
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      extendBody: true,
       appBar: AppBar(
         toolbarHeight: 52,
         backgroundColor: Colors.transparent,
@@ -115,92 +82,13 @@ class _MainPageState extends State<MainPage>
         ],
       ),
       body: TabBarView(
-        controller: _tabController,
+        controller: widget.tabController,
         children: [
-          HomePage(isVisible: _tabController.index == 0, embed: true),
+          HomePage(isVisible: widget.tabController.index == 0, embed: true),
           const SchedulePage(embed: true),
           const GradesPage(embed: true),
           const RoomPage(embed: true),
         ],
-      ),
-      bottomNavigationBar: SlideTransition(
-        position: _slideAnimation,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(64, 0, 64, 0),
-          child: ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-              child: Container(
-                height: 56,
-                decoration: BoxDecoration(
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.surface.withOpacity(0.08),
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(20),
-                  ),
-                  border: Border(
-                    top: BorderSide(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outlineVariant.withOpacity(0.35),
-                      width: 0.8,
-                    ),
-                    left: BorderSide(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outlineVariant.withOpacity(0.35),
-                      width: 0.8,
-                    ),
-                    right: BorderSide(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outlineVariant.withOpacity(0.35),
-                      width: 0.8,
-                    ),
-                    bottom: BorderSide.none,
-                  ),
-                ),
-                child: TabBar(
-                  controller: _tabController,
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  indicatorPadding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 8,
-                  ),
-                  indicator: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                  labelStyle: const TextStyle(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  unselectedLabelStyle: const TextStyle(fontSize: 10.5),
-                  labelColor: Theme.of(context).colorScheme.primary,
-                  unselectedLabelColor: Theme.of(
-                    context,
-                  ).colorScheme.onSurfaceVariant.withOpacity(0.7),
-                  tabs: const [
-                    Tab(icon: Icon(Icons.home_outlined, size: 20), text: '首页'),
-                    Tab(
-                      icon: Icon(Icons.schedule_outlined, size: 20),
-                      text: '课表',
-                    ),
-                    Tab(icon: Icon(Icons.grade_outlined, size: 20), text: '成绩'),
-                    Tab(
-                      icon: Icon(Icons.meeting_room_outlined, size: 20),
-                      text: '空闲教室',
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
       ),
     );
   }

@@ -17,12 +17,20 @@ class MainLayoutScreen extends StatefulWidget {
   State<MainLayoutScreen> createState() => _MainLayoutScreenState();
 }
 
-class _MainLayoutScreenState extends State<MainLayoutScreen> {
+class _MainLayoutScreenState extends State<MainLayoutScreen>
+    with TickerProviderStateMixin {
   bool _isInitializing = true;
   int _currentBottomIndex = 0;
   final SynjonesClient _synjonesClient = SynjonesClient();
   late PageController _pageController;
   double _currentPage = 0.0;
+
+  late TabController _microTabController;
+  late TabController _jwTabController;
+  late TabController _financeTabController;
+
+  late AnimationController _subTabAnimController;
+  late Animation<Offset> _subTabSlideAnimation;
 
   @override
   void initState() {
@@ -33,6 +41,39 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
         _currentPage = _pageController.page ?? 0.0;
       });
     });
+
+    _microTabController = TabController(length: 4, vsync: this);
+    _jwTabController = TabController(length: 4, vsync: this);
+    _financeTabController = TabController(length: 3, vsync: this);
+
+    _microTabController.addListener(() {
+      if (_currentBottomIndex == 0) setState(() {});
+    });
+    _jwTabController.addListener(() {
+      if (_currentBottomIndex == 1) setState(() {});
+    });
+    _financeTabController.addListener(() {
+      if (_currentBottomIndex == 2) setState(() {});
+    });
+
+    _subTabAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    );
+    _subTabSlideAnimation = Tween<Offset>(
+      begin: const Offset(0, 1.5),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _subTabAnimController,
+      curve: Curves.easeOut,
+    ));
+
+    if (_currentBottomIndex >= 0 && _currentBottomIndex <= 2) {
+      _subTabAnimController.value = 1.0;
+    } else {
+      _subTabAnimController.value = 0.0;
+    }
+
     // Register the global state change notifier
     globals.onLoginStateChanged = _onLoginStateChanged;
     _checkInit();
@@ -44,6 +85,10 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
       globals.onLoginStateChanged = null;
     }
     _pageController.dispose();
+    _microTabController.dispose();
+    _jwTabController.dispose();
+    _financeTabController.dispose();
+    _subTabAnimController.dispose();
     super.dispose();
   }
 
@@ -72,6 +117,64 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     }
   }
 
+  Widget _buildSubTabBarChild() {
+    TabController? controller;
+    List<Tab> tabs = [];
+
+    if (_currentBottomIndex == 0) {
+      controller = _microTabController;
+      tabs = const [
+        Tab(icon: Icon(Icons.home_outlined, size: 20), text: '首页'),
+        Tab(icon: Icon(Icons.schedule_outlined, size: 20), text: '课表'),
+        Tab(icon: Icon(Icons.grade_outlined, size: 20), text: '成绩'),
+        Tab(icon: Icon(Icons.meeting_room_outlined, size: 20), text: '空闲教室'),
+      ];
+    } else if (_currentBottomIndex == 1) {
+      controller = _jwTabController;
+      tabs = const [
+        Tab(icon: Icon(Icons.home_outlined, size: 20), text: '首页'),
+        Tab(icon: Icon(Icons.schedule_outlined, size: 20), text: '课表'),
+        Tab(icon: Icon(Icons.grade_outlined, size: 20), text: '成绩'),
+        Tab(icon: Icon(Icons.description_outlined, size: 20), text: '方案'),
+      ];
+    } else if (_currentBottomIndex == 2) {
+      controller = _financeTabController;
+      tabs = const [
+        Tab(icon: Icon(Icons.home_outlined, size: 20), text: '主页'),
+        Tab(icon: Icon(Icons.qr_code_outlined, size: 20), text: '一码通'),
+        Tab(icon: Icon(Icons.payment_outlined, size: 20), text: '充值缴费'),
+      ];
+    }
+
+    if (controller == null) return const SizedBox.shrink();
+
+    return TabBar(
+      key: ValueKey(_currentBottomIndex),
+      controller: controller,
+      isScrollable: false,
+      indicatorSize: TabBarIndicatorSize.tab,
+      indicatorPadding: const EdgeInsets.symmetric(
+        horizontal: 6,
+        vertical: 8,
+      ),
+      indicator: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(99),
+      ),
+      labelStyle: const TextStyle(
+        fontSize: 10.5,
+        fontWeight: FontWeight.bold,
+      ),
+      unselectedLabelStyle: const TextStyle(fontSize: 10.5),
+      labelColor: Theme.of(context).colorScheme.primary,
+      unselectedLabelColor: Theme.of(context)
+          .colorScheme
+          .onSurfaceVariant
+          .withOpacity(0.7),
+      tabs: tabs,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isInitializing) {
@@ -92,149 +195,225 @@ class _MainLayoutScreenState extends State<MainLayoutScreen> {
     }
 
     return Scaffold(
-      body: PageView(
-        physics: const NeverScrollableScrollPhysics(),
-        controller: _pageController,
-        onPageChanged: (index) {
-          setState(() {
-            _currentBottomIndex = index;
-          });
-        },
+      body: Stack(
         children: [
-          MainPage(isActive: _currentBottomIndex == 0),
-          JwMainTabs(isActive: _currentBottomIndex == 1),
-          FinanceMainTabs(isActive: _currentBottomIndex == 2),
-          AppSettingsScreen(
-            onSwitchTab: (index) {
-              _pageController.animateToPage(
-                index,
-                duration: const Duration(milliseconds: 350),
-                curve: Curves.easeInOut,
-              );
+          PageView(
+            physics: const NeverScrollableScrollPhysics(),
+            controller: _pageController,
+            onPageChanged: (index) {
+              setState(() {
+                _currentBottomIndex = index;
+              });
+              if (index >= 0 && index <= 2) {
+                _subTabAnimController.forward();
+              } else {
+                _subTabAnimController.reverse();
+              }
             },
+            children: [
+              MainPage(
+                isActive: _currentBottomIndex == 0,
+                tabController: _microTabController,
+              ),
+              JwMainTabs(
+                isActive: _currentBottomIndex == 1,
+                tabController: _jwTabController,
+              ),
+              FinanceMainTabs(
+                isActive: _currentBottomIndex == 2,
+                tabController: _financeTabController,
+              ),
+              AppSettingsScreen(
+                onSwitchTab: (index) {
+                  _pageController.animateToPage(
+                    index,
+                    duration: const Duration(milliseconds: 350),
+                    curve: Curves.easeInOut,
+                  );
+                },
+              ),
+            ],
           ),
-        ],
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(32),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(32),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                child: Container(
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surface.withOpacity(0.08),
-                    borderRadius: BorderRadius.circular(32),
-                    border: Border.all(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outlineVariant.withOpacity(0.35),
-                      width: 0.8,
-                    ),
-                  ),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final double totalWidth = constraints.maxWidth;
-                      final double tabWidth = totalWidth / 4;
-                      final double bubbleWidth = tabWidth - 8;
-                      final double bubbleHeight = 48;
-
-                      return GestureDetector(
-                        behavior: HitTestBehavior.translucent,
-                        onHorizontalDragUpdate: (details) {
-                          if (!_pageController.hasClients) return;
-                          final double pageViewWidth = MediaQuery.of(
-                            context,
-                          ).size.width;
-                          final double dragDelta = details.delta.dx;
-                          final double targetOffset =
-                              _pageController.offset +
-                              dragDelta * (pageViewWidth / tabWidth);
-                          final double maxOffset = pageViewWidth * 3;
-                          _pageController.jumpTo(
-                            targetOffset.clamp(0.0, maxOffset),
-                          );
-                        },
-                        onHorizontalDragEnd: (details) {
-                          if (!_pageController.hasClients) return;
-                          final int targetPage = _currentPage.round();
-                          _pageController.animateToPage(
-                            targetPage,
-                            duration: const Duration(milliseconds: 250),
-                            curve: Curves.easeOut,
-                          );
-                        },
-                        child: Stack(
-                          children: [
-                            Positioned(
-                              left:
-                                  _currentPage * tabWidth +
-                                  (tabWidth - bubbleWidth) / 2,
-                              top: (64 - bubbleHeight) / 2,
-                              width: bubbleWidth,
-                              height: bubbleHeight,
-                              child: Container(
-                                decoration: BoxDecoration(
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: SafeArea(
+              top: false,
+              bottom: true,
+              child: Stack(
+                alignment: Alignment.bottomCenter,
+                children: [
+                  SlideTransition(
+                    position: _subTabSlideAnimation,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(64, 0, 64, 76),
+                      child: ClipRRect(
+                        borderRadius:
+                            const BorderRadius.vertical(top: Radius.circular(20)),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                          child: Container(
+                            height: 56,
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surface.withOpacity(0.08),
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(20),
+                              ),
+                              border: Border(
+                                top: BorderSide(
                                   color: Theme.of(
                                     context,
-                                  ).colorScheme.primary.withOpacity(0.12),
-                                  borderRadius: BorderRadius.circular(24),
+                                  ).colorScheme.outlineVariant.withOpacity(0.35),
+                                  width: 0.8,
                                 ),
+                                left: BorderSide(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.outlineVariant.withOpacity(0.35),
+                                  width: 0.8,
+                                ),
+                                right: BorderSide(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.outlineVariant.withOpacity(0.35),
+                                  width: 0.8,
+                                ),
+                                bottom: BorderSide.none,
                               ),
                             ),
-                            Row(
-                              children: [
-                                _buildTabItem(
-                                  0,
-                                  Icons.bolt_outlined,
-                                  Icons.bolt,
-                                  '微教务',
-                                ),
-                                _buildTabItem(
-                                  1,
-                                  Icons.school_outlined,
-                                  Icons.school,
-                                  '安大教务',
-                                ),
-                                _buildTabItem(
-                                  2,
-                                  Icons.credit_card_outlined,
-                                  Icons.credit_card,
-                                  '一卡通',
-                                ),
-                                _buildTabItem(
-                                  3,
-                                  Icons.settings_outlined,
-                                  Icons.settings,
-                                  '设置',
-                                ),
-                              ],
-                            ),
-                          ],
+                            child: _buildSubTabBarChild(),
+                          ),
                         ),
-                      );
-                    },
+                      ),
+                    ),
                   ),
-                ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(32),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.06),
+                            blurRadius: 16,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(32),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                          child: Container(
+                            height: 64,
+                            decoration: BoxDecoration(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.surface.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(32),
+                              border: Border.all(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.outlineVariant.withOpacity(0.35),
+                                width: 0.8,
+                              ),
+                            ),
+                            child: LayoutBuilder(
+                              builder: (context, constraints) {
+                                final double totalWidth = constraints.maxWidth;
+                                final double tabWidth = totalWidth / 4;
+                                final double bubbleWidth = tabWidth - 8;
+                                final double bubbleHeight = 48;
+
+                                return GestureDetector(
+                                  behavior: HitTestBehavior.translucent,
+                                  onHorizontalDragUpdate: (details) {
+                                    if (!_pageController.hasClients) return;
+                                    final double pageViewWidth = MediaQuery.of(
+                                      context,
+                                    ).size.width;
+                                    final double dragDelta = details.delta.dx;
+                                    final double targetOffset =
+                                        _pageController.offset +
+                                        dragDelta * (pageViewWidth / tabWidth);
+                                    final double maxOffset = pageViewWidth * 3;
+                                    _pageController.jumpTo(
+                                      targetOffset.clamp(0.0, maxOffset),
+                                    );
+                                  },
+                                  onHorizontalDragEnd: (details) {
+                                    if (!_pageController.hasClients) return;
+                                    final int targetPage = _currentPage.round();
+                                    _pageController.animateToPage(
+                                      targetPage,
+                                      duration: const Duration(milliseconds: 250),
+                                      curve: Curves.easeOut,
+                                    );
+                                  },
+                                  child: Stack(
+                                    children: [
+                                      Positioned(
+                                        left:
+                                            _currentPage * tabWidth +
+                                            (tabWidth - bubbleWidth) / 2,
+                                        top: (64 - bubbleHeight) / 2,
+                                        width: bubbleWidth,
+                                        height: bubbleHeight,
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.primary.withOpacity(0.12),
+                                            borderRadius: BorderRadius.circular(24),
+                                          ),
+                                        ),
+                                      ),
+                                      Row(
+                                        children: [
+                                          _buildTabItem(
+                                            0,
+                                            Icons.bolt_outlined,
+                                            Icons.bolt,
+                                            '微教务',
+                                          ),
+                                          _buildTabItem(
+                                            1,
+                                            Icons.school_outlined,
+                                            Icons.school,
+                                            '安大教务',
+                                          ),
+                                          _buildTabItem(
+                                            2,
+                                            Icons.credit_card_outlined,
+                                            Icons.credit_card,
+                                            '一卡通',
+                                          ),
+                                          _buildTabItem(
+                                            3,
+                                            Icons.settings_outlined,
+                                            Icons.settings,
+                                            '设置',
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
