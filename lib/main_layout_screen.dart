@@ -60,13 +60,10 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
       vsync: this,
       duration: const Duration(milliseconds: 350),
     );
-    _subTabSlideAnimation = Tween<Offset>(
-      begin: const Offset(0, 1.5),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _subTabAnimController,
-      curve: Curves.easeOut,
-    ));
+    _subTabSlideAnimation =
+        Tween<Offset>(begin: const Offset(0, 1.5), end: Offset.zero).animate(
+          CurvedAnimation(parent: _subTabAnimController, curve: Curves.easeOut),
+        );
 
     if (_currentBottomIndex >= 0 && _currentBottomIndex <= 2) {
       _subTabAnimController.value = 1.0;
@@ -153,24 +150,17 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
       controller: controller,
       isScrollable: false,
       indicatorSize: TabBarIndicatorSize.tab,
-      indicatorPadding: const EdgeInsets.symmetric(
-        horizontal: 6,
-        vertical: 8,
-      ),
+      indicatorPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
       indicator: BoxDecoration(
         color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
         borderRadius: BorderRadius.circular(99),
       ),
-      labelStyle: const TextStyle(
-        fontSize: 10.5,
-        fontWeight: FontWeight.bold,
-      ),
+      labelStyle: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold),
       unselectedLabelStyle: const TextStyle(fontSize: 10.5),
       labelColor: Theme.of(context).colorScheme.primary,
-      unselectedLabelColor: Theme.of(context)
-          .colorScheme
-          .onSurfaceVariant
-          .withOpacity(0.7),
+      unselectedLabelColor: Theme.of(
+        context,
+      ).colorScheme.onSurfaceVariant.withOpacity(0.7),
       tabs: tabs,
     );
   }
@@ -249,8 +239,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(64, 0, 64, 76),
                       child: ClipRRect(
-                        borderRadius:
-                            const BorderRadius.vertical(top: Radius.circular(20)),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(20),
+                        ),
                         child: BackdropFilter(
                           filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
                           child: Container(
@@ -264,21 +255,24 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                               ),
                               border: Border(
                                 top: BorderSide(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.outlineVariant.withOpacity(0.35),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .outlineVariant
+                                      .withOpacity(0.35),
                                   width: 0.8,
                                 ),
                                 left: BorderSide(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.outlineVariant.withOpacity(0.35),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .outlineVariant
+                                      .withOpacity(0.35),
                                   width: 0.8,
                                 ),
                                 right: BorderSide(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.outlineVariant.withOpacity(0.35),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .outlineVariant
+                                      .withOpacity(0.35),
                                   width: 0.8,
                                 ),
                                 bottom: BorderSide.none,
@@ -349,7 +343,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                     final int targetPage = _currentPage.round();
                                     _pageController.animateToPage(
                                       targetPage,
-                                      duration: const Duration(milliseconds: 250),
+                                      duration: const Duration(
+                                        milliseconds: 250,
+                                      ),
                                       curve: Curves.easeOut,
                                     );
                                   },
@@ -364,10 +360,13 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                         height: bubbleHeight,
                                         child: Container(
                                           decoration: BoxDecoration(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.primary.withOpacity(0.12),
-                                            borderRadius: BorderRadius.circular(24),
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .primary
+                                                .withOpacity(0.12),
+                                            borderRadius: BorderRadius.circular(
+                                              24,
+                                            ),
                                           ),
                                         ),
                                       ),
