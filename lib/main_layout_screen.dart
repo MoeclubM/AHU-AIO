@@ -269,11 +269,15 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
               top: false,
               bottom: true,
               child: AnimatedBuilder(
-                animation: Listenable.merge([_pagePercentNotifier, _subTabAnimController]),
+                animation: Listenable.merge([
+                  _pagePercentNotifier,
+                  _subTabAnimController,
+                ]),
                 builder: (context, child) {
                   final double currentPage = _pagePercentNotifier.value;
                   final gestureVisibility = _getSubTabVisibility(currentPage);
-                  final finalVisibility = _subTabAnimController.value * gestureVisibility;
+                  final finalVisibility =
+                      _subTabAnimController.value * gestureVisibility;
                   final double yOffset = (1.0 - finalVisibility) * 44.0;
 
                   return Stack(
@@ -354,15 +358,17 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                   ).colorScheme.surface.withOpacity(0.08),
                                   borderRadius: BorderRadius.circular(32),
                                   border: Border.all(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.outlineVariant.withOpacity(0.35),
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .outlineVariant
+                                        .withOpacity(0.35),
                                     width: 0.8,
                                   ),
                                 ),
                                 child: LayoutBuilder(
                                   builder: (context, constraints) {
-                                    final double totalWidth = constraints.maxWidth;
+                                    final double totalWidth =
+                                        constraints.maxWidth;
                                     final double tabWidth = totalWidth / 4;
                                     final double bubbleWidth = tabWidth - 8;
                                     final double bubbleHeight = 48;
@@ -373,20 +379,27 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                         final double bubbleLeft =
                                             currentPage * tabWidth +
                                             (tabWidth - bubbleWidth) / 2;
-                                        final double bubbleRight = bubbleLeft + bubbleWidth;
-                                        final double touchX = details.localPosition.dx;
-                                        _isDraggingBubble = touchX >= bubbleLeft && touchX <= bubbleRight;
+                                        final double bubbleRight =
+                                            bubbleLeft + bubbleWidth;
+                                        final double touchX =
+                                            details.localPosition.dx;
+                                        _isDraggingBubble =
+                                            touchX >= bubbleLeft &&
+                                            touchX <= bubbleRight;
                                       },
                                       onHorizontalDragUpdate: (details) {
                                         if (!_isDraggingBubble) return;
                                         if (!_pageController.hasClients) return;
                                         final double pageViewWidth =
                                             MediaQuery.of(context).size.width;
-                                        final double dragDelta = details.delta.dx;
+                                        final double dragDelta =
+                                            details.delta.dx;
                                         final double targetOffset =
                                             _pageController.offset +
-                                            dragDelta * (pageViewWidth / tabWidth);
-                                        final double maxOffset = pageViewWidth * 3;
+                                            dragDelta *
+                                                (pageViewWidth / tabWidth);
+                                        final double maxOffset =
+                                            pageViewWidth * 3;
                                         _pageController.jumpTo(
                                           targetOffset.clamp(0.0, maxOffset),
                                         );
@@ -394,7 +407,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                       onHorizontalDragEnd: (details) {
                                         if (!_isDraggingBubble) return;
                                         if (!_pageController.hasClients) return;
-                                        final int targetPage = currentPage.round();
+                                        final int targetPage = currentPage
+                                            .round();
                                         _pageController.animateToPage(
                                           targetPage,
                                           duration: const Duration(
@@ -418,9 +432,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                                     .colorScheme
                                                     .primary
                                                     .withOpacity(0.12),
-                                                borderRadius: BorderRadius.circular(
-                                                  24,
-                                                ),
+                                                borderRadius:
+                                                    BorderRadius.circular(24),
                                               ),
                                             ),
                                           ),
