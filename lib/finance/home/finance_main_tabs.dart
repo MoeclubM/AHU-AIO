@@ -107,9 +107,9 @@ class _FinanceMainTabsState extends State<FinanceMainTabs>
       bottomNavigationBar: SlideTransition(
         position: _slideAnimation,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+          padding: const EdgeInsets.fromLTRB(64, 0, 64, 0),
           child: ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
               child: Container(
@@ -119,13 +119,28 @@ class _FinanceMainTabsState extends State<FinanceMainTabs>
                     context,
                   ).colorScheme.surface.withOpacity(0.08),
                   borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(28),
+                    top: Radius.circular(20),
                   ),
-                  border: Border.all(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.outlineVariant.withOpacity(0.35),
-                    width: 0.8,
+                  border: Border(
+                    top: BorderSide(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outlineVariant.withOpacity(0.35),
+                      width: 0.8,
+                    ),
+                    left: BorderSide(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outlineVariant.withOpacity(0.35),
+                      width: 0.8,
+                    ),
+                    right: BorderSide(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outlineVariant.withOpacity(0.35),
+                      width: 0.8,
+                    ),
+                    bottom: BorderSide.none,
                   ),
                 ),
                 child: TabBar(
