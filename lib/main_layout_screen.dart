@@ -191,12 +191,6 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
   Future<void> _handleTabSwitch(int index) async {
     if (index == _currentBottomIndex) return;
 
-    final hasSubCurrent = _currentBottomIndex >= 0 && _currentBottomIndex <= 2;
-
-    if (hasSubCurrent) {
-      await _subTabAnimController.reverse();
-    }
-
     if (mounted) {
       await _pageController.animateToPage(
         index,
