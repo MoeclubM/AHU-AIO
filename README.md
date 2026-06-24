@@ -1,47 +1,49 @@
-# AHU AIO
+# AHU-AIO (安徽大学校园多合一助手)
 
-A Flutter application that aggregates Anhui University academic services such as timetables, course selection, notices, and classroom reservations in a single mobile experience.
+AHU-AIO 是一款专为安徽大学学子打造的校园生活多合一移动客户端。它将课表查询、成绩管理、一卡通付款及校园通知等常用功能聚合在一起，为你提供流畅、现代、无广告的校园服务体验。
 
-## Prerequisites
+---
 
-To build or test the project locally (and to match the configuration used in CI) install the following tooling:
+## 🌟 核心功能
 
-- [Flutter SDK 3.35.7](https://docs.flutter.dev/get-started/install) (ships with Dart 3.9.x)
-- A recent Android Studio or Visual Studio Code installation if you plan to run the application on a device or emulator
-- Platform-specific SDKs as required by your target platform (Android SDK, iOS toolchain, etc.)
+- 📅 **智能课表**：支持周次自由切换，自动高亮当前周，完美过滤未知课程。
+- 💳 **一卡通/付款码**：支持校园一码通，可快速刷码支付及查询账户余额与充值。
+- 🏆 **成绩与方案**：支持安大教务与微教务的成绩一键查询，并包含培养方案。
+- 🏫 **空闲教室查询**：快速检索各校区、教学楼在不同时段的空闲教室，自习找座神器。
+- 🔔 **通知公告**：实时同步学校重要教务通知与公告，不再遗漏任何重要资讯。
 
-## First-time setup
+---
 
-```bash
-# Fetch dependencies
-flutter pub get
+## 🚀 快速上手
 
-# Optional: clean any previous build outputs
-flutter clean
-```
+### 1. 下载与安装
+你可以在本项目的 **[GitHub Releases](https://github.com/MoeclubM/AHU-AIO/releases)** 页面中下载最新打包的 `AHU-AIO-Beta-Android-arm64.apk` 直接安装至你的安卓手机。
 
-The repository does not vendor the Flutter SDK. When developing inside a container or CI system, download the SDK and add `<flutter-sdk>/bin` to the `PATH` before running any Flutter commands. GitHub Actions now installs Flutter 3.35.7 and Dart 3.9.2, so the `pubspec.yaml` tracks the latest compatible package releases (WebView 4.13.x, Flutter SVG 2.2.x, Provider 6.1.5+1, etc.) and resolves cleanly without manual overrides.
+### 2. 账号登录
+- **微教务 / 一卡通**：使用你的统一身份认证（学号）登录即可。
+- **安大教务**：使用教务系统的账号密码登录，若登录失效，系统会自动提示并引导重新登录。
 
-## Quality checks
+---
 
-The project relies on Flutter's built-in tooling for static analysis and tests. Run the following commands before submitting changes so they match what GitHub Actions executes:
+## 🛠️ 简易开发指南
 
-```bash
-# Lint the Dart and Flutter sources
-flutter analyze
+如果你是开发者并想在本地运行或贡献代码，只需按以下步骤操作：
 
-# Execute the widget and service tests
-flutter test
-```
+1. **环境准备**：本地安装 [Flutter SDK](https://docs.flutter.dev/get-started/install)。
+2. **获取依赖**：
+   ```bash
+   flutter pub get
+   ```
+3. **运行项目**：
+   ```bash
+   flutter run
+   ```
 
-Both commands must succeed for the build to pass in CI. The added schedule service tests ensure the timetable correctly filters courses by week, highlights the active teaching week, and marks honor courses.
+> [!NOTE]
+> 在提交修改前，建议在本地运行 `flutter analyze` 确保无代码规范警告。
 
-## Running the app
+---
 
-Use Flutter's standard device tooling to launch the app on an emulator or a connected device:
+## 🤝 贡献与反馈
 
-```bash
-flutter run
-```
-
-When verifying the course schedule module, use the provided student account (`P124301206`, password `Yao060723@`) to confirm current-week filtering and honor-course indicators in the simplified native UI.
+欢迎提交 Issue 或 Pull Request 来一起完善 AHU-AIO！如果你在使用过程中遇到任何问题，欢迎在 GitHub 反馈。
