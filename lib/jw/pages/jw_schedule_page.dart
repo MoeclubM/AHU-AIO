@@ -669,6 +669,18 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
     return colors[sum % colors.length];
   }
 
+  String _formatCourseName(String name) {
+    if (name.isEmpty) return name;
+    final StringBuffer buffer = StringBuffer();
+    for (int i = 0; i < name.length; i++) {
+      buffer.write(name[i]);
+      if ((i + 1) % 3 == 0 && (i + 1) < name.length) {
+        buffer.write('\n');
+      }
+    }
+    return buffer.toString();
+  }
+
   Widget _buildActivityCard(CourseActivity a) {
     final colorScheme = Theme.of(context).colorScheme;
     final color = _courseColor(a);
@@ -682,13 +694,13 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(6),
         onTap: () => _showCourseDetail(a),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.13),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(6),
             border: Border.all(color: color.withValues(alpha: 0.35)),
           ),
           child: Column(
@@ -696,7 +708,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                a.courseName ?? '',
+                _formatCourseName(a.courseName ?? ''),
                 style: TextStyle(
                   color: color,
                   fontSize: 10.5,

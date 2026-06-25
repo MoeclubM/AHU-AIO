@@ -595,6 +595,18 @@ class _SchedulePageState extends State<SchedulePage> {
     return colors[sum % colors.length];
   }
 
+  String _formatCourseName(String name) {
+    if (name.isEmpty) return name;
+    final StringBuffer buffer = StringBuffer();
+    for (int i = 0; i < name.length; i++) {
+      buffer.write(name[i]);
+      if ((i + 1) % 3 == 0 && (i + 1) < name.length) {
+        buffer.write('\n');
+      }
+    }
+    return buffer.toString();
+  }
+
   /// 构建课程单元格
   Widget _buildCourseCell(
     List<ScheduleEntry> entries,
@@ -619,7 +631,7 @@ class _SchedulePageState extends State<SchedulePage> {
             margin: entries.length > 1
                 ? const EdgeInsets.only(bottom: 2)
                 : null,
-            padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 1.5, vertical: 2),
             decoration: BoxDecoration(
               color: color.withOpacity(alpha),
               borderRadius: BorderRadius.circular(6),
@@ -633,7 +645,7 @@ class _SchedulePageState extends State<SchedulePage> {
               children: [
                 // 课程名称
                 Text(
-                  entry.courseName,
+                  _formatCourseName(entry.courseName),
                   style: TextStyle(
                     color: entry.isCurrentWeek ? color : color.withOpacity(0.6),
                     fontWeight: FontWeight.w800,
