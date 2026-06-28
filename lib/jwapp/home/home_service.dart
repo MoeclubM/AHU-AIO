@@ -156,8 +156,10 @@ class HomePageLogic extends ChangeNotifier {
 
     groupedSchedules.forEach((timeSlot, schedules) {
       final filtered = schedules
-          .where((schedule) =>
-              schedule.context.isNotEmpty && schedule.context != '未知课程')
+          .where(
+            (schedule) =>
+                schedule.context.isNotEmpty && schedule.context != '未知课程',
+          )
           .map((schedule) => schedule.toJson())
           .toList();
       if (filtered.isNotEmpty) {
