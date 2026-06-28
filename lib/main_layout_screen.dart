@@ -186,8 +186,10 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
           },
           onHorizontalDragEnd: (details) {
             if (!controller.hasClients) return;
-            final int targetIndex =
-                (controller.page ?? 0.0).round().clamp(0, tabCount - 1);
+            final int targetIndex = (controller.page ?? 0.0).round().clamp(
+              0,
+              tabCount - 1,
+            );
             controller.animateToPage(
               targetIndex,
               duration: const Duration(milliseconds: 250),
@@ -197,8 +199,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
           child: AnimatedBuilder(
             animation: controller,
             builder: (context, child) {
-              final double displayPage =
-                  controller.hasClients ? (controller.page ?? 0.0) : 0.0;
+              final double displayPage = controller.hasClients
+                  ? (controller.page ?? 0.0)
+                  : 0.0;
 
               return Stack(
                 children: [
