@@ -67,7 +67,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
       _semesters = semList;
 
       final currentName = weekInfo.currentSemester ?? '';
-      
+
       // 如果还没选择学期，自动检测
       if (_selectedSemesterId == null) {
         int? semId;
@@ -91,7 +91,8 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
           orElse: () => null,
         );
         if (currentSem != null) {
-          _selectedSemesterName = currentSem['nameZh']?.toString() ??
+          _selectedSemesterName =
+              currentSem['nameZh']?.toString() ??
               currentSem['nameEn']?.toString() ??
               '未知学期';
         }
@@ -324,7 +325,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
     setState(() {
       _selectedSemesterId = semId;
       _tableData = null; // 清空旧数据以展示加载中
-      _currentWeek = 1;  // 默认重置回第 1 周
+      _currentWeek = 1; // 默认重置回第 1 周
     });
     _loadData();
   }
@@ -375,7 +376,10 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
                       padding: EdgeInsets.only(bottom: 12),
                       child: Text(
                         '选择学期',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     const Divider(height: 1),
@@ -386,18 +390,30 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
                         itemBuilder: (context, index) {
                           final s = _semesters[index];
                           final semId = toInt(s['id']);
-                          final semName = s['nameZh']?.toString() ?? s['nameEn']?.toString() ?? '';
+                          final semName =
+                              s['nameZh']?.toString() ??
+                              s['nameEn']?.toString() ??
+                              '';
                           final isSelected = semId == _selectedSemesterId;
                           return ListTile(
                             title: Text(
                               semName,
                               style: TextStyle(
-                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                color: isSelected ? Theme.of(context).colorScheme.primary : null,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                                color: isSelected
+                                    ? Theme.of(context).colorScheme.primary
+                                    : null,
                               ),
                             ),
                             trailing: isSelected
-                                ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
+                                ? Icon(
+                                    Icons.check,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                  )
                                 : null,
                             onTap: () {
                               Navigator.pop(context);
@@ -870,7 +886,9 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
                           height: 4.5,
                           margin: const EdgeInsets.symmetric(vertical: 8),
                           decoration: BoxDecoration(
-                            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                            color: colorScheme.onSurfaceVariant.withValues(
+                              alpha: 0.4,
+                            ),
                             borderRadius: BorderRadius.circular(2.25),
                           ),
                         ),
@@ -884,7 +902,10 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
                       ),
                       const SizedBox(height: 14),
                       _detailRow('课程代码', a.courseCode),
-                      _detailRow('教师', a.teacherStr.isNotEmpty ? a.teacherStr : null),
+                      _detailRow(
+                        '教师',
+                        a.teacherStr.isNotEmpty ? a.teacherStr : null,
+                      ),
                       _detailRow('教室', a.room),
                       _detailRow('校区', a.campus),
                       _detailRow('上课时间', '${a.weekdayStr} ${a.slotRange}'),

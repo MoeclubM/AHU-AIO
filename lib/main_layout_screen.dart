@@ -120,24 +120,48 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
       controller = _microTabController;
       tabs = const [
         {'icon': Icons.home_outlined, 'activeIcon': Icons.home, 'text': '首页'},
-        {'icon': Icons.schedule_outlined, 'activeIcon': Icons.schedule, 'text': '课表'},
+        {
+          'icon': Icons.schedule_outlined,
+          'activeIcon': Icons.schedule,
+          'text': '课表',
+        },
         {'icon': Icons.grade_outlined, 'activeIcon': Icons.grade, 'text': '成绩'},
-        {'icon': Icons.meeting_room_outlined, 'activeIcon': Icons.meeting_room, 'text': '空闲教室'},
+        {
+          'icon': Icons.meeting_room_outlined,
+          'activeIcon': Icons.meeting_room,
+          'text': '空闲教室',
+        },
       ];
     } else if (activeIndex == 1) {
       controller = _jwTabController;
       tabs = const [
         {'icon': Icons.home_outlined, 'activeIcon': Icons.home, 'text': '首页'},
-        {'icon': Icons.schedule_outlined, 'activeIcon': Icons.schedule, 'text': '课表'},
+        {
+          'icon': Icons.schedule_outlined,
+          'activeIcon': Icons.schedule,
+          'text': '课表',
+        },
         {'icon': Icons.grade_outlined, 'activeIcon': Icons.grade, 'text': '成绩'},
-        {'icon': Icons.description_outlined, 'activeIcon': Icons.description, 'text': '方案'},
+        {
+          'icon': Icons.description_outlined,
+          'activeIcon': Icons.description,
+          'text': '方案',
+        },
       ];
     } else if (activeIndex == 2) {
       controller = _financeTabController;
       tabs = const [
         {'icon': Icons.home_outlined, 'activeIcon': Icons.home, 'text': '主页'},
-        {'icon': Icons.qr_code_outlined, 'activeIcon': Icons.qr_code, 'text': '一码通'},
-        {'icon': Icons.payment_outlined, 'activeIcon': Icons.payment, 'text': '充值缴费'},
+        {
+          'icon': Icons.qr_code_outlined,
+          'activeIcon': Icons.qr_code,
+          'text': '一码通',
+        },
+        {
+          'icon': Icons.payment_outlined,
+          'activeIcon': Icons.payment,
+          'text': '充值缴费',
+        },
       ];
     }
 
@@ -176,14 +200,18 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
             if (!_isDraggingSubTab) return;
             final double dragDelta = details.delta.dx;
             setState(() {
-              _subTabDragPage = (_subTabDragPage + dragDelta / tabWidth)
-                  .clamp(0.0, (tabCount - 1).toDouble());
+              _subTabDragPage = (_subTabDragPage + dragDelta / tabWidth).clamp(
+                0.0,
+                (tabCount - 1).toDouble(),
+              );
             });
           },
           onHorizontalDragEnd: (details) {
             if (!_isDraggingSubTab) return;
-            final int targetIndex =
-                _subTabDragPage.round().clamp(0, tabCount - 1);
+            final int targetIndex = _subTabDragPage.round().clamp(
+              0,
+              tabCount - 1,
+            );
             setState(() {
               _isDraggingSubTab = false;
             });
@@ -195,7 +223,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
               final double displayPage = _isDraggingSubTab
                   ? _subTabDragPage
                   : (controller.animation?.value ??
-                      controller.index.toDouble());
+                        controller.index.toDouble());
 
               return Stack(
                 children: [
@@ -227,7 +255,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                  isSelected ? tab['activeIcon'] : tab['icon'],
+                                isSelected ? tab['activeIcon'] : tab['icon'],
                                 color: isSelected
                                     ? colorScheme.primary
                                     : colorScheme.onSurfaceVariant.withOpacity(
@@ -245,9 +273,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                       : FontWeight.normal,
                                   color: isSelected
                                       ? colorScheme.primary
-                                      : colorScheme.onSurfaceVariant.withOpacity(
-                                          0.7,
-                                        ),
+                                      : colorScheme.onSurfaceVariant
+                                            .withOpacity(0.7),
                                 ),
                               ),
                             ],
