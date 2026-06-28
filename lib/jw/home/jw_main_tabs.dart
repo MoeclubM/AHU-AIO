@@ -8,11 +8,11 @@ import '../pages/jw_program_page.dart';
 
 class JwMainTabs extends StatefulWidget {
   final bool isActive;
-  final TabController tabController;
+  final PageController pageController;
   const JwMainTabs({
     super.key,
     this.isActive = false,
-    required this.tabController,
+    required this.pageController,
   });
 
   @override
@@ -79,9 +79,9 @@ class _JwMainTabsState extends State<JwMainTabs> {
           ),
         ],
       ),
-      body: TabBarView(
+      body: PageView(
         physics: const NeverScrollableScrollPhysics(),
-        controller: widget.tabController,
+        controller: widget.pageController,
         children: const [
           JwHomePage(embed: true),
           JwSchedulePage(embed: true),

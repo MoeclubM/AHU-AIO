@@ -25,12 +25,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
   late PageController _pageController;
   final ValueNotifier<double> _pagePercentNotifier = ValueNotifier(0.0);
   bool _isDraggingBubble = false;
-  bool _isDraggingSubTab = false;
-  double _subTabDragPage = 0.0;
-
-  late TabController _microTabController;
-  late TabController _jwTabController;
-  late TabController _financeTabController;
+  late PageController _microPageController;
+  late PageController _jwPageController;
+  late PageController _financePageController;
 
   late AnimationController _subTabAnimController;
 
@@ -42,19 +39,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
       _pagePercentNotifier.value = _pageController.page ?? 0.0;
     });
 
-    _microTabController = TabController(length: 4, vsync: this);
-    _jwTabController = TabController(length: 4, vsync: this);
-    _financeTabController = TabController(length: 3, vsync: this);
-
-    _microTabController.addListener(() {
-      if (_currentBottomIndex == 0) setState(() {});
-    });
-    _jwTabController.addListener(() {
-      if (_currentBottomIndex == 1) setState(() {});
-    });
-    _financeTabController.addListener(() {
-      if (_currentBottomIndex == 2) setState(() {});
-    });
+    _microPageController = PageController();
+    _jwPageController = PageController();
+    _financePageController = PageController();
 
     _subTabAnimController = AnimationController(
       vsync: this,
@@ -79,9 +66,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     }
     _pageController.dispose();
     _pagePercentNotifier.dispose();
-    _microTabController.dispose();
-    _jwTabController.dispose();
-    _financeTabController.dispose();
+    _microPageController.dispose();
+    _jwPageController.dispose();
+    _financePageController.dispose();
     _subTabAnimController.dispose();
     super.dispose();
   }
@@ -112,12 +99,12 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
   }
 
   Widget _buildSubTabBarChild(double currentPage) {
-    TabController? controller;
+    PageController? controller;
     List<Map<String, dynamic>> tabs = [];
     final activeIndex = currentPage.round();
 
     if (activeIndex == 0) {
-      controller = _microTabController;
+      controller = _microPageController;
       tabs = const [
         {'icon': Icons.home_outlined, 'activeIcon': Icons.home, 'text': '首页'},
         {
@@ -133,7 +120,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
         },
       ];
     } else if (activeIndex == 1) {
-      controller = _jwTabController;
+      controller = _jwPageController;
       tabs = const [
         {'icon': Icons.home_outlined, 'activeIcon': Icons.home, 'text': '首页'},
         {
@@ -149,7 +136,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
         },
       ];
     } else if (activeIndex == 2) {
-      controller = _financeTabController;
+      controller = _financePageController;
       tabs = const [
         {'icon': Icons.home_outlined, 'activeIcon': Icons.home, 'text': '主页'},
         {
@@ -171,7 +158,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
   }
 
   Widget _buildCustomSubTabBar(
-    TabController controller,
+    PageController controller,
     List<Map<String, dynamic>> tabs,
     int activeIndex,
   ) {
@@ -188,42 +175,30 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
 
         return GestureDetector(
           behavior: HitTestBehavior.translucent,
-          onHorizontalDragStart: (details) {
-            final double currentVal =
-                controller.animation?.value ?? controller.index.toDouble();
-            setState(() {
-              _isDraggingSubTab = true;
-              _subTabDragPage = currentVal;
-            });
-          },
           onHorizontalDragUpdate: (details) {
-            if (!_isDraggingSubTab) return;
+            if (!controller.hasClients) return;
+            final double pageViewWidth = MediaQuery.of(context).size.width;
             final double dragDelta = details.delta.dx;
-            setState(() {
-              _subTabDragPage = (_subTabDragPage + dragDelta / tabWidth).clamp(
-                0.0,
-                (tabCount - 1).toDouble(),
-              );
-            });
+            final double targetOffset =
+                controller.offset + dragDelta * (pageViewWidth / tabWidth);
+            final double maxOffset = pageViewWidth * (tabCount - 1);
+            controller.jumpTo(targetOffset.clamp(0.0, maxOffset));
           },
           onHorizontalDragEnd: (details) {
-            if (!_isDraggingSubTab) return;
-            final int targetIndex = _subTabDragPage.round().clamp(
-              0,
-              tabCount - 1,
+            if (!controller.hasClients) return;
+            final int targetIndex =
+                (controller.page ?? 0.0).round().clamp(0, tabCount - 1);
+            controller.animateToPage(
+              targetIndex,
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOut,
             );
-            setState(() {
-              _isDraggingSubTab = false;
-            });
-            controller.animateTo(targetIndex);
           },
           child: AnimatedBuilder(
-            animation: controller.animation!,
+            animation: controller,
             builder: (context, child) {
-              final double displayPage = _isDraggingSubTab
-                  ? _subTabDragPage
-                  : (controller.animation?.value ??
-                        controller.index.toDouble());
+              final double displayPage =
+                  controller.hasClients ? (controller.page ?? 0.0) : 0.0;
 
               return Stack(
                 children: [
@@ -246,7 +221,11 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                       return Expanded(
                         child: InkWell(
                           onTap: () {
-                            controller.animateTo(index);
+                            controller.animateToPage(
+                              index,
+                              duration: const Duration(milliseconds: 250),
+                              curve: Curves.easeOut,
+                            );
                           },
                           borderRadius: BorderRadius.circular(20),
                           highlightColor: Colors.transparent,
@@ -373,15 +352,15 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
             children: [
               MainPage(
                 isActive: _currentBottomIndex == 0,
-                tabController: _microTabController,
+                pageController: _microPageController,
               ),
               JwMainTabs(
                 isActive: _currentBottomIndex == 1,
-                tabController: _jwTabController,
+                pageController: _jwPageController,
               ),
               FinanceMainTabs(
                 isActive: _currentBottomIndex == 2,
-                tabController: _financeTabController,
+                pageController: _financePageController,
               ),
               AppSettingsScreen(onSwitchTab: _handleTabSwitch),
             ],

@@ -216,6 +216,9 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
     final activities =
         _tableData?.activities
             .where((a) => a.weekIndexes.contains(_currentWeek))
+            .where((a) => a.courseName != null &&
+                a.courseName!.trim().isNotEmpty &&
+                a.courseName != '未知课程')
             .toList() ??
         [];
 

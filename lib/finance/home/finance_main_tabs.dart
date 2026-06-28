@@ -6,11 +6,11 @@ import '../pages/finance_recharge_page.dart';
 
 class FinanceMainTabs extends StatefulWidget {
   final bool isActive;
-  final TabController tabController;
+  final PageController pageController;
   const FinanceMainTabs({
     super.key,
     this.isActive = false,
-    required this.tabController,
+    required this.pageController,
   });
 
   @override
@@ -63,9 +63,9 @@ class _FinanceMainTabsState extends State<FinanceMainTabs> {
         ),
         actions: const [],
       ),
-      body: TabBarView(
+      body: PageView(
         physics: const NeverScrollableScrollPhysics(),
-        controller: widget.tabController,
+        controller: widget.pageController,
         children: [
           FinanceHomePage(embed: true),
           FinancePayCodePage(embed: true),

@@ -200,8 +200,11 @@ class ScheduleService extends ChangeNotifier {
             _getNotEmpty(rawClass['lessonNameZh']) ??
             _getNotEmpty(rawClass['lessonName']) ??
             _getNotEmpty(rawClass['nameZh']) ??
-            _getNotEmpty(rawClass['name']) ??
             '未知课程';
+
+        if (rawCourseName == '未知课程' || rawCourseName.trim().isEmpty) {
+          continue;
+        }
 
         result[weekday]!.add(
           ScheduleEntry(

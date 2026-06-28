@@ -9,11 +9,11 @@ import 'mainpage_service.dart';
 
 class MainPage extends StatefulWidget {
   final bool isActive;
-  final TabController tabController;
+  final PageController pageController;
   const MainPage({
     super.key,
     this.isActive = false,
-    required this.tabController,
+    required this.pageController,
   });
 
   @override
@@ -21,10 +21,33 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
+  int _currentPage = 0;
+
   @override
   void initState() {
     super.initState();
     MainPageService.checkTokenAndNavigate(context);
+    _currentPage = widget.pageController.hasClients
+        ? widget.pageController.page?.round() ?? 0
+        : 0;
+    widget.pageController.addListener(_onPageChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.pageController.removeListener(_onPageChanged);
+    super.dispose();
+  }
+
+  void _onPageChanged() {
+    if (widget.pageController.hasClients) {
+      final newPage = widget.pageController.page?.round() ?? 0;
+      if (newPage != _currentPage) {
+        setState(() {
+          _currentPage = newPage;
+        });
+      }
+    }
   }
 
   @override
@@ -81,11 +104,11 @@ class _MainPageState extends State<MainPage> {
           ),
         ],
       ),
-      body: TabBarView(
+      body: PageView(
         physics: const NeverScrollableScrollPhysics(),
-        controller: widget.tabController,
+        controller: widget.pageController,
         children: [
-          HomePage(isVisible: widget.tabController.index == 0, embed: true),
+          HomePage(isVisible: _currentPage == 0, embed: true),
           const SchedulePage(embed: true),
           const GradesPage(embed: true),
           const RoomPage(embed: true),
