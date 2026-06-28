@@ -86,10 +86,13 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
 
       // 获取当前选中的学期名称
       if (_selectedSemesterId != null) {
-        final currentSem = semList.firstWhere(
-          (s) => toInt(s['id']) == _selectedSemesterId,
-          orElse: () => null,
-        );
+        dynamic currentSem;
+        for (final s in semList) {
+          if (toInt(s['id']) == _selectedSemesterId) {
+            currentSem = s;
+            break;
+          }
+        }
         if (currentSem != null) {
           _selectedSemesterName =
               currentSem['nameZh']?.toString() ??
@@ -112,7 +115,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
         } catch (_) {}
       }
 
-      final raw = await _api.getCourseTablePrintData(_selectedSemesterId);
+      final raw = await _api.getCourseTablePrintData(_selectedSemesterId!);
       final freshData = CourseTableData.fromJson(raw);
 
       await prefs.setString(cacheKey, jsonEncode(raw));
@@ -320,8 +323,8 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
     );
   }
 
-  void _switchSemester(int semId) {
-    if (_selectedSemesterId == semId) return;
+  void _switchSemester(int? semId) {
+    if (semId == null || _selectedSemesterId == semId) return;
     setState(() {
       _selectedSemesterId = semId;
       _tableData = null; // 清空旧数据以展示加载中
