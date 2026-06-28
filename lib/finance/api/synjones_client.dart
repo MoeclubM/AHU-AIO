@@ -557,6 +557,7 @@ class SynjonesClient {
     try {
       value = Uri.decodeComponent(value);
     } catch (_) {}
+    if (value.startsWith('ST-')) return null;
     return value;
   }
 }
