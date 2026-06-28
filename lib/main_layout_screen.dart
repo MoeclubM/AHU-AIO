@@ -25,6 +25,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
   late PageController _pageController;
   final ValueNotifier<double> _pagePercentNotifier = ValueNotifier(0.0);
   bool _isDraggingBubble = false;
+  bool _isDraggingSubTab = false;
+  double _subTabDragPage = 0.0;
 
   late TabController _microTabController;
   late TabController _jwTabController;
@@ -111,53 +113,155 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
 
   Widget _buildSubTabBarChild(double currentPage) {
     TabController? controller;
-    List<Tab> tabs = [];
+    List<Map<String, dynamic>> tabs = [];
     final activeIndex = currentPage.round();
 
     if (activeIndex == 0) {
       controller = _microTabController;
       tabs = const [
-        Tab(icon: Icon(Icons.home_outlined, size: 20), text: '首页'),
-        Tab(icon: Icon(Icons.schedule_outlined, size: 20), text: '课表'),
-        Tab(icon: Icon(Icons.grade_outlined, size: 20), text: '成绩'),
-        Tab(icon: Icon(Icons.meeting_room_outlined, size: 20), text: '空闲教室'),
+        {'icon': Icons.home_outlined, 'activeIcon': Icons.home, 'text': '首页'},
+        {'icon': Icons.schedule_outlined, 'activeIcon': Icons.schedule, 'text': '课表'},
+        {'icon': Icons.grade_outlined, 'activeIcon': Icons.grade, 'text': '成绩'},
+        {'icon': Icons.meeting_room_outlined, 'activeIcon': Icons.meeting_room, 'text': '空闲教室'},
       ];
     } else if (activeIndex == 1) {
       controller = _jwTabController;
       tabs = const [
-        Tab(icon: Icon(Icons.home_outlined, size: 20), text: '首页'),
-        Tab(icon: Icon(Icons.schedule_outlined, size: 20), text: '课表'),
-        Tab(icon: Icon(Icons.grade_outlined, size: 20), text: '成绩'),
-        Tab(icon: Icon(Icons.description_outlined, size: 20), text: '方案'),
+        {'icon': Icons.home_outlined, 'activeIcon': Icons.home, 'text': '首页'},
+        {'icon': Icons.schedule_outlined, 'activeIcon': Icons.schedule, 'text': '课表'},
+        {'icon': Icons.grade_outlined, 'activeIcon': Icons.grade, 'text': '成绩'},
+        {'icon': Icons.description_outlined, 'activeIcon': Icons.description, 'text': '方案'},
       ];
     } else if (activeIndex == 2) {
       controller = _financeTabController;
       tabs = const [
-        Tab(icon: Icon(Icons.home_outlined, size: 20), text: '主页'),
-        Tab(icon: Icon(Icons.qr_code_outlined, size: 20), text: '一码通'),
-        Tab(icon: Icon(Icons.payment_outlined, size: 20), text: '充值缴费'),
+        {'icon': Icons.home_outlined, 'activeIcon': Icons.home, 'text': '主页'},
+        {'icon': Icons.qr_code_outlined, 'activeIcon': Icons.qr_code, 'text': '一码通'},
+        {'icon': Icons.payment_outlined, 'activeIcon': Icons.payment, 'text': '充值缴费'},
       ];
     }
 
     if (controller == null) return const SizedBox.shrink();
 
-    return TabBar(
+    return _buildCustomSubTabBar(controller, tabs, activeIndex);
+  }
+
+  Widget _buildCustomSubTabBar(
+    TabController controller,
+    List<Map<String, dynamic>> tabs,
+    int activeIndex,
+  ) {
+    final int tabCount = tabs.length;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return LayoutBuilder(
       key: ValueKey(activeIndex),
-      controller: controller,
-      isScrollable: false,
-      indicatorSize: TabBarIndicatorSize.tab,
-      indicatorPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-      indicator: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(99),
-      ),
-      labelStyle: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold),
-      unselectedLabelStyle: const TextStyle(fontSize: 10.5),
-      labelColor: Theme.of(context).colorScheme.primary,
-      unselectedLabelColor: Theme.of(
-        context,
-      ).colorScheme.onSurfaceVariant.withOpacity(0.7),
-      tabs: tabs,
+      builder: (context, constraints) {
+        final double totalWidth = constraints.maxWidth;
+        final double tabWidth = totalWidth / tabCount;
+        final double bubbleWidth = tabWidth - 12;
+        final double bubbleHeight = 40;
+
+        return GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onHorizontalDragStart: (details) {
+            final double currentVal =
+                controller.animation?.value ?? controller.index.toDouble();
+            setState(() {
+              _isDraggingSubTab = true;
+              _subTabDragPage = currentVal;
+            });
+          },
+          onHorizontalDragUpdate: (details) {
+            if (!_isDraggingSubTab) return;
+            final double dragDelta = details.delta.dx;
+            setState(() {
+              _subTabDragPage = (_subTabDragPage + dragDelta / tabWidth)
+                  .clamp(0.0, (tabCount - 1).toDouble());
+            });
+          },
+          onHorizontalDragEnd: (details) {
+            if (!_isDraggingSubTab) return;
+            final int targetIndex =
+                _subTabDragPage.round().clamp(0, tabCount - 1);
+            setState(() {
+              _isDraggingSubTab = false;
+            });
+            controller.animateTo(targetIndex);
+          },
+          child: AnimatedBuilder(
+            animation: controller.animation!,
+            builder: (context, child) {
+              final double displayPage = _isDraggingSubTab
+                  ? _subTabDragPage
+                  : (controller.animation?.value ??
+                      controller.index.toDouble());
+
+              return Stack(
+                children: [
+                  Positioned(
+                    left: displayPage * tabWidth + (tabWidth - bubbleWidth) / 2,
+                    top: (56 - bubbleHeight) / 2,
+                    width: bubbleWidth,
+                    height: bubbleHeight,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: List.generate(tabCount, (index) {
+                      final tab = tabs[index];
+                      final bool isSelected = displayPage.round() == index;
+                      return Expanded(
+                        child: InkWell(
+                          onTap: () {
+                            controller.animateTo(index);
+                          },
+                          borderRadius: BorderRadius.circular(20),
+                          highlightColor: Colors.transparent,
+                          splashColor: colorScheme.primary.withOpacity(0.1),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                  isSelected ? tab['activeIcon'] : tab['icon'],
+                                color: isSelected
+                                    ? colorScheme.primary
+                                    : colorScheme.onSurfaceVariant.withOpacity(
+                                        0.7,
+                                      ),
+                                size: 18,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                tab['text'],
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  color: isSelected
+                                      ? colorScheme.primary
+                                      : colorScheme.onSurfaceVariant.withOpacity(
+                                          0.7,
+                                        ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+                ],
+              );
+            },
+          ),
+        );
+      },
     );
   }
 

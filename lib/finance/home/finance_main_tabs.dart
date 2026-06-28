@@ -64,6 +64,7 @@ class _FinanceMainTabsState extends State<FinanceMainTabs> {
         actions: const [],
       ),
       body: TabBarView(
+        physics: const NeverScrollableScrollPhysics(),
         controller: widget.tabController,
         children: [
           FinanceHomePage(embed: true),

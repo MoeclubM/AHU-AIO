@@ -80,6 +80,7 @@ class _JwMainTabsState extends State<JwMainTabs> {
         ],
       ),
       body: TabBarView(
+        physics: const NeverScrollableScrollPhysics(),
         controller: widget.tabController,
         children: const [
           JwHomePage(embed: true),

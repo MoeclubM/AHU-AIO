@@ -82,6 +82,7 @@ class _MainPageState extends State<MainPage> {
         ],
       ),
       body: TabBarView(
+        physics: const NeverScrollableScrollPhysics(),
         controller: widget.tabController,
         children: [
           HomePage(isVisible: widget.tabController.index == 0, embed: true),

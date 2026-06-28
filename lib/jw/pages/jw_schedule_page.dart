@@ -22,6 +22,10 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
   bool _isCached = false;
   int? _realCurrentWeek;
 
+  List<dynamic> _semesters = [];
+  int? _selectedSemesterId;
+  String? _selectedSemesterName;
+
   static const _weekdays = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
   static const _maxSlots = 11;
   double _slotHeight = 95.0;
@@ -56,27 +60,45 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
     try {
       final weekRaw = await _api.getCurrentTeachWeek();
       final weekInfo = TeachWeekInfo.fromJson(weekRaw);
-      _currentWeek = weekInfo.weekIndex ?? 1;
       _realCurrentWeek = weekInfo.weekIndex;
 
-      // 从成绩 API 获取学期列表，匹配当前学期名
+      // 从成绩 API 获取学期列表
       final semList = await _api.getSemesters();
+      _semesters = semList;
+
       final currentName = weekInfo.currentSemester ?? '';
-      int? semId;
-      for (final s in semList) {
-        if (s['nameZh']?.toString() == currentName ||
-            s['nameEn']?.toString() == currentName) {
-          semId = toInt(s['id']);
-          break;
+      
+      // 如果还没选择学期，自动检测
+      if (_selectedSemesterId == null) {
+        int? semId;
+        for (final s in semList) {
+          if (s['nameZh']?.toString() == currentName ||
+              s['nameEn']?.toString() == currentName) {
+            semId = toInt(s['id']);
+            break;
+          }
+        }
+        semId ??= semList.isNotEmpty ? toInt(semList.last['id']) : null;
+        semId ??= 112;
+        _selectedSemesterId = semId;
+        _currentWeek = weekInfo.weekIndex ?? 1;
+      }
+
+      // 获取当前选中的学期名称
+      if (_selectedSemesterId != null) {
+        final currentSem = semList.firstWhere(
+          (s) => toInt(s['id']) == _selectedSemesterId,
+          orElse: () => null,
+        );
+        if (currentSem != null) {
+          _selectedSemesterName = currentSem['nameZh']?.toString() ??
+              currentSem['nameEn']?.toString() ??
+              '未知学期';
         }
       }
-      // 降级：使用最大 ID 的学期（通常是最新的）
-      semId ??= semList.isNotEmpty ? toInt(semList.last['id']) : null;
-      // 再降级：尝试已知的当前学期 ID
-      semId ??= 112;
 
       final prefs = await SharedPreferences.getInstance();
-      final cacheKey = 'jw_schedule_cache_$semId';
+      final cacheKey = 'jw_schedule_cache_$_selectedSemesterId';
       final cachedStr = prefs.getString(cacheKey);
       if (cachedStr != null) {
         try {
@@ -89,7 +111,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
         } catch (_) {}
       }
 
-      final raw = await _api.getCourseTablePrintData(semId);
+      final raw = await _api.getCourseTablePrintData(_selectedSemesterId);
       final freshData = CourseTableData.fromJson(raw);
 
       await prefs.setString(cacheKey, jsonEncode(raw));
@@ -225,110 +247,173 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
               ],
             ),
           ),
-        if (widget.embed) _buildStudentInfo(activities),
+        _buildSemesterHeader(activities),
         Expanded(child: _buildGrid(activities)),
       ],
     );
   }
 
-  Widget _buildStudentInfo(List<CourseActivity> activities) {
-    final t = _tableData;
-    if (t == null) return const SizedBox();
+  Widget _buildSemesterHeader(List<CourseActivity> activities) {
     final colorScheme = Theme.of(context).colorScheme;
-    final profile = [
-      t.major,
-      t.adminclass,
-    ].whereType<String>().where((e) => e.isNotEmpty).join(' · ');
     final todayCount = activities
         .where((a) => a.weekday == DateTime.now().weekday)
         .length;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 0, 0, 8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: colorScheme.primaryContainer.withValues(alpha: 0.55),
-          borderRadius: BorderRadius.zero,
+    final semName = _selectedSemesterName ?? '加载中...';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: colorScheme.surface.withOpacity(0.4),
+        border: Border(
+          bottom: BorderSide(
+            color: colorScheme.outlineVariant.withOpacity(0.3),
+            width: 0.5,
+          ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: colorScheme.primary,
-                  foregroundColor: colorScheme.onPrimary,
-                  child: const Icon(Icons.calendar_month_outlined),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        t.studentName ?? '我的课表',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (profile.isNotEmpty)
-                        Text(
-                          profile,
-                          style: TextStyle(
-                            color: colorScheme.onSurfaceVariant,
-                            fontSize: 13,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                    ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // 左侧：学期选择按钮
+          InkWell(
+            onTap: _showSemesterPicker,
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.school_outlined,
+                    size: 16,
+                    color: colorScheme.primary,
                   ),
-                ),
-                if (t.totalCredits != null)
+                  const SizedBox(width: 6),
                   Text(
-                    '${t.totalCredits} 学分',
+                    semName,
                     style: TextStyle(
-                      color: colorScheme.primary,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurface,
                     ),
                   ),
-              ],
+                  Icon(
+                    Icons.arrow_drop_down,
+                    size: 20,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _infoPill(Icons.view_week_outlined, '第 $_currentWeek 周'),
-                _infoPill(Icons.school_outlined, '本周 ${activities.length} 节'),
-                _infoPill(Icons.today_outlined, '今日 $todayCount 节'),
-              ],
+          ),
+          // 右侧：课数统计
+          Text(
+            '本周 ${activities.length} 节 · 今日 $todayCount 节',
+            style: TextStyle(
+              fontSize: 12,
+              color: colorScheme.onSurfaceVariant.withOpacity(0.8),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _infoPill(IconData icon, String text) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: colorScheme.surface.withValues(alpha: 0.78),
-        borderRadius: BorderRadius.circular(99),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 15, color: colorScheme.primary),
-          const SizedBox(width: 4),
-          Text(text, style: const TextStyle(fontSize: 12)),
-        ],
-      ),
+  void _switchSemester(int semId) {
+    if (_selectedSemesterId == semId) return;
+    setState(() {
+      _selectedSemesterId = semId;
+      _tableData = null; // 清空旧数据以展示加载中
+      _currentWeek = 1;  // 默认重置回第 1 周
+    });
+    _loadData();
+  }
+
+  void _showSemesterPicker() {
+    if (_semesters.isEmpty) return;
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final colorScheme = Theme.of(ctx).colorScheme;
+        return ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: Container(
+              decoration: BoxDecoration(
+                color: colorScheme.surface.withOpacity(0.72),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+                border: Border.all(
+                  color: colorScheme.outlineVariant.withOpacity(0.3),
+                  width: 0.8,
+                ),
+              ),
+              child: SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 36,
+                        height: 4.5,
+                        margin: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: colorScheme.onSurfaceVariant.withOpacity(0.4),
+                          borderRadius: BorderRadius.circular(2.25),
+                        ),
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.only(bottom: 12),
+                      child: Text(
+                        '选择学期',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: _semesters.length,
+                        itemBuilder: (context, index) {
+                          final s = _semesters[index];
+                          final semId = toInt(s['id']);
+                          final semName = s['nameZh']?.toString() ?? s['nameEn']?.toString() ?? '';
+                          final isSelected = semId == _selectedSemesterId;
+                          return ListTile(
+                            title: Text(
+                              semName,
+                              style: TextStyle(
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                color: isSelected ? Theme.of(context).colorScheme.primary : null,
+                              ),
+                            ),
+                            trailing: isSelected
+                                ? Icon(Icons.check, color: Theme.of(context).colorScheme.primary)
+                                : null,
+                            onTap: () {
+                              Navigator.pop(context);
+                              _switchSemester(semId);
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -749,34 +834,71 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
   void _showCourseDetail(CourseActivity a) {
     showModalBottomSheet(
       context: context,
-      showDragHandle: true,
-      builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                a.courseName ?? '课程详情',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        final colorScheme = Theme.of(ctx).colorScheme;
+        return ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(20),
+            topRight: Radius.circular(20),
+          ),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            child: Container(
+              decoration: BoxDecoration(
+                color: colorScheme.surface.withValues(alpha: 0.72),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+                border: Border.all(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                  width: 0.8,
                 ),
               ),
-              const SizedBox(height: 14),
-              _detailRow('课程代码', a.courseCode),
-              _detailRow('教师', a.teacherStr.isNotEmpty ? a.teacherStr : null),
-              _detailRow('教室', a.room),
-              _detailRow('校区', a.campus),
-              _detailRow('上课时间', '${a.weekdayStr} ${a.slotRange}'),
-              _detailRow('周次', a.weeksStr ?? a.weekIndexes.join(', ')),
-              if (a.credits != null)
-                _detailRow('学分', a.credits!.toStringAsFixed(1)),
-            ],
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 36,
+                          height: 4.5,
+                          margin: const EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+                            borderRadius: BorderRadius.circular(2.25),
+                          ),
+                        ),
+                      ),
+                      Text(
+                        a.courseName ?? '课程详情',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      _detailRow('课程代码', a.courseCode),
+                      _detailRow('教师', a.teacherStr.isNotEmpty ? a.teacherStr : null),
+                      _detailRow('教室', a.room),
+                      _detailRow('校区', a.campus),
+                      _detailRow('上课时间', '${a.weekdayStr} ${a.slotRange}'),
+                      _detailRow('周次', a.weeksStr ?? a.weekIndexes.join(', ')),
+                      if (a.credits != null)
+                        _detailRow('学分', a.credits!.toStringAsFixed(1)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
