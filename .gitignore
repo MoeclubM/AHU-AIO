@@ -12,6 +12,11 @@
 .history
 .svn/
 
+# Local integration and private API tests
+test/local_*
+test/jw_student_info_test.dart
+test_log*
+
 # IntelliJ related
 *.iml
 *.ipr
