@@ -155,9 +155,14 @@ class HomePageLogic extends ChangeNotifier {
     final Map<String, List<Map<String, dynamic>>> result = {};
 
     groupedSchedules.forEach((timeSlot, schedules) {
-      result[timeSlot] = schedules
+      final filtered = schedules
+          .where((schedule) =>
+              schedule.context.isNotEmpty && schedule.context != '未知课程')
           .map((schedule) => schedule.toJson())
           .toList();
+      if (filtered.isNotEmpty) {
+        result[timeSlot] = filtered;
+      }
     });
 
     return result;
