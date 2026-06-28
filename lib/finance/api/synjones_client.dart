@@ -557,7 +557,7 @@ class SynjonesClient {
     try {
       value = Uri.decodeComponent(value);
     } catch (_) {}
-    return value.startsWith('iFKYpYOO4') ? value : null;
+    return value;
   }
 }
 

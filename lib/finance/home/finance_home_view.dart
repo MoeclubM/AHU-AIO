@@ -69,6 +69,10 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
   void _logout() async {
     await _client.logout();
     await CasAuthCache.clear();
+    globals.jwLoggedIn = false;
+    globals.idToken = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('idToken');
     globals.onLoginStateChanged?.call();
     if (!mounted) return;
     if (globals.onLoginStateChanged == null) {
