@@ -315,7 +315,7 @@ class _UnifiedLoginPageState extends State<UnifiedLoginPage> {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       title: Text(
-                        '保存密码 (本地加密/自动登录)',
+                        '保存密码（用于自动登录）',
                         style: TextStyle(
                           fontSize: 14,
                           color: colorScheme.onSurfaceVariant,

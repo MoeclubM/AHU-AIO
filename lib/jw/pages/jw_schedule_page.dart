@@ -162,17 +162,26 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(99),
                     child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                      filter: ImageFilter.blur(
+                        sigmaX: MediaQuery.highContrastOf(context) ? 0 : 12,
+                        sigmaY: MediaQuery.highContrastOf(context) ? 0 : 12,
+                      ),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.surface.withOpacity(0.68),
+                          color: Theme.of(context).colorScheme.surface
+                              .withOpacity(
+                                MediaQuery.highContrastOf(context)
+                                    ? 0.96
+                                    : 0.68,
+                              ),
                           borderRadius: BorderRadius.circular(99),
                           border: Border.all(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.outlineVariant.withOpacity(0.5),
+                            color: Theme.of(context).colorScheme.outlineVariant
+                                .withOpacity(
+                                  MediaQuery.highContrastOf(context)
+                                      ? 0.9
+                                      : 0.5,
+                                ),
                             width: 0.8,
                           ),
                         ),
@@ -347,22 +356,30 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         final colorScheme = Theme.of(ctx).colorScheme;
+        final highContrast = MediaQuery.highContrastOf(ctx);
         return ClipRRect(
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
           ),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            filter: ImageFilter.blur(
+              sigmaX: highContrast ? 0 : 12,
+              sigmaY: highContrast ? 0 : 12,
+            ),
             child: Container(
               decoration: BoxDecoration(
-                color: colorScheme.surface.withOpacity(0.72),
+                color: colorScheme.surface.withOpacity(
+                  highContrast ? 0.96 : 0.72,
+                ),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(20),
                   topRight: Radius.circular(20),
                 ),
                 border: Border.all(
-                  color: colorScheme.outlineVariant.withOpacity(0.3),
+                  color: colorScheme.outlineVariant.withOpacity(
+                    highContrast ? 0.9 : 0.3,
+                  ),
                   width: 0.8,
                 ),
               ),
@@ -443,6 +460,8 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
   }
 
   Widget _buildFloatingWeekSelector() {
+    final highContrast = MediaQuery.highContrastOf(context);
+    final colorScheme = Theme.of(context).colorScheme;
     return SafeArea(
       top: false,
       bottom: true,
@@ -451,15 +470,22 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(28),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+            filter: ImageFilter.blur(
+              sigmaX: highContrast ? 0 : 14,
+              sigmaY: highContrast ? 0 : 14,
+            ),
             child: Container(
               height: 52,
               padding: const EdgeInsets.symmetric(horizontal: 8),
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.22),
+                color: highContrast
+                    ? colorScheme.surface.withValues(alpha: 0.96)
+                    : Colors.black.withValues(alpha: 0.22),
                 borderRadius: BorderRadius.circular(28),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.35),
+                  color: highContrast
+                      ? colorScheme.outline
+                      : Colors.white.withValues(alpha: 0.35),
                   width: 0.8,
                 ),
               ),
@@ -468,7 +494,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.chevron_left),
-                    color: Colors.white,
+                    color: highContrast ? colorScheme.onSurface : Colors.white,
                     onPressed: _currentWeek > 1
                         ? () => setState(() => _currentWeek--)
                         : null,
@@ -481,8 +507,10 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
                       alignment: Alignment.center,
                       child: Text(
                         '第 $_currentWeek 周',
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: highContrast
+                              ? colorScheme.onSurface
+                              : Colors.white,
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                         ),
@@ -491,7 +519,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
                   ),
                   IconButton(
                     icon: const Icon(Icons.chevron_right),
-                    color: Colors.white,
+                    color: highContrast ? colorScheme.onSurface : Colors.white,
                     onPressed: _currentWeek < 20
                         ? () => setState(() => _currentWeek++)
                         : null,
@@ -863,22 +891,30 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         final colorScheme = Theme.of(ctx).colorScheme;
+        final highContrast = MediaQuery.highContrastOf(ctx);
         return ClipRRect(
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(20),
             topRight: Radius.circular(20),
           ),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+            filter: ImageFilter.blur(
+              sigmaX: highContrast ? 0 : 12,
+              sigmaY: highContrast ? 0 : 12,
+            ),
             child: Container(
               decoration: BoxDecoration(
-                color: colorScheme.surface.withValues(alpha: 0.72),
+                color: colorScheme.surface.withValues(
+                  alpha: highContrast ? 0.96 : 0.72,
+                ),
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(20),
                   topRight: Radius.circular(20),
                 ),
                 border: Border.all(
-                  color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                  color: colorScheme.outlineVariant.withValues(
+                    alpha: highContrast ? 0.9 : 0.3,
+                  ),
                   width: 0.8,
                 ),
               ),

@@ -164,6 +164,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
   ) {
     final int tabCount = tabs.length;
     final colorScheme = Theme.of(context).colorScheme;
+    final reduceMotion =
+        MediaQuery.disableAnimationsOf(context) ||
+        View.of(context).platformDispatcher.accessibilityFeatures.reduceMotion;
 
     return LayoutBuilder(
       key: ValueKey(activeIndex),
@@ -175,26 +178,58 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
 
         return GestureDetector(
           behavior: HitTestBehavior.translucent,
+          onHorizontalDragStart: (_) {
+            if (controller.hasClients) {
+              (controller.position as ScrollPositionWithSingleContext).goIdle();
+            }
+          },
           onHorizontalDragUpdate: (details) {
             if (!controller.hasClients) return;
-            final double pageViewWidth = MediaQuery.of(context).size.width;
+            final position = controller.position;
+            final double pageViewWidth = position.viewportDimension;
             final double dragDelta = details.delta.dx;
-            final double targetOffset =
+            double targetOffset =
                 controller.offset + dragDelta * (pageViewWidth / tabWidth);
-            final double maxOffset = pageViewWidth * (tabCount - 1);
-            controller.jumpTo(targetOffset.clamp(0.0, maxOffset));
+            if (targetOffset < position.minScrollExtent) {
+              final overshoot = targetOffset - position.minScrollExtent;
+              targetOffset =
+                  position.minScrollExtent +
+                  (overshoot * pageViewWidth * 0.55) /
+                      (pageViewWidth + 0.55 * overshoot.abs());
+            } else if (targetOffset > position.maxScrollExtent) {
+              final overshoot = targetOffset - position.maxScrollExtent;
+              targetOffset =
+                  position.maxScrollExtent +
+                  (overshoot * pageViewWidth * 0.55) /
+                      (pageViewWidth + 0.55 * overshoot.abs());
+            }
+            controller.jumpTo(targetOffset);
           },
           onHorizontalDragEnd: (details) {
             if (!controller.hasClients) return;
-            final int targetIndex = (controller.page ?? 0.0).round().clamp(
-              0,
-              tabCount - 1,
+            if (reduceMotion) {
+              controller.jumpToPage(
+                (controller.page ?? 0.0).round().clamp(0, tabCount - 1),
+              );
+              return;
+            }
+            final position =
+                controller.position as ScrollPositionWithSingleContext;
+            position.goBallistic(
+              details.velocity.pixelsPerSecond.dx *
+                  (position.viewportDimension / tabWidth),
             );
-            controller.animateToPage(
-              targetIndex,
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeOut,
-            );
+          },
+          onHorizontalDragCancel: () {
+            if (!controller.hasClients) return;
+            if (reduceMotion) {
+              controller.jumpToPage(
+                (controller.page ?? 0.0).round().clamp(0, tabCount - 1),
+              );
+            } else {
+              (controller.position as ScrollPositionWithSingleContext)
+                  .goBallistic(0);
+            }
           },
           child: AnimatedBuilder(
             animation: controller,
@@ -224,11 +259,15 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                       return Expanded(
                         child: InkWell(
                           onTap: () {
-                            controller.animateToPage(
-                              index,
-                              duration: const Duration(milliseconds: 250),
-                              curve: Curves.easeOut,
-                            );
+                            if (reduceMotion) {
+                              controller.jumpToPage(index);
+                            } else {
+                              controller.animateToPage(
+                                index,
+                                duration: const Duration(milliseconds: 250),
+                                curve: Curves.easeOut,
+                              );
+                            }
                           },
                           borderRadius: BorderRadius.circular(20),
                           highlightColor: Colors.transparent,
@@ -305,11 +344,20 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     if (index == _currentBottomIndex) return;
 
     if (mounted) {
-      await _pageController.animateToPage(
-        index,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
+      final reduceMotion =
+          MediaQuery.disableAnimationsOf(context) ||
+          View.of(
+            context,
+          ).platformDispatcher.accessibilityFeatures.reduceMotion;
+      if (reduceMotion) {
+        _pageController.jumpToPage(index);
+      } else {
+        await _pageController.animateToPage(
+          index,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
 
       setState(() {
         _currentBottomIndex = index;
@@ -327,6 +375,10 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
         globals.idToken != null ||
         globals.jwLoggedIn ||
         _synjonesClient.loggedIn;
+    final reduceMotion =
+        MediaQuery.disableAnimationsOf(context) ||
+        View.of(context).platformDispatcher.accessibilityFeatures.reduceMotion;
+    final reduceTransparency = MediaQuery.highContrastOf(context);
 
     if (!isLoggedIn) {
       return UnifiedLoginPage(
@@ -340,16 +392,26 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
       body: Stack(
         children: [
           PageView(
-            physics: const NeverScrollableScrollPhysics(),
+            physics: const NeverScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
             controller: _pageController,
             onPageChanged: (index) {
               setState(() {
                 _currentBottomIndex = index;
               });
               if (index >= 0 && index <= 2) {
-                _subTabAnimController.forward();
+                if (reduceMotion) {
+                  _subTabAnimController.value = 1;
+                } else {
+                  _subTabAnimController.forward();
+                }
               } else {
-                _subTabAnimController.reverse();
+                if (reduceMotion) {
+                  _subTabAnimController.value = 0;
+                } else {
+                  _subTabAnimController.reverse();
+                }
               }
             },
             children: [
@@ -382,7 +444,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                 ]),
                 builder: (context, child) {
                   final double currentPage = _pagePercentNotifier.value;
-                  final gestureVisibility = _getSubTabVisibility(currentPage);
+                  final gestureVisibility = reduceMotion
+                      ? (currentPage.round() <= 2 ? 1.0 : 0.0)
+                      : _getSubTabVisibility(currentPage);
                   final finalVisibility =
                       _subTabAnimController.value * gestureVisibility;
                   final double yOffset = (1.0 - finalVisibility) * 44.0;
@@ -399,13 +463,17 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                               top: Radius.circular(20),
                             ),
                             child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                              filter: ImageFilter.blur(
+                                sigmaX: reduceTransparency ? 0 : 16,
+                                sigmaY: reduceTransparency ? 0 : 16,
+                              ),
                               child: Container(
                                 height: 56,
                                 decoration: BoxDecoration(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.surface.withOpacity(0.08),
+                                  color: Theme.of(context).colorScheme.surface
+                                      .withOpacity(
+                                        reduceTransparency ? 0.96 : 0.08,
+                                      ),
                                   borderRadius: const BorderRadius.vertical(
                                     top: Radius.circular(20),
                                   ),
@@ -414,21 +482,27 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                       color: Theme.of(context)
                                           .colorScheme
                                           .outlineVariant
-                                          .withOpacity(0.35),
+                                          .withOpacity(
+                                            reduceTransparency ? 0.9 : 0.35,
+                                          ),
                                       width: 0.8,
                                     ),
                                     left: BorderSide(
                                       color: Theme.of(context)
                                           .colorScheme
                                           .outlineVariant
-                                          .withOpacity(0.35),
+                                          .withOpacity(
+                                            reduceTransparency ? 0.9 : 0.35,
+                                          ),
                                       width: 0.8,
                                     ),
                                     right: BorderSide(
                                       color: Theme.of(context)
                                           .colorScheme
                                           .outlineVariant
-                                          .withOpacity(0.35),
+                                          .withOpacity(
+                                            reduceTransparency ? 0.9 : 0.35,
+                                          ),
                                       width: 0.8,
                                     ),
                                     bottom: BorderSide.none,
@@ -456,19 +530,25 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(32),
                             child: BackdropFilter(
-                              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                              filter: ImageFilter.blur(
+                                sigmaX: reduceTransparency ? 0 : 16,
+                                sigmaY: reduceTransparency ? 0 : 16,
+                              ),
                               child: Container(
                                 height: 64,
                                 decoration: BoxDecoration(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.surface.withOpacity(0.08),
+                                  color: Theme.of(context).colorScheme.surface
+                                      .withOpacity(
+                                        reduceTransparency ? 0.96 : 0.08,
+                                      ),
                                   borderRadius: BorderRadius.circular(32),
                                   border: Border.all(
                                     color: Theme.of(context)
                                         .colorScheme
                                         .outlineVariant
-                                        .withOpacity(0.35),
+                                        .withOpacity(
+                                          reduceTransparency ? 0.9 : 0.35,
+                                        ),
                                     width: 0.8,
                                   ),
                                 ),
@@ -493,36 +573,94 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                         _isDraggingBubble =
                                             touchX >= bubbleLeft &&
                                             touchX <= bubbleRight;
+                                        if (_isDraggingBubble &&
+                                            _pageController.hasClients) {
+                                          (_pageController.position
+                                                  as ScrollPositionWithSingleContext)
+                                              .goIdle();
+                                        }
                                       },
                                       onHorizontalDragUpdate: (details) {
                                         if (!_isDraggingBubble) return;
                                         if (!_pageController.hasClients) return;
+                                        final position =
+                                            _pageController.position;
                                         final double pageViewWidth =
-                                            MediaQuery.of(context).size.width;
+                                            position.viewportDimension;
                                         final double dragDelta =
                                             details.delta.dx;
-                                        final double targetOffset =
+                                        double targetOffset =
                                             _pageController.offset +
                                             dragDelta *
                                                 (pageViewWidth / tabWidth);
-                                        final double maxOffset =
-                                            pageViewWidth * 3;
-                                        _pageController.jumpTo(
-                                          targetOffset.clamp(0.0, maxOffset),
-                                        );
+                                        if (targetOffset <
+                                            position.minScrollExtent) {
+                                          final overshoot =
+                                              targetOffset -
+                                              position.minScrollExtent;
+                                          targetOffset =
+                                              position.minScrollExtent +
+                                              (overshoot *
+                                                      pageViewWidth *
+                                                      0.55) /
+                                                  (pageViewWidth +
+                                                      0.55 * overshoot.abs());
+                                        } else if (targetOffset >
+                                            position.maxScrollExtent) {
+                                          final overshoot =
+                                              targetOffset -
+                                              position.maxScrollExtent;
+                                          targetOffset =
+                                              position.maxScrollExtent +
+                                              (overshoot *
+                                                      pageViewWidth *
+                                                      0.55) /
+                                                  (pageViewWidth +
+                                                      0.55 * overshoot.abs());
+                                        }
+                                        _pageController.jumpTo(targetOffset);
                                       },
                                       onHorizontalDragEnd: (details) {
                                         if (!_isDraggingBubble) return;
                                         if (!_pageController.hasClients) return;
-                                        final int targetPage = currentPage
-                                            .round();
-                                        _pageController.animateToPage(
-                                          targetPage,
-                                          duration: const Duration(
-                                            milliseconds: 250,
-                                          ),
-                                          curve: Curves.easeOut,
-                                        );
+                                        if (reduceMotion) {
+                                          _pageController.jumpToPage(
+                                            (_pageController.page ?? 0.0)
+                                                .round()
+                                                .clamp(0, 3),
+                                          );
+                                        } else {
+                                          final position =
+                                              _pageController.position
+                                                  as ScrollPositionWithSingleContext;
+                                          position.goBallistic(
+                                            details
+                                                    .velocity
+                                                    .pixelsPerSecond
+                                                    .dx *
+                                                (position.viewportDimension /
+                                                    tabWidth),
+                                          );
+                                        }
+                                        _isDraggingBubble = false;
+                                      },
+                                      onHorizontalDragCancel: () {
+                                        if (!_isDraggingBubble ||
+                                            !_pageController.hasClients) {
+                                          return;
+                                        }
+                                        if (reduceMotion) {
+                                          _pageController.jumpToPage(
+                                            (_pageController.page ?? 0.0)
+                                                .round()
+                                                .clamp(0, 3),
+                                          );
+                                        } else {
+                                          (_pageController.position
+                                                  as ScrollPositionWithSingleContext)
+                                              .goBallistic(0);
+                                        }
+                                        _isDraggingBubble = false;
                                       },
                                       child: Stack(
                                         children: [

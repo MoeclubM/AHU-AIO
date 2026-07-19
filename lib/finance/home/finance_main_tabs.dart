@@ -38,17 +38,21 @@ class _FinanceMainTabsState extends State<FinanceMainTabs> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(99),
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                filter: ImageFilter.blur(
+                  sigmaX: MediaQuery.highContrastOf(context) ? 0 : 12,
+                  sigmaY: MediaQuery.highContrastOf(context) ? 0 : 12,
+                ),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.surface.withOpacity(0.68),
+                    color: Theme.of(context).colorScheme.surface.withOpacity(
+                      MediaQuery.highContrastOf(context) ? 0.96 : 0.68,
+                    ),
                     borderRadius: BorderRadius.circular(99),
                     border: Border.all(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outlineVariant.withOpacity(0.5),
+                      color: Theme.of(context).colorScheme.outlineVariant
+                          .withOpacity(
+                            MediaQuery.highContrastOf(context) ? 0.9 : 0.5,
+                          ),
                       width: 0.8,
                     ),
                   ),
@@ -64,7 +68,9 @@ class _FinanceMainTabsState extends State<FinanceMainTabs> {
         actions: const [],
       ),
       body: PageView(
-        physics: const NeverScrollableScrollPhysics(),
+        physics: const NeverScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
         controller: widget.pageController,
         children: [
           FinanceHomePage(embed: true),

@@ -61,17 +61,26 @@ class _SchedulePageState extends State<SchedulePage> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(99),
                     child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                      filter: ImageFilter.blur(
+                        sigmaX: MediaQuery.highContrastOf(context) ? 0 : 12,
+                        sigmaY: MediaQuery.highContrastOf(context) ? 0 : 12,
+                      ),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.surface.withOpacity(0.68),
+                          color: Theme.of(context).colorScheme.surface
+                              .withOpacity(
+                                MediaQuery.highContrastOf(context)
+                                    ? 0.96
+                                    : 0.68,
+                              ),
                           borderRadius: BorderRadius.circular(99),
                           border: Border.all(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.outlineVariant.withOpacity(0.5),
+                            color: Theme.of(context).colorScheme.outlineVariant
+                                .withOpacity(
+                                  MediaQuery.highContrastOf(context)
+                                      ? 0.9
+                                      : 0.5,
+                                ),
                             width: 0.8,
                           ),
                         ),
@@ -184,6 +193,8 @@ class _SchedulePageState extends State<SchedulePage> {
 
   Widget _buildFloatingWeekSelector() {
     final selectedWeek = _logic.selectedWeek.value;
+    final highContrast = MediaQuery.highContrastOf(context);
+    final colorScheme = Theme.of(context).colorScheme;
     return SafeArea(
       top: false,
       bottom: true,
@@ -192,15 +203,22 @@ class _SchedulePageState extends State<SchedulePage> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(28),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+            filter: ImageFilter.blur(
+              sigmaX: highContrast ? 0 : 14,
+              sigmaY: highContrast ? 0 : 14,
+            ),
             child: Container(
               height: 52,
               padding: const EdgeInsets.symmetric(horizontal: 8),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.22),
+                color: highContrast
+                    ? colorScheme.surface.withOpacity(0.96)
+                    : Colors.black.withOpacity(0.22),
                 borderRadius: BorderRadius.circular(28),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.35),
+                  color: highContrast
+                      ? colorScheme.outline
+                      : Colors.white.withOpacity(0.35),
                   width: 0.8,
                 ),
               ),
@@ -209,7 +227,7 @@ class _SchedulePageState extends State<SchedulePage> {
                 children: [
                   IconButton(
                     icon: const Icon(Icons.chevron_left),
-                    color: Colors.white,
+                    color: highContrast ? colorScheme.onSurface : Colors.white,
                     onPressed: selectedWeek > 1
                         ? () => _logic.selectWeek(selectedWeek - 1)
                         : null,
@@ -222,17 +240,21 @@ class _SchedulePageState extends State<SchedulePage> {
                       alignment: Alignment.center,
                       child: Text(
                         '第 $selectedWeek 周',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style:
+                            const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                            ).copyWith(
+                              color: highContrast
+                                  ? colorScheme.onSurface
+                                  : Colors.white,
+                            ),
                       ),
                     ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.chevron_right),
-                    color: Colors.white,
+                    color: highContrast ? colorScheme.onSurface : Colors.white,
                     onPressed: selectedWeek < 20
                         ? () => _logic.selectWeek(selectedWeek + 1)
                         : null,
