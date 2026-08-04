@@ -248,7 +248,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                     height: bubbleHeight,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: MiuixColors.of(context).primary.withOpacity(0.12),
+                        color: MiuixColors.of(
+                          context,
+                        ).primary.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(20),
                       ),
                     ),
@@ -469,13 +471,14 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                               child: Container(
                                 height: 56,
                                 decoration: BoxDecoration(
-                                  color: MiuixColors.of(context).surface.withOpacity(
+                                  color: MiuixColors.of(context).surface
+                                      .withOpacity(
                                         reduceTransparency
                                             ? 0.96
                                             : (Theme.of(context).brightness ==
-                                                    Brightness.dark
-                                                ? 0.55
-                                                : 0.65),
+                                                      Brightness.dark
+                                                  ? 0.55
+                                                  : 0.65),
                                       ),
                                   borderRadius: BorderRadius.circular(28),
                                   border: Border.all(
@@ -531,13 +534,14 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                               child: Container(
                                 height: 64,
                                 decoration: BoxDecoration(
-                                  color: MiuixColors.of(context).surface.withOpacity(
+                                  color: MiuixColors.of(context).surface
+                                      .withOpacity(
                                         reduceTransparency
                                             ? 0.96
                                             : (Theme.of(context).brightness ==
-                                                    Brightness.dark
-                                                ? 0.55
-                                                : 0.65),
+                                                      Brightness.dark
+                                                  ? 0.55
+                                                  : 0.65),
                                       ),
                                   borderRadius: BorderRadius.circular(32),
                                   border: Border.all(
@@ -685,9 +689,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                             height: bubbleHeight,
                                             child: Container(
                                               decoration: BoxDecoration(
-                                                color: MiuixColors.of(context)
-                                                    .primary
-                                                    .withOpacity(0.12),
+                                                color: MiuixColors.of(
+                                                  context,
+                                                ).primary.withOpacity(0.12),
                                                 borderRadius:
                                                     BorderRadius.circular(24),
                                               ),

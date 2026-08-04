@@ -222,30 +222,68 @@ class MiuixColors extends ThemeExtension<MiuixColors> {
       primary: Color.lerp(primary, other.primary, t)!,
       onPrimary: Color.lerp(onPrimary, other.onPrimary, t)!,
       primaryVariant: Color.lerp(primaryVariant, other.primaryVariant, t)!,
-      onPrimaryVariant: Color.lerp(onPrimaryVariant, other.onPrimaryVariant, t)!,
-      primaryContainer: Color.lerp(primaryContainer, other.primaryContainer, t)!,
-      onPrimaryContainer:
-          Color.lerp(onPrimaryContainer, other.onPrimaryContainer, t)!,
+      onPrimaryVariant: Color.lerp(
+        onPrimaryVariant,
+        other.onPrimaryVariant,
+        t,
+      )!,
+      primaryContainer: Color.lerp(
+        primaryContainer,
+        other.primaryContainer,
+        t,
+      )!,
+      onPrimaryContainer: Color.lerp(
+        onPrimaryContainer,
+        other.onPrimaryContainer,
+        t,
+      )!,
       secondary: Color.lerp(secondary, other.secondary, t)!,
       onSecondary: Color.lerp(onSecondary, other.onSecondary, t)!,
-      secondaryVariant: Color.lerp(secondaryVariant, other.secondaryVariant, t)!,
-      onSecondaryVariant:
-          Color.lerp(onSecondaryVariant, other.onSecondaryVariant, t)!,
-      secondaryContainer:
-          Color.lerp(secondaryContainer, other.secondaryContainer, t)!,
-      onSecondaryContainer:
-          Color.lerp(onSecondaryContainer, other.onSecondaryContainer, t)!,
-      tertiaryContainer: Color.lerp(tertiaryContainer, other.tertiaryContainer, t)!,
-      onTertiaryContainer:
-          Color.lerp(onTertiaryContainer, other.onTertiaryContainer, t)!,
+      secondaryVariant: Color.lerp(
+        secondaryVariant,
+        other.secondaryVariant,
+        t,
+      )!,
+      onSecondaryVariant: Color.lerp(
+        onSecondaryVariant,
+        other.onSecondaryVariant,
+        t,
+      )!,
+      secondaryContainer: Color.lerp(
+        secondaryContainer,
+        other.secondaryContainer,
+        t,
+      )!,
+      onSecondaryContainer: Color.lerp(
+        onSecondaryContainer,
+        other.onSecondaryContainer,
+        t,
+      )!,
+      tertiaryContainer: Color.lerp(
+        tertiaryContainer,
+        other.tertiaryContainer,
+        t,
+      )!,
+      onTertiaryContainer: Color.lerp(
+        onTertiaryContainer,
+        other.onTertiaryContainer,
+        t,
+      )!,
       background: Color.lerp(background, other.background, t)!,
       onBackground: Color.lerp(onBackground, other.onBackground, t)!,
-      onBackgroundVariant:
-          Color.lerp(onBackgroundVariant, other.onBackgroundVariant, t)!,
+      onBackgroundVariant: Color.lerp(
+        onBackgroundVariant,
+        other.onBackgroundVariant,
+        t,
+      )!,
       surface: Color.lerp(surface, other.surface, t)!,
       onSurface: Color.lerp(onSurface, other.onSurface, t)!,
       surfaceVariant: Color.lerp(surfaceVariant, other.surfaceVariant, t)!,
-      onSurfaceVariant: Color.lerp(onSurfaceVariant, other.onSurfaceVariant, t)!,
+      onSurfaceVariant: Color.lerp(
+        onSurfaceVariant,
+        other.onSurfaceVariant,
+        t,
+      )!,
       onSurfaceVariantSummary: Color.lerp(
         onSurfaceVariantSummary,
         other.onSurfaceVariantSummary,
@@ -256,19 +294,31 @@ class MiuixColors extends ThemeExtension<MiuixColors> {
         other.onSurfaceVariantActions,
         t,
       )!,
-      surfaceContainer:
-          Color.lerp(surfaceContainer, other.surfaceContainer, t)!,
-      onSurfaceContainer:
-          Color.lerp(onSurfaceContainer, other.onSurfaceContainer, t)!,
+      surfaceContainer: Color.lerp(
+        surfaceContainer,
+        other.surfaceContainer,
+        t,
+      )!,
+      onSurfaceContainer: Color.lerp(
+        onSurfaceContainer,
+        other.onSurfaceContainer,
+        t,
+      )!,
       onSurfaceContainerVariant: Color.lerp(
         onSurfaceContainerVariant,
         other.onSurfaceContainerVariant,
         t,
       )!,
-      surfaceContainerHigh:
-          Color.lerp(surfaceContainerHigh, other.surfaceContainerHigh, t)!,
-      surfaceContainerHighest:
-          Color.lerp(surfaceContainerHighest, other.surfaceContainerHighest, t)!,
+      surfaceContainerHigh: Color.lerp(
+        surfaceContainerHigh,
+        other.surfaceContainerHigh,
+        t,
+      )!,
+      surfaceContainerHighest: Color.lerp(
+        surfaceContainerHighest,
+        other.surfaceContainerHighest,
+        t,
+      )!,
       outline: Color.lerp(outline, other.outline, t)!,
       dividerLine: Color.lerp(dividerLine, other.dividerLine, t)!,
       windowDimming: Color.lerp(windowDimming, other.windowDimming, t)!,

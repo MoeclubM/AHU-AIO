@@ -38,14 +38,15 @@ class LiquidGlassCard extends StatelessWidget {
     final r = Radius.circular(borderRadius);
 
     final baseColor =
-        color ??
-        (isDark ? const Color(0xFF1A1A1A) : const Color(0xFFFFFFFF));
+        color ?? (isDark ? const Color(0xFF1A1A1A) : const Color(0xFFFFFFFF));
     final fillColor = reduceTransparency
         ? baseColor.withOpacity(0.96)
         : baseColor.withOpacity(isDark ? 0.55 : 0.65);
-    final tintLayer = tint ?? (isDark
-        ? Colors.white.withOpacity(0.04)
-        : Colors.white.withOpacity(0.5));
+    final tintLayer =
+        tint ??
+        (isDark
+            ? Colors.white.withOpacity(0.04)
+            : Colors.white.withOpacity(0.5));
 
     return Container(
       margin: margin,
@@ -79,8 +80,12 @@ class LiquidGlassCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(borderRadius),
                 border: Border.all(
                   color: isDark
-                      ? Colors.white.withOpacity(reduceTransparency ? 0.2 : 0.08)
-                      : Colors.white.withOpacity(reduceTransparency ? 0.6 : 0.45),
+                      ? Colors.white.withOpacity(
+                          reduceTransparency ? 0.2 : 0.08,
+                        )
+                      : Colors.white.withOpacity(
+                          reduceTransparency ? 0.6 : 0.45,
+                        ),
                   width: 0.5,
                 ),
               ),
@@ -142,10 +147,7 @@ class _GlassHighlightPainter extends CustomPainter {
           Colors.white.withOpacity(0),
         ],
       ).createShader(rect);
-    final inset = RRect.fromRectAndRadius(
-      rect.deflate(0.5),
-      radius,
-    );
+    final inset = RRect.fromRectAndRadius(rect.deflate(0.5), radius);
     canvas.drawRRect(inset, innerStroke);
   }
 

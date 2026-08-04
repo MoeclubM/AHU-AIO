@@ -33,13 +33,8 @@ class MiuixCard extends StatelessWidget {
     );
     final content = Container(
       margin: margin,
-      decoration: ShapeDecoration(
-        color: cardColor,
-        shape: shape,
-      ),
-      child: padding == null
-          ? child
-          : Padding(padding: padding!, child: child),
+      decoration: ShapeDecoration(color: cardColor, shape: shape),
+      child: padding == null ? child : Padding(padding: padding!, child: child),
     );
     if (onTap == null && onLongPress == null) return content;
     return InkWell(
@@ -104,19 +99,19 @@ class MiuixComponent extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: padding ??
-            const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        padding:
+            padding ?? const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         child: Row(
           children: [
-            if (leading != null) ...[
-              leading!,
-              const SizedBox(width: 14),
-            ],
+            if (leading != null) ...[leading!, const SizedBox(width: 14)],
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(fontSize: 16, color: mc.onSurface)),
+                  Text(
+                    title,
+                    style: TextStyle(fontSize: 16, color: mc.onSurface),
+                  ),
                   if (summary != null) ...[
                     const SizedBox(height: 2),
                     Text(
@@ -130,17 +125,13 @@ class MiuixComponent extends StatelessWidget {
                 ],
               ),
             ),
-            if (trailing != null) ...[
-              const SizedBox(width: 8),
-              trailing!,
-            ],
+            if (trailing != null) ...[const SizedBox(width: 8), trailing!],
           ],
         ),
       ),
     );
   }
 }
-
 
 /// Miuix 风格主按钮，对应 miuix 的 [Button] (buttonColorsPrimary)。
 ///
@@ -174,8 +165,8 @@ class MiuixPrimaryButton extends StatelessWidget {
       disabledBackgroundColor: color,
       disabledForegroundColor: mc.onPrimary,
       minimumSize: minimumSize,
-      padding: padding ??
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+      padding:
+          padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(borderRadius),
       ),
@@ -189,11 +180,7 @@ class MiuixPrimaryButton extends StatelessWidget {
         label: child,
       );
     }
-    return FilledButton(
-      onPressed: onPressed,
-      style: style,
-      child: child,
-    );
+    return FilledButton(onPressed: onPressed, style: style, child: child);
   }
 }
 
@@ -230,8 +217,8 @@ class MiuixButton extends StatelessWidget {
       disabledBackgroundColor: mc.secondaryVariant.withOpacity(0.38),
       disabledForegroundColor: mc.onSecondaryVariant.withOpacity(0.5),
       minimumSize: minimumSize,
-      padding: padding ??
-          const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+      padding:
+          padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(borderRadius),
       ),
@@ -245,11 +232,7 @@ class MiuixButton extends StatelessWidget {
         label: child,
       );
     }
-    return FilledButton(
-      onPressed: onPressed,
-      style: style,
-      child: child,
-    );
+    return FilledButton(onPressed: onPressed, style: style, child: child);
   }
 }
 
@@ -287,11 +270,7 @@ class MiuixTextButton extends StatelessWidget {
         label: child,
       );
     }
-    return TextButton(
-      onPressed: onPressed,
-      style: style,
-      child: child,
-    );
+    return TextButton(onPressed: onPressed, style: style, child: child);
   }
 }
 
@@ -339,10 +318,6 @@ class MiuixDangerButton extends StatelessWidget {
         label: child,
       );
     }
-    return FilledButton(
-      onPressed: onPressed,
-      style: style,
-      child: child,
-    );
+    return FilledButton(onPressed: onPressed, style: style, child: child);
   }
 }

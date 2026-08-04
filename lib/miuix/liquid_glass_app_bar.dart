@@ -50,8 +50,12 @@ class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
                   borderRadius: BorderRadius.circular(99),
                   border: Border.all(
                     color: isDark
-                        ? Colors.white.withOpacity(reduceTransparency ? 0.2 : 0.08)
-                        : Colors.white.withOpacity(reduceTransparency ? 0.6 : 0.45),
+                        ? Colors.white.withOpacity(
+                            reduceTransparency ? 0.2 : 0.08,
+                          )
+                        : Colors.white.withOpacity(
+                            reduceTransparency ? 0.6 : 0.45,
+                          ),
                     width: 0.5,
                   ),
                 ),
