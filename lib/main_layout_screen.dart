@@ -9,6 +9,7 @@ import 'finance/home/finance_main_tabs.dart';
 import 'app_settings_screen.dart';
 import 'auth/unified_login_page.dart';
 import 'auth/cas_auth_cache.dart';
+import 'miuix/miuix_theme.dart';
 
 class MainLayoutScreen extends StatefulWidget {
   const MainLayoutScreen({super.key});
@@ -247,7 +248,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                     height: bubbleHeight,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: colorScheme.primary.withOpacity(0.12),
+                        color: MiuixColors.of(context).primary.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(20),
                       ),
                     ),
@@ -459,53 +460,46 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(64, 0, 64, 76),
                           child: ClipRRect(
-                            borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(20),
-                            ),
+                            borderRadius: BorderRadius.circular(28),
                             child: BackdropFilter(
                               filter: ImageFilter.blur(
-                                sigmaX: reduceTransparency ? 0 : 16,
-                                sigmaY: reduceTransparency ? 0 : 16,
+                                sigmaX: reduceTransparency ? 0 : 22,
+                                sigmaY: reduceTransparency ? 0 : 22,
                               ),
                               child: Container(
                                 height: 56,
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.surface
-                                      .withOpacity(
-                                        reduceTransparency ? 0.96 : 0.08,
+                                  color: MiuixColors.of(context).surface.withOpacity(
+                                        reduceTransparency
+                                            ? 0.96
+                                            : (Theme.of(context).brightness ==
+                                                    Brightness.dark
+                                                ? 0.55
+                                                : 0.65),
                                       ),
-                                  borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(20),
+                                  borderRadius: BorderRadius.circular(28),
+                                  border: Border.all(
+                                    color: MiuixColors.of(context).outline
+                                        .withOpacity(
+                                          reduceTransparency ? 0.9 : 0.5,
+                                        ),
+                                    width: 0.5,
                                   ),
-                                  border: Border(
-                                    top: BorderSide(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .outlineVariant
-                                          .withOpacity(
-                                            reduceTransparency ? 0.9 : 0.35,
-                                          ),
-                                      width: 0.8,
-                                    ),
-                                    left: BorderSide(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .outlineVariant
-                                          .withOpacity(
-                                            reduceTransparency ? 0.9 : 0.35,
-                                          ),
-                                      width: 0.8,
-                                    ),
-                                    right: BorderSide(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .outlineVariant
-                                          .withOpacity(
-                                            reduceTransparency ? 0.9 : 0.35,
-                                          ),
-                                      width: 0.8,
-                                    ),
-                                    bottom: BorderSide.none,
+                                ),
+                                foregroundDecoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(28),
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment(0, 0.4),
+                                    colors: [
+                                      Colors.white.withOpacity(
+                                        Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? (reduceTransparency ? 0 : 0.12)
+                                            : (reduceTransparency ? 0 : 0.5),
+                                      ),
+                                      Colors.white.withOpacity(0),
+                                    ],
                                   ),
                                 ),
                                 child: _buildSubTabBarChild(currentPage),
@@ -531,25 +525,43 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                             borderRadius: BorderRadius.circular(32),
                             child: BackdropFilter(
                               filter: ImageFilter.blur(
-                                sigmaX: reduceTransparency ? 0 : 16,
-                                sigmaY: reduceTransparency ? 0 : 16,
+                                sigmaX: reduceTransparency ? 0 : 24,
+                                sigmaY: reduceTransparency ? 0 : 24,
                               ),
                               child: Container(
                                 height: 64,
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.surface
-                                      .withOpacity(
-                                        reduceTransparency ? 0.96 : 0.08,
+                                  color: MiuixColors.of(context).surface.withOpacity(
+                                        reduceTransparency
+                                            ? 0.96
+                                            : (Theme.of(context).brightness ==
+                                                    Brightness.dark
+                                                ? 0.55
+                                                : 0.65),
                                       ),
                                   borderRadius: BorderRadius.circular(32),
                                   border: Border.all(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .outlineVariant
+                                    color: MiuixColors.of(context).outline
                                         .withOpacity(
-                                          reduceTransparency ? 0.9 : 0.35,
+                                          reduceTransparency ? 0.9 : 0.5,
                                         ),
-                                    width: 0.8,
+                                    width: 0.5,
+                                  ),
+                                ),
+                                foregroundDecoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(32),
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment(0, 0.4),
+                                    colors: [
+                                      Colors.white.withOpacity(
+                                        Theme.of(context).brightness ==
+                                                Brightness.dark
+                                            ? (reduceTransparency ? 0 : 0.12)
+                                            : (reduceTransparency ? 0 : 0.5),
+                                      ),
+                                      Colors.white.withOpacity(0),
+                                    ],
                                   ),
                                 ),
                                 child: LayoutBuilder(
@@ -673,8 +685,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                             height: bubbleHeight,
                                             child: Container(
                                               decoration: BoxDecoration(
-                                                color: Theme.of(context)
-                                                    .colorScheme
+                                                color: MiuixColors.of(context)
                                                     .primary
                                                     .withOpacity(0.12),
                                                 borderRadius:

@@ -1,5 +1,5 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../../miuix/liquid_glass_app_bar.dart';
 import 'jw_home_view.dart';
 import '../pages/jw_schedule_page.dart';
 import '../pages/jw_grades_page.dart';
@@ -28,45 +28,8 @@ class _JwMainTabsState extends State<JwMainTabs> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 52,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: true,
-        flexibleSpace: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(99),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(
-                  sigmaX: MediaQuery.highContrastOf(context) ? 0 : 12,
-                  sigmaY: MediaQuery.highContrastOf(context) ? 0 : 12,
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface.withOpacity(
-                      MediaQuery.highContrastOf(context) ? 0.96 : 0.68,
-                    ),
-                    borderRadius: BorderRadius.circular(99),
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.outlineVariant
-                          .withOpacity(
-                            MediaQuery.highContrastOf(context) ? 0.9 : 0.5,
-                          ),
-                      width: 0.8,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-        title: const Text(
-          '安大教务',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        ),
+      appBar: LiquidGlassAppBar(
+        title: '安大教务',
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 24),

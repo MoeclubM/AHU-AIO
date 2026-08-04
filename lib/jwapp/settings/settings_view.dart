@@ -6,6 +6,7 @@ import '../api/getuserinfo_extended.dart';
 import '../api/unauthorized_exception.dart';
 import '../../globals.dart' as globals;
 import '../../theme_manager.dart';
+import '../../miuix/miuix_components.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -241,15 +242,11 @@ class _SettingsPageState extends State<SettingsPage> {
           title: const Text('登录已过期'),
           content: const Text('重新登录失败，请手动登录。'),
           actions: [
-            ElevatedButton(
+            MiuixDangerButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 _logout(this.context);
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-              ),
               child: const Text('退出登录'),
             ),
           ],
@@ -261,15 +258,10 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildLogoutButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      child: ElevatedButton.icon(
+      child: MiuixDangerButton(
         onPressed: () => _showLogoutDialog(context),
         icon: const Icon(Icons.logout),
-        label: const Text('退出登录'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.red,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-        ),
+        child: const Text('退出登录'),
       ),
     );
   }
@@ -282,19 +274,15 @@ class _SettingsPageState extends State<SettingsPage> {
           title: const Text('确认退出'),
           content: const Text('您确定要退出登录吗？'),
           actions: [
-            TextButton(
+            MiuixTextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('取消'),
             ),
-            ElevatedButton(
+            MiuixDangerButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 _logout(context);
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-              ),
               child: const Text('确认退出'),
             ),
           ],
