@@ -75,9 +75,7 @@ class LiquidGlassCard extends StatelessWidget {
               ),
             // 填充层
             Positioned.fill(
-              child: ColoredBox(
-                color: baseColor.withOpacity(fillAlpha),
-              ),
+              child: ColoredBox(color: baseColor.withOpacity(fillAlpha)),
             ),
             // 液态玻璃高光层
             if (glassEnabled && !reduceTransparency)
