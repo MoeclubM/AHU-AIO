@@ -10,6 +10,7 @@ import 'app_settings_screen.dart';
 import 'auth/unified_login_page.dart';
 import 'auth/cas_auth_cache.dart';
 import 'miuix/miuix_theme.dart';
+import 'theme_manager.dart';
 
 class MainLayoutScreen extends StatefulWidget {
   const MainLayoutScreen({super.key});
@@ -382,6 +383,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
         MediaQuery.disableAnimationsOf(context) ||
         View.of(context).platformDispatcher.accessibilityFeatures.reduceMotion;
     final reduceTransparency = MediaQuery.highContrastOf(context);
+    final tm = ThemeManager();
+    final blurEnabled = tm.enableBlur && !reduceTransparency;
+    final glassEnabled = tm.enableLiquidGlass && blurEnabled;
 
     if (!isLoggedIn) {
       return UnifiedLoginPage(
@@ -465,21 +469,17 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                             borderRadius: BorderRadius.circular(28),
                             child: BackdropFilter(
                               filter: ImageFilter.blur(
-                                sigmaX: reduceTransparency ? 0 : 22,
-                                sigmaY: reduceTransparency ? 0 : 22,
+                                sigmaX: blurEnabled ? 22 : 0,
+                                sigmaY: blurEnabled ? 22 : 0,
                               ),
                               child: Container(
                                 height: 56,
                                 decoration: BoxDecoration(
-                                  color: MiuixColors.of(context).surface
-                                      .withOpacity(
-                                        reduceTransparency
-                                            ? 0.96
-                                            : (Theme.of(context).brightness ==
-                                                      Brightness.dark
-                                                  ? 0.55
-                                                  : 0.65),
-                                      ),
+                                  color: blurEnabled
+                                      ? MiuixColors.of(context).surface.withOpacity(
+                                          Theme.of(context).brightness == Brightness.dark ? 0.55 : 0.65,
+                                        )
+                                      : MiuixColors.of(context).surface.withOpacity(0.92),
                                   borderRadius: BorderRadius.circular(28),
                                   border: Border.all(
                                     color: MiuixColors.of(context).outline
@@ -498,8 +498,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                       Colors.white.withOpacity(
                                         Theme.of(context).brightness ==
                                                 Brightness.dark
-                                            ? (reduceTransparency ? 0 : 0.12)
-                                            : (reduceTransparency ? 0 : 0.5),
+                                            ? (glassEnabled ? 0.12 : 0)
+                                            : (glassEnabled ? 0.5 : 0),
                                       ),
                                       Colors.white.withOpacity(0),
                                     ],
@@ -528,21 +528,17 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                             borderRadius: BorderRadius.circular(32),
                             child: BackdropFilter(
                               filter: ImageFilter.blur(
-                                sigmaX: reduceTransparency ? 0 : 24,
-                                sigmaY: reduceTransparency ? 0 : 24,
+                                sigmaX: blurEnabled ? 24 : 0,
+                                sigmaY: blurEnabled ? 24 : 0,
                               ),
                               child: Container(
                                 height: 64,
                                 decoration: BoxDecoration(
-                                  color: MiuixColors.of(context).surface
-                                      .withOpacity(
-                                        reduceTransparency
-                                            ? 0.96
-                                            : (Theme.of(context).brightness ==
-                                                      Brightness.dark
-                                                  ? 0.55
-                                                  : 0.65),
-                                      ),
+                                  color: blurEnabled
+                                      ? MiuixColors.of(context).surface.withOpacity(
+                                          Theme.of(context).brightness == Brightness.dark ? 0.55 : 0.65,
+                                        )
+                                      : MiuixColors.of(context).surface.withOpacity(0.92),
                                   borderRadius: BorderRadius.circular(32),
                                   border: Border.all(
                                     color: MiuixColors.of(context).outline
@@ -561,8 +557,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                       Colors.white.withOpacity(
                                         Theme.of(context).brightness ==
                                                 Brightness.dark
-                                            ? (reduceTransparency ? 0 : 0.12)
-                                            : (reduceTransparency ? 0 : 0.5),
+                                            ? (glassEnabled ? 0.12 : 0)
+                                            : (glassEnabled ? 0.5 : 0),
                                       ),
                                       Colors.white.withOpacity(0),
                                     ],

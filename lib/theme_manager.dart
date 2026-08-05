@@ -19,6 +19,20 @@ enum ColorMode {
   bool get isAmoled => this == ColorMode.amoled;
 }
 
+/// 界面风格模式，参考 SukiSU Ultra 的 UiMode。
+enum UiMode {
+  miuix, // Miuix 风格（默认）
+  material3; // Material 3 风格
+
+  static UiMode fromValue(String v) => v == 'material3'
+      ? UiMode.material3
+      : UiMode.miuix;
+
+  String get value => this == UiMode.material3 ? 'material3' : 'miuix';
+
+  String get displayName => this == UiMode.material3 ? 'Material 3' : 'Miuix';
+}
+
 /// 预设主色列表，参考 SukiSU Ultra 的 keyColor 选择。
 class PresetColors {
   static const List<Color> presets = [
@@ -55,9 +69,18 @@ class ThemeManager extends ChangeNotifier {
 
   ColorMode _colorMode = ColorMode.system;
   Color _keyColor = const Color(0xFF3482FF);
+  UiMode _uiMode = UiMode.miuix;
+  bool _enableBlur = true;
+  bool _enableLiquidGlass = true;
 
   ColorMode get colorMode => _colorMode;
   Color get keyColor => _keyColor;
+  UiMode get uiMode => _uiMode;
+  bool get enableBlur => _enableBlur;
+  bool get enableLiquidGlass => _enableLiquidGlass;
+
+  bool get isMiuix => _uiMode == UiMode.miuix;
+  bool get isMaterial3 => _uiMode == UiMode.material3;
 
   /// 是否为 AMOLED 纯黑模式。
   bool get isAmoled => _colorMode == ColorMode.amoled;
@@ -70,7 +93,7 @@ class ThemeManager extends ChangeNotifier {
       case ColorMode.dark:
         return 'dark';
       case ColorMode.amoled:
-        return 'dark'; // AMOLED 归入 dark 的 ThemeMode
+        return 'dark';
       case ColorMode.system:
         return 'system';
     }
@@ -101,6 +124,8 @@ class ThemeManager extends ChangeNotifier {
     }
   }
 
+  String get currentUiModeName => _uiMode.displayName;
+
   // 兼容旧接口
   String get currentThemeName => currentColorModeName;
 
@@ -126,6 +151,27 @@ class ThemeManager extends ChangeNotifier {
     await prefs.setInt('keyColor', color.toARGB32());
   }
 
+  Future<void> setUiMode(UiMode mode) async {
+    _uiMode = mode;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('uiMode', mode.value);
+  }
+
+  Future<void> setEnableBlur(bool value) async {
+    _enableBlur = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('enableBlur', value);
+  }
+
+  Future<void> setEnableLiquidGlass(bool value) async {
+    _enableLiquidGlass = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('enableLiquidGlass', value);
+  }
+
   // 兼容旧的 setThemeMode 字符串接口
   Future<void> setThemeMode(String mode) async {
     final cm = switch (mode) {
@@ -142,7 +188,6 @@ class ThemeManager extends ChangeNotifier {
     if (modeVal != null) {
       _colorMode = ColorMode.fromValue(modeVal);
     } else {
-      // 兼容旧版字符串存储
       final old = prefs.getString('themeMode') ?? 'system';
       _colorMode = switch (old) {
         'light' => ColorMode.light,
@@ -154,6 +199,12 @@ class ThemeManager extends ChangeNotifier {
     if (keyVal != null) {
       _keyColor = Color(keyVal);
     }
+    final uiModeVal = prefs.getString('uiMode');
+    if (uiModeVal != null) {
+      _uiMode = UiMode.fromValue(uiModeVal);
+    }
+    _enableBlur = prefs.getBool('enableBlur') ?? true;
+    _enableLiquidGlass = prefs.getBool('enableLiquidGlass') ?? true;
     notifyListeners();
   }
 }

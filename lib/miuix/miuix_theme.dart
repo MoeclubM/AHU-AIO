@@ -486,3 +486,91 @@ ThemeData _buildTheme(MiuixColors c, Brightness brightness) {
     ),
   );
 }
+
+
+/// Material 3 浅色主题，基于 keyColor 生成 seed 配色。
+ThemeData material3LightTheme({Color? keyColor}) {
+  final scheme = ColorScheme.fromSeed(
+    seedColor: keyColor ?? const Color(0xFF3482FF),
+    brightness: Brightness.light,
+  );
+  return ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.light,
+    colorScheme: scheme,
+    scaffoldBackgroundColor: scheme.surface,
+    appBarTheme: AppBarTheme(
+      centerTitle: true,
+      backgroundColor: scheme.surface,
+      foregroundColor: scheme.onSurface,
+      elevation: 0,
+      scrolledUnderElevation: 3,
+    ),
+    cardTheme: CardThemeData(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: EdgeInsets.zero,
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: scheme.surfaceContainer,
+      elevation: 3,
+      height: 64,
+      indicatorColor: scheme.primaryContainer,
+      labelTextStyle: WidgetStateProperty.all(const TextStyle(fontSize: 11)),
+    ),
+  );
+}
+
+/// Material 3 深色主题。
+ThemeData material3DarkTheme({Color? keyColor}) {
+  final scheme = ColorScheme.fromSeed(
+    seedColor: keyColor ?? const Color(0xFF277AF7),
+    brightness: Brightness.dark,
+  );
+  return ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    colorScheme: scheme,
+    scaffoldBackgroundColor: scheme.surface,
+    appBarTheme: AppBarTheme(
+      centerTitle: true,
+      backgroundColor: scheme.surface,
+      foregroundColor: scheme.onSurface,
+      elevation: 0,
+      scrolledUnderElevation: 3,
+    ),
+    cardTheme: CardThemeData(
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      margin: EdgeInsets.zero,
+    ),
+    navigationBarTheme: NavigationBarThemeData(
+      backgroundColor: scheme.surfaceContainer,
+      elevation: 3,
+      height: 64,
+      indicatorColor: scheme.primaryContainer,
+      labelTextStyle: WidgetStateProperty.all(const TextStyle(fontSize: 11)),
+    ),
+  );
+}
+
+/// Material 3 AMOLED 纯黑主题。
+ThemeData material3AmoledTheme({Color? keyColor}) {
+  final base = material3DarkTheme(keyColor: keyColor);
+  return base.copyWith(
+    scaffoldBackgroundColor: Colors.black,
+    colorScheme: base.colorScheme.copyWith(
+      surface: Colors.black,
+      surfaceContainer: const Color(0xFF0A0A0A),
+      surfaceContainerHigh: const Color(0xFF111111),
+      surfaceContainerHighest: const Color(0xFF181818),
+    ),
+    appBarTheme: const AppBarTheme(
+      centerTitle: true,
+      backgroundColor: Colors.black,
+      foregroundColor: Color(0xE6FFFFFF),
+      elevation: 0,
+      scrolledUnderElevation: 3,
+    ),
+  );
+}

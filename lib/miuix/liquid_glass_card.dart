@@ -1,11 +1,13 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../theme_manager.dart';
 
 /// 液态玻璃质感的卡片容器。
 ///
 /// 参考 SukiSU Ultra / miuix-blur 的 Liquid Glass 实现：
 /// 背景模糊 (BackdropFilter) + 半透明覆盖层 + 内阴影 + 光泽描边。
-/// 高对比度模式下退化为不透明实色卡片。
+/// 根据 [ThemeManager.enableBlur] 控制模糊，[ThemeManager.enableLiquidGlass]
+/// 控制高光与 tint 绘制。高对比度模式下退化为不透明实色卡片。
 class LiquidGlassCard extends StatelessWidget {
   const LiquidGlassCard({
     super.key,
@@ -35,18 +37,65 @@ class LiquidGlassCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final reduceTransparency = MediaQuery.highContrastOf(context);
+    final tm = ThemeManager();
+    final blurEnabled = tm.enableBlur && !reduceTransparency;
+    final glassEnabled = tm.enableLiquidGlass && blurEnabled;
     final r = Radius.circular(borderRadius);
 
     final baseColor =
         color ?? (isDark ? const Color(0xFF1A1A1A) : const Color(0xFFFFFFFF));
-    final fillColor = reduceTransparency
-        ? baseColor.withOpacity(0.96)
+    final fillColor = !blurEnabled || reduceTransparency
+        ? baseColor.withOpacity(reduceTransparency ? 0.96 : 0.92)
         : baseColor.withOpacity(isDark ? 0.55 : 0.65);
-    final tintLayer =
-        tint ??
-        (isDark
-            ? Colors.white.withOpacity(0.04)
-            : Colors.white.withOpacity(0.5));
+    final tintLayer = tint ?? (isDark
+        ? Colors.white.withOpacity(0.04)
+        : Colors.white.withOpacity(0.5));
+
+    Widget inner = Container(
+      decoration: BoxDecoration(
+        color: fillColor,
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withOpacity(reduceTransparency ? 0.2 : 0.08)
+              : Colors.white.withOpacity(reduceTransparency ? 0.6 : 0.45),
+          width: 0.5,
+        ),
+      ),
+      padding: padding,
+      child: glassEnabled && showHighlight
+          ? CustomPaint(
+              foregroundPainter: _GlassTintPainter(radius: r, tint: tintLayer),
+              child: child,
+            )
+          : child,
+    );
+
+    if (glassEnabled && showHighlight) {
+      inner = CustomPaint(
+        painter: _GlassHighlightPainter(
+          radius: r,
+          isDark: isDark,
+          showHighlight: showHighlight,
+        ),
+        child: inner,
+      );
+    }
+
+    if (blurEnabled) {
+      inner = ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
+          child: inner,
+        ),
+      );
+    } else {
+      inner = ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: inner,
+      );
+    }
 
     return Container(
       margin: margin,
@@ -61,46 +110,7 @@ class LiquidGlassCard extends StatelessWidget {
             ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(borderRadius),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(
-            sigmaX: reduceTransparency ? 0 : blurSigma,
-            sigmaY: reduceTransparency ? 0 : blurSigma,
-          ),
-          child: CustomPaint(
-            painter: _GlassHighlightPainter(
-              radius: r,
-              isDark: isDark,
-              showHighlight: showHighlight && !reduceTransparency,
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                color: fillColor,
-                borderRadius: BorderRadius.circular(borderRadius),
-                border: Border.all(
-                  color: isDark
-                      ? Colors.white.withOpacity(
-                          reduceTransparency ? 0.2 : 0.08,
-                        )
-                      : Colors.white.withOpacity(
-                          reduceTransparency ? 0.6 : 0.45,
-                        ),
-                  width: 0.5,
-                ),
-              ),
-              padding: padding,
-              child: CustomPaint(
-                foregroundPainter: _GlassTintPainter(
-                  radius: r,
-                  tint: tintLayer,
-                ),
-                child: child,
-              ),
-            ),
-          ),
-        ),
-      ),
+      child: inner,
     );
   }
 }
@@ -123,7 +133,6 @@ class _GlassHighlightPainter extends CustomPainter {
     final rect = Offset.zero & size;
     final rrect = RRect.fromRectAndRadius(rect, radius);
 
-    // 顶部高光
     final topHighlight = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
@@ -135,7 +144,6 @@ class _GlassHighlightPainter extends CustomPainter {
       ).createShader(rect);
     canvas.drawRRect(rrect, topHighlight);
 
-    // 内侧细描边高光
     final innerStroke = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0

@@ -61,6 +61,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final mc = MiuixColors.of(context);
     return Scaffold(
       appBar: AppBar(title: const Text('系统设置')),
       body: ListView(
@@ -72,15 +73,23 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
             child: Column(
               children: [
                 MiuixComponent(
-                  title: '颜色模式',
-                  summary: _themeManager.currentColorModeName,
-                  leading: Icon(
-                    Icons.brightness_6_outlined,
-                    color: MiuixColors.of(context).primary,
-                  ),
+                  title: '界面风格',
+                  summary: _themeManager.currentUiModeName,
+                  leading: Icon(Icons.dashboard_outlined, color: mc.primary),
                   trailing: Icon(
                     Icons.chevron_right,
-                    color: MiuixColors.of(context).onSurfaceVariantActions,
+                    color: mc.onSurfaceVariantActions,
+                  ),
+                  onTap: () => _showUiModeSheet(context),
+                ),
+                const Divider(height: 0.5, indent: 20),
+                MiuixComponent(
+                  title: '颜色模式',
+                  summary: _themeManager.currentColorModeName,
+                  leading: Icon(Icons.brightness_6_outlined, color: mc.primary),
+                  trailing: Icon(
+                    Icons.chevron_right,
+                    color: mc.onSurfaceVariantActions,
                   ),
                   onTap: () => _showColorModeSheet(context),
                 ),
@@ -88,12 +97,41 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 MiuixComponent(
                   title: '主题色',
                   summary: _currentKeyColorName(),
-                  leading: Icon(
-                    Icons.color_lens_outlined,
-                    color: MiuixColors.of(context).primary,
-                  ),
+                  leading: Icon(Icons.color_lens_outlined, color: mc.primary),
                   trailing: _buildKeyColorDot(),
                   onTap: () => _showKeyColorSheet(context),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          const MiuixSmallTitle('效果'),
+          LiquidGlassCard(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Column(
+              children: [
+                MiuixComponent(
+                  title: '模糊效果',
+                  summary: '为顶栏和底栏启用背景模糊',
+                  leading: Icon(Icons.blur_on_outlined, color: mc.primary),
+                  trailing: Switch(
+                    value: _themeManager.enableBlur,
+                    onChanged: (v) => _themeManager.setEnableBlur(v),
+                    activeColor: mc.primary,
+                  ),
+                ),
+                const Divider(height: 0.5, indent: 20),
+                MiuixComponent(
+                  title: '液态玻璃',
+                  summary: '为悬浮元素启用液态玻璃高光与润色',
+                  leading: Icon(Icons.water_drop_outlined, color: mc.primary),
+                  trailing: Switch(
+                    value: _themeManager.enableLiquidGlass,
+                    onChanged: _themeManager.enableBlur
+                        ? (v) => _themeManager.setEnableLiquidGlass(v)
+                        : null,
+                    activeColor: mc.primary,
+                  ),
                 ),
               ],
             ),
@@ -136,6 +174,56 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     );
   }
 
+  void _showUiModeSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  '界面风格',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ),
+              _uiModeOption(UiMode.miuix, 'Miuix', 'HyperOS 风格圆角与配色'),
+              _uiModeOption(
+                UiMode.material3,
+                'Material 3',
+                'Google Material You 风格',
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _uiModeOption(UiMode mode, String label, String summary) {
+    final selected = _themeManager.uiMode == mode;
+    final mc = MiuixColors.of(context);
+    return ListTile(
+      leading: Icon(
+        mode == UiMode.miuix ? Icons.phone_iphone : Icons.widgets_outlined,
+        color: selected ? mc.primary : mc.onSurfaceVariantActions,
+      ),
+      title: Text(label),
+      subtitle: Text(summary, style: const TextStyle(fontSize: 12)),
+      trailing: selected
+          ? Icon(Icons.check_circle, color: mc.primary, size: 22)
+          : Icon(Icons.radio_button_unchecked, color: mc.outline, size: 22),
+      onTap: () async {
+        await _themeManager.setUiMode(mode);
+        if (mounted) Navigator.pop(context);
+      },
+    );
+  }
+
   void _showColorModeSheet(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
@@ -167,7 +255,11 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 '深色模式',
                 Icons.dark_mode_outlined,
               ),
-              _colorModeOption(ColorMode.amoled, 'AMOLED 纯黑', Icons.contrast),
+              _colorModeOption(
+                ColorMode.amoled,
+                'AMOLED 纯黑',
+                Icons.contrast,
+              ),
               const SizedBox(height: 8),
             ],
           ),
@@ -176,14 +268,15 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     );
   }
 
-  Widget _colorModeOption(ColorMode mode, String label, IconData icon) {
+  Widget _colorModeOption(
+    ColorMode mode,
+    String label,
+    IconData icon,
+  ) {
     final selected = _themeManager.colorMode == mode;
     final mc = MiuixColors.of(context);
     return ListTile(
-      leading: Icon(
-        icon,
-        color: selected ? mc.primary : mc.onSurfaceVariantActions,
-      ),
+      leading: Icon(icon, color: selected ? mc.primary : mc.onSurfaceVariantActions),
       title: Text(label),
       trailing: selected
           ? Icon(Icons.check_circle, color: mc.primary, size: 22)
@@ -252,11 +345,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                           ],
                         ),
                         child: selected
-                            ? const Icon(
-                                Icons.check,
-                                color: Colors.white,
-                                size: 20,
-                              )
+                            ? const Icon(Icons.check, color: Colors.white, size: 20)
                             : null,
                       ),
                     );

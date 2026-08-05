@@ -1,10 +1,13 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'miuix_theme.dart';
+import '../theme_manager.dart';
 
 /// 液态玻璃风格的 AppBar 胶囊标题栏。
 ///
 /// 用于各主 tab 页面顶部，呈现悬浮的圆角胶囊玻璃效果。
+/// 根据 [ThemeManager.enableBlur] 控制模糊，[ThemeManager.enableLiquidGlass]
+/// 控制高光绘制。
 class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   const LiquidGlassAppBar({
     super.key,
@@ -22,9 +25,28 @@ class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mc = MiuixColors.of(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final reduceTransparency = MediaQuery.highContrastOf(context);
+    final tm = ThemeManager();
+    final blurEnabled = tm.enableBlur && !reduceTransparency;
+    final glassEnabled = tm.enableLiquidGlass && blurEnabled;
+
+    // Material3 模式下使用标准 AppBar，不应用胶囊玻璃效果
+    if (tm.isMaterial3) {
+      return AppBar(
+        toolbarHeight: 52,
+        centerTitle: centerTitle,
+        title: Text(
+          title,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+        ),
+        actions: actions,
+      );
+    }
+
+    final mc = MiuixColors.of(context);
+    final surfaceColor = theme.colorScheme.surface;
 
     return AppBar(
       toolbarHeight: 52,
@@ -39,14 +61,14 @@ class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
             borderRadius: BorderRadius.circular(99),
             child: BackdropFilter(
               filter: ImageFilter.blur(
-                sigmaX: reduceTransparency ? 0 : 16,
-                sigmaY: reduceTransparency ? 0 : 16,
+                sigmaX: blurEnabled ? 16 : 0,
+                sigmaY: blurEnabled ? 16 : 0,
               ),
               child: Container(
                 decoration: BoxDecoration(
-                  color: mc.surface.withOpacity(
-                    reduceTransparency ? 0.96 : (isDark ? 0.55 : 0.65),
-                  ),
+                  color: blurEnabled
+                      ? mc.surface.withOpacity(isDark ? 0.55 : 0.65)
+                      : surfaceColor.withOpacity(reduceTransparency ? 0.96 : 0.92),
                   borderRadius: BorderRadius.circular(99),
                   border: Border.all(
                     color: isDark
@@ -59,10 +81,12 @@ class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
                     width: 0.5,
                   ),
                 ),
-                child: CustomPaint(
-                  painter: _AppBarHighlightPainter(isDark: isDark),
-                  child: const SizedBox.expand(),
-                ),
+                child: glassEnabled
+                    ? CustomPaint(
+                        painter: _AppBarHighlightPainter(isDark: isDark),
+                        child: const SizedBox.expand(),
+                      )
+                    : null,
               ),
             ),
           ),

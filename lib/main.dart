@@ -34,10 +34,19 @@ class MyApp extends StatelessWidget {
     return AnimatedBuilder(
       animation: themeManager,
       builder: (context, child) {
-        final light = miuixLightTheme(keyColor: themeManager.keyColor);
-        final dark = themeManager.isAmoled
-            ? miuixAmoledTheme(keyColor: themeManager.keyColor)
-            : miuixDarkTheme(keyColor: themeManager.keyColor);
+        final ThemeData light;
+        final ThemeData dark;
+        if (themeManager.isMiuix) {
+          light = miuixLightTheme(keyColor: themeManager.keyColor);
+          dark = themeManager.isAmoled
+              ? miuixAmoledTheme(keyColor: themeManager.keyColor)
+              : miuixDarkTheme(keyColor: themeManager.keyColor);
+        } else {
+          light = material3LightTheme(keyColor: themeManager.keyColor);
+          dark = themeManager.isAmoled
+              ? material3AmoledTheme(keyColor: themeManager.keyColor)
+              : material3DarkTheme(keyColor: themeManager.keyColor);
+        }
         return GetMaterialApp(
           title: 'AHU AIO',
           debugShowCheckedModeBanner: false,
