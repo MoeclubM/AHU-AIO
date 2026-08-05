@@ -5,8 +5,8 @@ import '../theme_manager.dart';
 /// 液态玻璃质感的卡片容器。
 ///
 /// 参考 SukiSU Ultra / miuix-blur 的 Liquid Glass 实现：
-/// 背景模糊 (BackdropFilter) + 半透明覆盖层 + 顶部高光描边 + 底部反射 +
-/// 内阴影增强深度感。高对比度模式下退化为不透明实色卡片。
+/// 背景模糊 (BackdropFilter) + SDF 边缘光泽 (BloomStroke) + 内阴影 +
+/// 半透明覆盖层。高对比度模式下退化为不透明实色卡片。
 class LiquidGlassCard extends StatelessWidget {
   const LiquidGlassCard({
     super.key,
@@ -36,14 +36,14 @@ class LiquidGlassCard extends StatelessWidget {
     final reduceTransparency = MediaQuery.highContrastOf(context);
     final tm = ThemeManager();
     final blurEnabled = tm.enableBlur && !reduceTransparency;
-    final glassEnabled = tm.enableLiquidGlass && showHighlight;
-    final r = Radius.circular(borderRadius);
+    final glassEnabled =
+        tm.enableLiquidGlass && showHighlight && !reduceTransparency;
 
     final baseColor =
         color ?? (isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7));
     final fillAlpha = blurEnabled
-        ? (isDark ? 0.50 : 0.60)
-        : (reduceTransparency ? 0.96 : 0.88);
+        ? (isDark ? 0.45 : 0.55)
+        : (reduceTransparency ? 0.96 : 0.85);
 
     return Container(
       margin: margin,
@@ -62,7 +62,6 @@ class LiquidGlassCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(borderRadius),
         child: Stack(
           children: [
-            // 背景模糊层
             if (blurEnabled)
               Positioned.fill(
                 child: BackdropFilter(
@@ -73,18 +72,27 @@ class LiquidGlassCard extends StatelessWidget {
                   child: Container(color: Colors.transparent),
                 ),
               ),
-            // 填充层
             Positioned.fill(
               child: ColoredBox(color: baseColor.withOpacity(fillAlpha)),
             ),
-            // 液态玻璃高光层
-            if (glassEnabled && !reduceTransparency)
+            if (glassEnabled)
               Positioned.fill(
                 child: CustomPaint(
-                  painter: _LiquidGlassPainter(radius: r, isDark: isDark),
+                  painter: _BloomStrokePainter(
+                    radius: borderRadius,
+                    isDark: isDark,
+                  ),
                 ),
               ),
-            // 内容
+            if (glassEnabled)
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _InnerShadowPainter(
+                    radius: borderRadius,
+                    isDark: isDark,
+                  ),
+                ),
+              ),
             Padding(padding: padding ?? EdgeInsets.zero, child: child),
           ],
         ),
@@ -93,78 +101,145 @@ class LiquidGlassCard extends StatelessWidget {
   }
 }
 
-/// 液态玻璃高光绘制器。
+/// SDF 圆角矩形边缘光泽绘制器。
 ///
-/// 绘制三层效果：
-/// 1. 顶部高光渐变（模拟光源从上方照射）
-/// 2. 底部反射光（模拟环境光反射）
-/// 3. 内侧描边（顶部亮、底部暗，模拟玻璃边缘折射）
-class _LiquidGlassPainter extends CustomPainter {
-  const _LiquidGlassPainter({required this.radius, required this.isDark});
+/// 参考 SukiSU Ultra / miuix-blur 的 BloomStroke：沿圆角矩形边缘的法线光照。
+/// 用 SweepGradient 描边模拟半球法线在双定向光源下的反射：
+/// - 主光源从左上方照射，顶部+左侧最亮
+/// - 副光源从右下方反射，底部+右侧次亮
+/// 叠加一道内侧细高光描边模拟玻璃边缘的镜面反射。
+class _BloomStrokePainter extends CustomPainter {
+  const _BloomStrokePainter({required this.radius, required this.isDark});
 
-  final Radius radius;
+  final double radius;
   final bool isDark;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final rect = Offset.zero & size;
-    final rrect = RRect.fromRectAndRadius(rect, radius);
+    final w = size.width;
+    final h = size.height;
+    if (w <= 0 || h <= 0) return;
 
-    // 1. 顶部高光
-    final topHighlight = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment(0, 0.5),
-        colors: [
-          Colors.white.withOpacity(isDark ? 0.10 : 0.45),
-          Colors.white.withOpacity(0),
-        ],
-      ).createShader(rect);
-    canvas.drawRRect(rrect, topHighlight);
+    final rr = Radius.circular(
+      radius.clamp(0.0, w * 0.5).clamp(0.0, h * 0.5).toDouble(),
+    );
+    final rrect = RRect.fromRectAndRadius(Rect.fromLTWH(0, 0, w, h), rr);
 
-    // 2. 底部反射光
-    final bottomHighlight = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.bottomCenter,
-        end: Alignment(0, 0.7),
-        colors: [
-          Colors.white.withOpacity(isDark ? 0.04 : 0.12),
-          Colors.white.withOpacity(0),
-        ],
-      ).createShader(rect);
-    canvas.drawRRect(rrect, bottomHighlight);
+    // 边缘光泽描边宽度
+    final strokeW = (w < h ? w : h) * 0.10;
 
-    // 3. 内侧描边：顶部亮边 + 底部暗边
-    final inset = RRect.fromRectAndRadius(rect.deflate(0.5), radius);
+    // 主边缘光泽：SweepGradient 沿边缘法线方向变化
+    final baseAlpha = isDark ? 0.38 : 0.75;
+    final primaryColor = Colors.white.withOpacity(baseAlpha);
+    final secondaryColor = Colors.white.withOpacity(baseAlpha * 0.35);
+    const darkColor = Color(0x00000000);
 
-    final topStroke = Paint()
+    final edgePaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment(0, 0.6),
+      ..strokeWidth = strokeW
+      ..blendMode = BlendMode.plus
+      ..shader = SweepGradient(
+        center: Alignment.center,
+        startAngle: -3.14159 / 2,
+        endAngle: -3.14159 / 2 + 2 * 3.14159,
         colors: [
-          Colors.white.withOpacity(isDark ? 0.20 : 0.60),
-          Colors.white.withOpacity(0),
+          primaryColor,
+          secondaryColor,
+          darkColor,
+          secondaryColor,
+          primaryColor,
         ],
-      ).createShader(rect);
-    canvas.drawRRect(inset, topStroke);
+        stops: const [0.0, 0.30, 0.55, 0.80, 1.0],
+        transform: GradientRotation(-3.14159 / 2),
+      ).createShader(Offset.zero & size);
+    canvas.drawRRect(rrect.deflate(strokeW * 0.5), edgePaint);
 
-    final bottomStroke = Paint()
+    // 内侧细高光描边：模拟玻璃边缘锐利的镜面反射
+    final innerHighlightW = strokeW * 0.28;
+    final innerHighlight = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.5
+      ..strokeWidth = innerHighlightW
+      ..blendMode = BlendMode.plus
       ..shader = LinearGradient(
-        begin: Alignment.bottomCenter,
-        end: Alignment(0, 0.5),
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
         colors: [
-          Colors.black.withOpacity(isDark ? 0.30 : 0.08),
-          Colors.black.withOpacity(0),
+          Colors.white.withOpacity(isDark ? 0.55 : 0.90),
+          Colors.white.withOpacity(isDark ? 0.10 : 0.25),
+          Colors.white.withOpacity(0.0),
+          Colors.white.withOpacity(isDark ? 0.05 : 0.15),
         ],
-      ).createShader(rect);
-    canvas.drawRRect(inset, bottomStroke);
+        stops: const [0.0, 0.35, 0.55, 1.0],
+      ).createShader(Offset.zero & size);
+    canvas.drawRRect(
+      rrect.deflate(strokeW + innerHighlightW * 0.5),
+      innerHighlight,
+    );
   }
 
   @override
-  bool shouldRepaint(covariant _LiquidGlassPainter oldDelegate) =>
+  bool shouldRepaint(covariant _BloomStrokePainter oldDelegate) =>
+      isDark != oldDelegate.isDark || radius != oldDelegate.radius;
+}
+
+/// 内阴影绘制器，模拟玻璃边缘的凹陷感。
+///
+/// 在卡片内侧绘制一道柔和的深色阴影，增强玻璃的深度感。
+class _InnerShadowPainter extends CustomPainter {
+  const _InnerShadowPainter({required this.radius, required this.isDark});
+
+  final double radius;
+  final bool isDark;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    if (w <= 0 || h <= 0) return;
+
+    final rrect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, w, h),
+      Radius.circular(radius),
+    );
+
+    // 内阴影：在卡片内侧边缘绘制深色渐变
+    final shadowColor = Colors.black.withOpacity(isDark ? 0.20 : 0.06);
+    final shadowPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment(0, 0.15),
+        colors: [shadowColor, shadowColor.withOpacity(0)],
+      ).createShader(Offset.zero & size);
+
+    // 只在内侧绘制：用 clipPath 限制在 rrect 内
+    canvas.save();
+    canvas.clipRRect(rrect);
+
+    // 顶部内阴影
+    final topInner = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, w, h * 0.12),
+      Radius.circular(radius),
+    );
+    canvas.drawRRect(topInner, shadowPaint);
+
+    // 底部内阴影（更弱）
+    final bottomShadowColor = Colors.black.withOpacity(isDark ? 0.12 : 0.03);
+    final bottomPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.bottomCenter,
+        end: Alignment(0, 0.85),
+        colors: [bottomShadowColor, bottomShadowColor.withOpacity(0)],
+      ).createShader(Offset.zero & size);
+    final bottomInner = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, h * 0.88, w, h * 0.12),
+      Radius.circular(radius),
+    );
+    canvas.drawRRect(bottomInner, bottomPaint);
+
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _InnerShadowPainter oldDelegate) =>
       isDark != oldDelegate.isDark || radius != oldDelegate.radius;
 }
