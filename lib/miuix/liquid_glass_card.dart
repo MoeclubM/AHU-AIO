@@ -1,11 +1,12 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../theme_manager.dart';
+import 'bloom_stroke_painter.dart';
 
 /// 液态玻璃质感的卡片容器。
 ///
-/// 参考 SukiSU Ultra / miuix-blur 的 Liquid Glass 实现：
-/// 背景模糊 (BackdropFilter) + SDF 边缘光泽 (BloomStroke) + 内阴影 +
+/// 参考 SukiSU Ultra / compose-miuix-ui miuix 的 Liquid Glass 实现：
+/// 背景模糊 (BackdropFilter) + BloomStroke 边缘高光 + 内阴影 +
 /// 半透明覆盖层。高对比度模式下退化为不透明实色卡片。
 class LiquidGlassCard extends StatelessWidget {
   const LiquidGlassCard({
@@ -78,9 +79,10 @@ class LiquidGlassCard extends StatelessWidget {
             if (glassEnabled)
               Positioned.fill(
                 child: CustomPaint(
-                  painter: _BloomStrokePainter(
+                  painter: BloomStrokePainter(
                     radius: borderRadius,
                     isDark: isDark,
+                    enabled: glassEnabled,
                   ),
                 ),
               ),
@@ -99,87 +101,6 @@ class LiquidGlassCard extends StatelessWidget {
       ),
     );
   }
-}
-
-/// SDF 圆角矩形边缘光泽绘制器。
-///
-/// 参考 SukiSU Ultra / miuix-blur 的 BloomStroke：沿圆角矩形边缘的法线光照。
-/// 用 SweepGradient 描边模拟半球法线在双定向光源下的反射：
-/// - 主光源从左上方照射，顶部+左侧最亮
-/// - 副光源从右下方反射，底部+右侧次亮
-/// 叠加一道内侧细高光描边模拟玻璃边缘的镜面反射。
-class _BloomStrokePainter extends CustomPainter {
-  const _BloomStrokePainter({required this.radius, required this.isDark});
-
-  final double radius;
-  final bool isDark;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-    if (w <= 0 || h <= 0) return;
-
-    final rr = Radius.circular(
-      radius.clamp(0.0, w * 0.5).clamp(0.0, h * 0.5).toDouble(),
-    );
-    final rrect = RRect.fromRectAndRadius(Rect.fromLTWH(0, 0, w, h), rr);
-
-    // 边缘光泽描边宽度
-    final strokeW = (w < h ? w : h) * 0.10;
-
-    // 主边缘光泽：SweepGradient 沿边缘法线方向变化
-    final baseAlpha = isDark ? 0.38 : 0.75;
-    final primaryColor = Colors.white.withOpacity(baseAlpha);
-    final secondaryColor = Colors.white.withOpacity(baseAlpha * 0.35);
-    const darkColor = Color(0x00000000);
-
-    final edgePaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeW
-      ..blendMode = BlendMode.plus
-      ..shader = SweepGradient(
-        center: Alignment.center,
-        startAngle: -3.14159 / 2,
-        endAngle: -3.14159 / 2 + 2 * 3.14159,
-        colors: [
-          primaryColor,
-          secondaryColor,
-          darkColor,
-          secondaryColor,
-          primaryColor,
-        ],
-        stops: const [0.0, 0.30, 0.55, 0.80, 1.0],
-        transform: GradientRotation(-3.14159 / 2),
-      ).createShader(Offset.zero & size);
-    canvas.drawRRect(rrect.deflate(strokeW * 0.5), edgePaint);
-
-    // 内侧细高光描边：模拟玻璃边缘锐利的镜面反射
-    final innerHighlightW = strokeW * 0.28;
-    final innerHighlight = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = innerHighlightW
-      ..blendMode = BlendMode.plus
-      ..shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Colors.white.withOpacity(isDark ? 0.55 : 0.90),
-          Colors.white.withOpacity(isDark ? 0.10 : 0.25),
-          Colors.white.withOpacity(0.0),
-          Colors.white.withOpacity(isDark ? 0.05 : 0.15),
-        ],
-        stops: const [0.0, 0.35, 0.55, 1.0],
-      ).createShader(Offset.zero & size);
-    canvas.drawRRect(
-      rrect.deflate(strokeW + innerHighlightW * 0.5),
-      innerHighlight,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _BloomStrokePainter oldDelegate) =>
-      isDark != oldDelegate.isDark || radius != oldDelegate.radius;
 }
 
 /// 内阴影绘制器，模拟玻璃边缘的凹陷感。

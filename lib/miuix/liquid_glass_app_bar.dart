@@ -1,12 +1,13 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'miuix_theme.dart';
+import 'bloom_stroke_painter.dart';
 import '../theme_manager.dart';
 
 /// 液态玻璃风格的 AppBar 胶囊标题栏。
 ///
-/// 参考 SukiSU Ultra / miuix-blur 的 Liquid Glass 实现：
-/// 背景模糊 + SDF 边缘光泽 (BloomStroke) + 内阴影。
+/// 参考 SukiSU Ultra / compose-miuix-ui miuix 的 Liquid Glass 实现：
+/// 背景模糊 + BloomStroke 边缘高光 + 内阴影。
 /// 根据 [ThemeManager.enableBlur] 控制模糊，[ThemeManager.enableLiquidGlass]
 /// 控制高光绘制。
 class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
@@ -81,7 +82,11 @@ class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
                 if (glassEnabled)
                   Positioned.fill(
                     child: CustomPaint(
-                      painter: _CapsuleBloomPainter(isDark: isDark),
+                      painter: BloomStrokePainter(
+                        radius: capsuleRadius,
+                        isDark: isDark,
+                        enabled: glassEnabled,
+                      ),
                     ),
                   ),
                 if (glassEnabled)
@@ -106,80 +111,6 @@ class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: actions,
     );
   }
-}
-
-/// 胶囊形 SDF 边缘光泽。
-class _CapsuleBloomPainter extends CustomPainter {
-  const _CapsuleBloomPainter({required this.isDark});
-
-  final bool isDark;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-    if (w <= 0 || h <= 0) return;
-
-    const r = 99.0;
-    final rrect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(0, 0, w, h),
-      const Radius.circular(r),
-    );
-
-    final strokeW = h * 0.14;
-
-    // 主边缘光泽：SweepGradient 描边
-    final baseAlpha = isDark ? 0.40 : 0.78;
-    final primaryColor = Colors.white.withOpacity(baseAlpha);
-    final secondaryColor = Colors.white.withOpacity(baseAlpha * 0.35);
-    const darkColor = Color(0x00000000);
-
-    final edgePaint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeW
-      ..blendMode = BlendMode.plus
-      ..shader = SweepGradient(
-        center: Alignment.center,
-        startAngle: -3.14159 / 2,
-        endAngle: -3.14159 / 2 + 2 * 3.14159,
-        colors: [
-          primaryColor,
-          secondaryColor,
-          darkColor,
-          secondaryColor,
-          primaryColor,
-        ],
-        stops: const [0.0, 0.30, 0.55, 0.80, 1.0],
-        transform: GradientRotation(-3.14159 / 2),
-      ).createShader(Offset.zero & size);
-    canvas.drawRRect(rrect.deflate(strokeW * 0.5), edgePaint);
-
-    // 内侧细高光描边
-    final innerHighlightW = strokeW * 0.30;
-    final innerHighlight = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = innerHighlightW
-      ..blendMode = BlendMode.plus
-      ..shader = LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [
-          Colors.white.withOpacity(isDark ? 0.55 : 0.90),
-          Colors.white.withOpacity(isDark ? 0.10 : 0.25),
-          Colors.white.withOpacity(0.0),
-          Colors.white.withOpacity(isDark ? 0.05 : 0.15),
-        ],
-        stops: const [0.0, 0.35, 0.55, 1.0],
-      ).createShader(Offset.zero & size);
-    canvas.drawRRect(
-      rrect.deflate(strokeW + innerHighlightW * 0.5),
-      innerHighlight,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant _CapsuleBloomPainter oldDelegate) =>
-      isDark != oldDelegate.isDark;
 }
 
 /// 胶囊内阴影。
