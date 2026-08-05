@@ -476,10 +476,17 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                 height: 56,
                                 decoration: BoxDecoration(
                                   color: blurEnabled
-                                      ? MiuixColors.of(context).surface.withOpacity(
-                                          Theme.of(context).brightness == Brightness.dark ? 0.55 : 0.65,
+                                      ? MiuixColors.of(
+                                          context,
+                                        ).surface.withOpacity(
+                                          Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? 0.55
+                                              : 0.65,
                                         )
-                                      : MiuixColors.of(context).surface.withOpacity(0.92),
+                                      : MiuixColors.of(
+                                          context,
+                                        ).surface.withOpacity(0.92),
                                   borderRadius: BorderRadius.circular(28),
                                   border: Border.all(
                                     color: MiuixColors.of(context).outline
@@ -535,10 +542,17 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                 height: 64,
                                 decoration: BoxDecoration(
                                   color: blurEnabled
-                                      ? MiuixColors.of(context).surface.withOpacity(
-                                          Theme.of(context).brightness == Brightness.dark ? 0.55 : 0.65,
+                                      ? MiuixColors.of(
+                                          context,
+                                        ).surface.withOpacity(
+                                          Theme.of(context).brightness ==
+                                                  Brightness.dark
+                                              ? 0.55
+                                              : 0.65,
                                         )
-                                      : MiuixColors.of(context).surface.withOpacity(0.92),
+                                      : MiuixColors.of(
+                                          context,
+                                        ).surface.withOpacity(0.92),
                                   borderRadius: BorderRadius.circular(32),
                                   border: Border.all(
                                     color: MiuixColors.of(context).outline

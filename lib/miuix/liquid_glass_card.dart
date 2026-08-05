@@ -47,9 +47,11 @@ class LiquidGlassCard extends StatelessWidget {
     final fillColor = !blurEnabled || reduceTransparency
         ? baseColor.withOpacity(reduceTransparency ? 0.96 : 0.92)
         : baseColor.withOpacity(isDark ? 0.55 : 0.65);
-    final tintLayer = tint ?? (isDark
-        ? Colors.white.withOpacity(0.04)
-        : Colors.white.withOpacity(0.5));
+    final tintLayer =
+        tint ??
+        (isDark
+            ? Colors.white.withOpacity(0.04)
+            : Colors.white.withOpacity(0.5));
 
     Widget inner = Container(
       decoration: BoxDecoration(

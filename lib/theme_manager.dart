@@ -24,9 +24,8 @@ enum UiMode {
   miuix, // Miuix 风格（默认）
   material3; // Material 3 风格
 
-  static UiMode fromValue(String v) => v == 'material3'
-      ? UiMode.material3
-      : UiMode.miuix;
+  static UiMode fromValue(String v) =>
+      v == 'material3' ? UiMode.material3 : UiMode.miuix;
 
   String get value => this == UiMode.material3 ? 'material3' : 'miuix';
 

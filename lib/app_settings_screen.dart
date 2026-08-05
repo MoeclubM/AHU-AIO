@@ -255,11 +255,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                 '深色模式',
                 Icons.dark_mode_outlined,
               ),
-              _colorModeOption(
-                ColorMode.amoled,
-                'AMOLED 纯黑',
-                Icons.contrast,
-              ),
+              _colorModeOption(ColorMode.amoled, 'AMOLED 纯黑', Icons.contrast),
               const SizedBox(height: 8),
             ],
           ),
@@ -268,15 +264,14 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     );
   }
 
-  Widget _colorModeOption(
-    ColorMode mode,
-    String label,
-    IconData icon,
-  ) {
+  Widget _colorModeOption(ColorMode mode, String label, IconData icon) {
     final selected = _themeManager.colorMode == mode;
     final mc = MiuixColors.of(context);
     return ListTile(
-      leading: Icon(icon, color: selected ? mc.primary : mc.onSurfaceVariantActions),
+      leading: Icon(
+        icon,
+        color: selected ? mc.primary : mc.onSurfaceVariantActions,
+      ),
       title: Text(label),
       trailing: selected
           ? Icon(Icons.check_circle, color: mc.primary, size: 22)
@@ -345,7 +340,11 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                           ],
                         ),
                         child: selected
-                            ? const Icon(Icons.check, color: Colors.white, size: 20)
+                            ? const Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: 20,
+                              )
                             : null,
                       ),
                     );

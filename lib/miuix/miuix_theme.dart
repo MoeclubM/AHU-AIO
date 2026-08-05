@@ -487,7 +487,6 @@ ThemeData _buildTheme(MiuixColors c, Brightness brightness) {
   );
 }
 
-
 /// Material 3 浅色主题，基于 keyColor 生成 seed 配色。
 ThemeData material3LightTheme({Color? keyColor}) {
   final scheme = ColorScheme.fromSeed(

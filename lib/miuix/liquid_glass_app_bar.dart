@@ -68,7 +68,9 @@ class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
                 decoration: BoxDecoration(
                   color: blurEnabled
                       ? mc.surface.withOpacity(isDark ? 0.55 : 0.65)
-                      : surfaceColor.withOpacity(reduceTransparency ? 0.96 : 0.92),
+                      : surfaceColor.withOpacity(
+                          reduceTransparency ? 0.96 : 0.92,
+                        ),
                   borderRadius: BorderRadius.circular(99),
                   border: Border.all(
                     color: isDark
