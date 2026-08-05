@@ -139,8 +139,47 @@ class MiuixColors extends ThemeExtension<MiuixColors> {
     windowDimming: Color(0x99000000),
   );
 
-  static MiuixColors of(BuildContext context) =>
-      Theme.of(context).extension<MiuixColors>()!;
+  static MiuixColors of(BuildContext context) {
+    return Theme.of(context).extension<MiuixColors>() ?? _fromColorScheme(Theme.of(context).colorScheme);
+  }
+
+  /// 从 [ColorScheme] 派生 [MiuixColors]，用于 Material3 模式下的安全回退。
+  static MiuixColors _fromColorScheme(ColorScheme s) {
+    final isDark = s.brightness == Brightness.dark;
+    return MiuixColors(
+      primary: s.primary,
+      onPrimary: s.onPrimary,
+      primaryVariant: s.primary,
+      onPrimaryVariant: s.onPrimaryContainer,
+      primaryContainer: s.primaryContainer,
+      onPrimaryContainer: s.onPrimaryContainer,
+      secondary: s.secondary,
+      onSecondary: s.onSecondary,
+      secondaryVariant: s.secondaryContainer,
+      onSecondaryVariant: s.onSecondaryContainer,
+      secondaryContainer: s.secondaryContainer,
+      onSecondaryContainer: s.onSecondaryContainer,
+      tertiaryContainer: s.tertiaryContainer,
+      onTertiaryContainer: s.onTertiaryContainer,
+      background: s.surface,
+      onBackground: s.onSurface,
+      onBackgroundVariant: s.onSurfaceVariant,
+      surface: s.surface,
+      onSurface: s.onSurface,
+      surfaceVariant: s.surfaceContainerHighest,
+      onSurfaceVariant: s.onSurfaceVariant,
+      onSurfaceVariantSummary: s.onSurfaceVariant.withOpacity(0.7),
+      onSurfaceVariantActions: s.onSurfaceVariant.withOpacity(0.5),
+      surfaceContainer: s.surfaceContainer,
+      onSurfaceContainer: s.onSurface,
+      onSurfaceContainerVariant: s.onSurfaceVariant,
+      surfaceContainerHigh: s.surfaceContainerHigh,
+      surfaceContainerHighest: s.surfaceContainerHighest,
+      outline: s.outline,
+      dividerLine: s.outlineVariant,
+      windowDimming: isDark ? const Color(0x99000000) : const Color(0x4D000000),
+    );
+  }
 
   @override
   MiuixColors copyWith({

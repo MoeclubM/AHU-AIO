@@ -385,7 +385,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     final reduceTransparency = MediaQuery.highContrastOf(context);
     final tm = ThemeManager();
     final blurEnabled = tm.enableBlur && !reduceTransparency;
-    final glassEnabled = tm.enableLiquidGlass && blurEnabled;
+    final glassEnabled = tm.enableLiquidGlass && !reduceTransparency;
 
     if (!isLoggedIn) {
       return UnifiedLoginPage(
@@ -505,8 +505,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                       Colors.white.withOpacity(
                                         Theme.of(context).brightness ==
                                                 Brightness.dark
-                                            ? (glassEnabled ? 0.12 : 0)
-                                            : (glassEnabled ? 0.5 : 0),
+                                            ? (glassEnabled ? 0.15 : 0)
+                                            : (glassEnabled ? 0.55 : 0),
                                       ),
                                       Colors.white.withOpacity(0),
                                     ],
@@ -571,8 +571,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                       Colors.white.withOpacity(
                                         Theme.of(context).brightness ==
                                                 Brightness.dark
-                                            ? (glassEnabled ? 0.12 : 0)
-                                            : (glassEnabled ? 0.5 : 0),
+                                            ? (glassEnabled ? 0.15 : 0)
+                                            : (glassEnabled ? 0.55 : 0),
                                       ),
                                       Colors.white.withOpacity(0),
                                     ],

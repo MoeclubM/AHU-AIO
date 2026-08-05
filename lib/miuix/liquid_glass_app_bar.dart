@@ -30,7 +30,7 @@ class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
     final reduceTransparency = MediaQuery.highContrastOf(context);
     final tm = ThemeManager();
     final blurEnabled = tm.enableBlur && !reduceTransparency;
-    final glassEnabled = tm.enableLiquidGlass && blurEnabled;
+    final glassEnabled = tm.enableLiquidGlass && !reduceTransparency;
 
     // Material3 模式下使用标准 AppBar，不应用胶囊玻璃效果
     if (tm.isMaterial3) {
@@ -116,16 +116,45 @@ class _AppBarHighlightPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
     final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(99));
-    final paint = Paint()
+
+    // 顶部高光
+    final topPaint = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
-        end: Alignment(0, 0.5),
+        end: Alignment(0, 0.6),
         colors: [
-          Colors.white.withOpacity(isDark ? 0.1 : 0.5),
+          Colors.white.withOpacity(isDark ? 0.15 : 0.55),
           Colors.white.withOpacity(0),
         ],
       ).createShader(rect);
-    canvas.drawRRect(rrect, paint);
+    canvas.drawRRect(rrect, topPaint);
+
+    // 底部反射
+    final bottomPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.bottomCenter,
+        end: Alignment(0, 0.6),
+        colors: [
+          Colors.white.withOpacity(isDark ? 0.04 : 0.12),
+          Colors.white.withOpacity(0),
+        ],
+      ).createShader(rect);
+    canvas.drawRRect(rrect, bottomPaint);
+
+    // 内侧亮边
+    final inset = RRect.fromRectAndRadius(rect.deflate(0.5), const Radius.circular(99));
+    final strokePaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment(0, 0.7),
+        colors: [
+          Colors.white.withOpacity(isDark ? 0.20 : 0.60),
+          Colors.white.withOpacity(0),
+        ],
+      ).createShader(rect);
+    canvas.drawRRect(inset, strokePaint);
   }
 
   @override
