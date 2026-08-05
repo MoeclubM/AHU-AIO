@@ -21,6 +21,22 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
   final _themeManager = ThemeManager();
   final _synjonesClient = SynjonesClient();
 
+  @override
+  void initState() {
+    super.initState();
+    _themeManager.addListener(_onThemeChanged);
+  }
+
+  @override
+  void dispose() {
+    _themeManager.removeListener(_onThemeChanged);
+    super.dispose();
+  }
+
+  void _onThemeChanged() {
+    if (mounted) setState(() {});
+  }
+
   void _globalLogout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('username');
@@ -56,17 +72,28 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
             child: Column(
               children: [
                 MiuixComponent(
-                  title: '主题模式',
-                  summary: _themeManager.currentThemeName,
+                  title: '颜色模式',
+                  summary: _themeManager.currentColorModeName,
                   leading: Icon(
-                    Icons.palette_outlined,
+                    Icons.brightness_6_outlined,
                     color: MiuixColors.of(context).primary,
                   ),
                   trailing: Icon(
                     Icons.chevron_right,
                     color: MiuixColors.of(context).onSurfaceVariantActions,
                   ),
-                  onTap: () => _showThemeDialog(context),
+                  onTap: () => _showColorModeSheet(context),
+                ),
+                const Divider(height: 0.5, indent: 20),
+                MiuixComponent(
+                  title: '主题色',
+                  summary: _currentKeyColorName(),
+                  leading: Icon(
+                    Icons.color_lens_outlined,
+                    color: MiuixColors.of(context).primary,
+                  ),
+                  trailing: _buildKeyColorDot(),
+                  onTap: () => _showKeyColorSheet(context),
                 ),
               ],
             ),
@@ -92,55 +119,219 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     );
   }
 
-  void _showThemeDialog(BuildContext context) {
-    showDialog<void>(
+  String _currentKeyColorName() {
+    final idx = PresetColors.presets.indexOf(_themeManager.keyColor);
+    return idx >= 0 ? PresetColors.names[idx] : '自定义';
+  }
+
+  Widget _buildKeyColorDot() {
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        color: _themeManager.keyColor,
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: MiuixColors.of(context).outline,
+          width: 1.5,
+        ),
+      ),
+    );
+  }
+
+  void _showColorModeSheet(BuildContext context) {
+    showModalBottomSheet<void>(
       context: context,
+      showDragHandle: true,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('选择主题模式'),
-          content: Column(
+        return SafeArea(
+          child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              RadioListTile<String>(
-                title: const Text('跟随系统'),
-                value: 'system',
-                groupValue: _themeManager.themeMode,
-                onChanged: (value) async {
-                  if (value != null) {
-                    await _themeManager.setThemeMode(value);
-                    if (context.mounted) Navigator.pop(context);
-                    setState(() {});
-                  }
-                },
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  '颜色模式',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
               ),
-              RadioListTile<String>(
-                title: const Text('浅色模式'),
-                value: 'light',
-                groupValue: _themeManager.themeMode,
-                onChanged: (value) async {
-                  if (value != null) {
-                    await _themeManager.setThemeMode(value);
-                    if (context.mounted) Navigator.pop(context);
-                    setState(() {});
-                  }
-                },
-              ),
-              RadioListTile<String>(
-                title: const Text('深色模式'),
-                value: 'dark',
-                groupValue: _themeManager.themeMode,
-                onChanged: (value) async {
-                  if (value != null) {
-                    await _themeManager.setThemeMode(value);
-                    if (context.mounted) Navigator.pop(context);
-                    setState(() {});
-                  }
-                },
-              ),
+              _colorModeOption(ColorMode.system, '跟随系统', Icons.brightness_auto_outlined),
+              _colorModeOption(ColorMode.light, '浅色模式', Icons.light_mode_outlined),
+              _colorModeOption(ColorMode.dark, '深色模式', Icons.dark_mode_outlined),
+              _colorModeOption(ColorMode.amoled, 'AMOLED 纯黑', Icons.contrast),
+              const SizedBox(height: 8),
             ],
           ),
         );
       },
     );
+  }
+
+  Widget _colorModeOption(ColorMode mode, String label, IconData icon) {
+    final selected = _themeManager.colorMode == mode;
+    final mc = MiuixColors.of(context);
+    return ListTile(
+      leading: Icon(icon, color: selected ? mc.primary : mc.onSurfaceVariantActions),
+      title: Text(label),
+      trailing: selected
+          ? Icon(Icons.check_circle, color: mc.primary, size: 22)
+          : Icon(Icons.radio_button_unchecked, color: mc.outline, size: 22),
+      onTap: () async {
+        await _themeManager.setColorMode(mode);
+        if (mounted) Navigator.pop(context);
+      },
+    );
+  }
+
+  void _showKeyColorSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Text(
+                    '主题色',
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
+                ),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 5,
+                    mainAxisSpacing: 16,
+                    crossAxisSpacing: 16,
+                    childAspectRatio: 1,
+                  ),
+                  itemCount: PresetColors.presets.length,
+                  itemBuilder: (context, index) {
+                    final color = PresetColors.presets[index];
+                    final selected = _themeManager.keyColor.toARGB32() == color.toARGB32();
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        _themeManager.setKeyColor(color);
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: selected
+                                ? MiuixColors.of(context).onSurface
+                                : Colors.transparent,
+                            width: 3,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: color.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: selected
+                            ? const Icon(Icons.check, color: Colors.white, size: 20)
+                            : null,
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 8),
+                Center(
+                  child: TextButton.icon(
+                    onPressed: () async {
+                      final color = await _pickCustomColor(context);
+                      if (color != null) {
+                        _themeManager.setKeyColor(color);
+                      }
+                    },
+                    icon: const Icon(Icons.palette),
+                    label: const Text('自定义颜色'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<Color?> _pickCustomColor(BuildContext context) async {
+    Color picked = _themeManager.keyColor;
+    final result = await showDialog<Color>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('自定义颜色'),
+          content: StatefulBuilder(
+            builder: (context, setState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: picked,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      Colors.red, Colors.pink, Colors.purple, Colors.deepPurple,
+                      Colors.indigo, Colors.blue, Colors.lightBlue, Colors.cyan,
+                      Colors.teal, Colors.green, Colors.lightGreen, Colors.lime,
+                      Colors.amber, Colors.orange, Colors.deepOrange, Colors.brown,
+                      Colors.grey,
+                    ].map((c) {
+                      return GestureDetector(
+                        onTap: () => setState(() => picked = c),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: c,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: picked.toARGB32() == c.toARGB32()
+                                  ? Colors.black
+                                  : Colors.transparent,
+                              width: 2,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              );
+            },
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('取消'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, picked),
+              child: const Text('确定'),
+            ),
+          ],
+        );
+      },
+    );
+    return result;
   }
 }

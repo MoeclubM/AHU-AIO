@@ -34,6 +34,10 @@ class MyApp extends StatelessWidget {
     return AnimatedBuilder(
       animation: themeManager,
       builder: (context, child) {
+        final light = miuixLightTheme(keyColor: themeManager.keyColor);
+        final dark = themeManager.isAmoled
+            ? miuixAmoledTheme(keyColor: themeManager.keyColor)
+            : miuixDarkTheme(keyColor: themeManager.keyColor);
         return GetMaterialApp(
           title: 'AHU AIO',
           debugShowCheckedModeBanner: false,
@@ -43,8 +47,8 @@ class MyApp extends StatelessWidget {
             GlobalCupertinoLocalizations.delegate,
           ],
           supportedLocales: const [Locale('zh', 'CN'), Locale('en', 'US')],
-          theme: miuixLightTheme(),
-          darkTheme: miuixDarkTheme(),
+          theme: light,
+          darkTheme: dark,
           themeMode: themeManager.themeModeEnum,
           home: const MainLayoutScreen(),
         );

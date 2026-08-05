@@ -38,13 +38,11 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  Future<void> _toggleThemeMode(String mode) async {
-    await _themeManager.setThemeMode(mode);
+  Future<void> _setColorMode(ColorMode mode) async {
+    await _themeManager.setColorMode(mode);
   }
 
-  String get _currentThemeMode {
-    return _themeManager.themeMode;
-  }
+  ColorMode get _currentColorMode => _themeManager.colorMode;
 
   Future<Map<String, dynamic>?> _loadUserInfo() async {
     final prefs = await SharedPreferences.getInstance();
@@ -177,23 +175,29 @@ class _SettingsPageState extends State<SettingsPage> {
           children: [
             Text('主题模式', style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
-            RadioListTile<String>(
+            RadioListTile<ColorMode>(
               title: const Text('跟随系统'),
-              value: 'system',
-              groupValue: _currentThemeMode,
-              onChanged: (value) => _toggleThemeMode(value!),
+              value: ColorMode.system,
+              groupValue: _currentColorMode,
+              onChanged: (value) => _setColorMode(value!),
             ),
-            RadioListTile<String>(
+            RadioListTile<ColorMode>(
               title: const Text('浅色模式'),
-              value: 'light',
-              groupValue: _currentThemeMode,
-              onChanged: (value) => _toggleThemeMode(value!),
+              value: ColorMode.light,
+              groupValue: _currentColorMode,
+              onChanged: (value) => _setColorMode(value!),
             ),
-            RadioListTile<String>(
+            RadioListTile<ColorMode>(
               title: const Text('深色模式'),
-              value: 'dark',
-              groupValue: _currentThemeMode,
-              onChanged: (value) => _toggleThemeMode(value!),
+              value: ColorMode.dark,
+              groupValue: _currentColorMode,
+              onChanged: (value) => _setColorMode(value!),
+            ),
+            RadioListTile<ColorMode>(
+              title: const Text('AMOLED 纯黑'),
+              value: ColorMode.amoled,
+              groupValue: _currentColorMode,
+              onChanged: (value) => _setColorMode(value!),
             ),
           ],
         ),
