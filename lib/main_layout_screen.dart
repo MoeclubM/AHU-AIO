@@ -10,6 +10,7 @@ import 'app_settings_screen.dart';
 import 'auth/unified_login_page.dart';
 import 'auth/cas_auth_cache.dart';
 import 'miuix/miuix_theme.dart';
+import 'miuix/bloom_stroke_painter.dart';
 import 'theme_manager.dart';
 
 class MainLayoutScreen extends StatefulWidget {
@@ -496,23 +497,23 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                     width: 0.5,
                                   ),
                                 ),
-                                foregroundDecoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(28),
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment(0, 0.4),
-                                    colors: [
-                                      Colors.white.withOpacity(
-                                        Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? (glassEnabled ? 0.15 : 0)
-                                            : (glassEnabled ? 0.55 : 0),
+                                child: Stack(
+                                  children: [
+                                    Positioned.fill(
+                                      child: _buildSubTabBarChild(currentPage),
+                                    ),
+                                    if (glassEnabled)
+                                      Positioned.fill(
+                                        child: BloomStrokeLayer(
+                                          radius: 28,
+                                          isDark:
+                                              Theme.of(context).brightness ==
+                                              Brightness.dark,
+                                          enabled: glassEnabled,
+                                        ),
                                       ),
-                                      Colors.white.withOpacity(0),
-                                    ],
-                                  ),
+                                  ],
                                 ),
-                                child: _buildSubTabBarChild(currentPage),
                               ),
                             ),
                           ),
@@ -562,183 +563,205 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                     width: 0.5,
                                   ),
                                 ),
-                                foregroundDecoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(32),
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment(0, 0.4),
-                                    colors: [
-                                      Colors.white.withOpacity(
-                                        Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? (glassEnabled ? 0.15 : 0)
-                                            : (glassEnabled ? 0.55 : 0),
-                                      ),
-                                      Colors.white.withOpacity(0),
-                                    ],
-                                  ),
-                                ),
-                                child: LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    final double totalWidth =
-                                        constraints.maxWidth;
-                                    final double tabWidth = totalWidth / 4;
-                                    final double bubbleWidth = tabWidth - 8;
-                                    final double bubbleHeight = 48;
+                                child: Stack(
+                                  children: [
+                                    Positioned.fill(
+                                      child: LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          final double totalWidth =
+                                              constraints.maxWidth;
+                                          final double tabWidth =
+                                              totalWidth / 4;
+                                          final double bubbleWidth =
+                                              tabWidth - 8;
+                                          final double bubbleHeight = 48;
 
-                                    return GestureDetector(
-                                      behavior: HitTestBehavior.translucent,
-                                      onHorizontalDragStart: (details) {
-                                        final double bubbleLeft =
-                                            currentPage * tabWidth +
-                                            (tabWidth - bubbleWidth) / 2;
-                                        final double bubbleRight =
-                                            bubbleLeft + bubbleWidth;
-                                        final double touchX =
-                                            details.localPosition.dx;
-                                        _isDraggingBubble =
-                                            touchX >= bubbleLeft &&
-                                            touchX <= bubbleRight;
-                                        if (_isDraggingBubble &&
-                                            _pageController.hasClients) {
-                                          (_pageController.position
-                                                  as ScrollPositionWithSingleContext)
-                                              .goIdle();
-                                        }
-                                      },
-                                      onHorizontalDragUpdate: (details) {
-                                        if (!_isDraggingBubble) return;
-                                        if (!_pageController.hasClients) return;
-                                        final position =
-                                            _pageController.position;
-                                        final double pageViewWidth =
-                                            position.viewportDimension;
-                                        final double dragDelta =
-                                            details.delta.dx;
-                                        double targetOffset =
-                                            _pageController.offset +
-                                            dragDelta *
-                                                (pageViewWidth / tabWidth);
-                                        if (targetOffset <
-                                            position.minScrollExtent) {
-                                          final overshoot =
-                                              targetOffset -
-                                              position.minScrollExtent;
-                                          targetOffset =
-                                              position.minScrollExtent +
-                                              (overshoot *
-                                                      pageViewWidth *
-                                                      0.55) /
-                                                  (pageViewWidth +
-                                                      0.55 * overshoot.abs());
-                                        } else if (targetOffset >
-                                            position.maxScrollExtent) {
-                                          final overshoot =
-                                              targetOffset -
-                                              position.maxScrollExtent;
-                                          targetOffset =
-                                              position.maxScrollExtent +
-                                              (overshoot *
-                                                      pageViewWidth *
-                                                      0.55) /
-                                                  (pageViewWidth +
-                                                      0.55 * overshoot.abs());
-                                        }
-                                        _pageController.jumpTo(targetOffset);
-                                      },
-                                      onHorizontalDragEnd: (details) {
-                                        if (!_isDraggingBubble) return;
-                                        if (!_pageController.hasClients) return;
-                                        if (reduceMotion) {
-                                          _pageController.jumpToPage(
-                                            (_pageController.page ?? 0.0)
-                                                .round()
-                                                .clamp(0, 3),
-                                          );
-                                        } else {
-                                          final position =
-                                              _pageController.position
-                                                  as ScrollPositionWithSingleContext;
-                                          position.goBallistic(
-                                            details
-                                                    .velocity
-                                                    .pixelsPerSecond
-                                                    .dx *
-                                                (position.viewportDimension /
-                                                    tabWidth),
-                                          );
-                                        }
-                                        _isDraggingBubble = false;
-                                      },
-                                      onHorizontalDragCancel: () {
-                                        if (!_isDraggingBubble ||
-                                            !_pageController.hasClients) {
-                                          return;
-                                        }
-                                        if (reduceMotion) {
-                                          _pageController.jumpToPage(
-                                            (_pageController.page ?? 0.0)
-                                                .round()
-                                                .clamp(0, 3),
-                                          );
-                                        } else {
-                                          (_pageController.position
-                                                  as ScrollPositionWithSingleContext)
-                                              .goBallistic(0);
-                                        }
-                                        _isDraggingBubble = false;
-                                      },
-                                      child: Stack(
-                                        children: [
-                                          Positioned(
-                                            left:
-                                                currentPage * tabWidth +
-                                                (tabWidth - bubbleWidth) / 2,
-                                            top: (64 - bubbleHeight) / 2,
-                                            width: bubbleWidth,
-                                            height: bubbleHeight,
-                                            child: Container(
-                                              decoration: BoxDecoration(
-                                                color: MiuixColors.of(
-                                                  context,
-                                                ).primary.withOpacity(0.12),
-                                                borderRadius:
-                                                    BorderRadius.circular(24),
-                                              ),
+                                          return GestureDetector(
+                                            behavior:
+                                                HitTestBehavior.translucent,
+                                            onHorizontalDragStart: (details) {
+                                              final double bubbleLeft =
+                                                  currentPage * tabWidth +
+                                                  (tabWidth - bubbleWidth) / 2;
+                                              final double bubbleRight =
+                                                  bubbleLeft + bubbleWidth;
+                                              final double touchX =
+                                                  details.localPosition.dx;
+                                              _isDraggingBubble =
+                                                  touchX >= bubbleLeft &&
+                                                  touchX <= bubbleRight;
+                                              if (_isDraggingBubble &&
+                                                  _pageController.hasClients) {
+                                                (_pageController.position
+                                                        as ScrollPositionWithSingleContext)
+                                                    .goIdle();
+                                              }
+                                            },
+                                            onHorizontalDragUpdate: (details) {
+                                              if (!_isDraggingBubble) return;
+                                              if (!_pageController.hasClients) {
+                                                return;
+                                              }
+                                              final position =
+                                                  _pageController.position;
+                                              final double pageViewWidth =
+                                                  position.viewportDimension;
+                                              final double dragDelta =
+                                                  details.delta.dx;
+                                              double targetOffset =
+                                                  _pageController.offset +
+                                                  dragDelta *
+                                                      (pageViewWidth /
+                                                          tabWidth);
+                                              if (targetOffset <
+                                                  position.minScrollExtent) {
+                                                final overshoot =
+                                                    targetOffset -
+                                                    position.minScrollExtent;
+                                                targetOffset =
+                                                    position.minScrollExtent +
+                                                    (overshoot *
+                                                            pageViewWidth *
+                                                            0.55) /
+                                                        (pageViewWidth +
+                                                            0.55 *
+                                                                overshoot
+                                                                    .abs());
+                                              } else if (targetOffset >
+                                                  position.maxScrollExtent) {
+                                                final overshoot =
+                                                    targetOffset -
+                                                    position.maxScrollExtent;
+                                                targetOffset =
+                                                    position.maxScrollExtent +
+                                                    (overshoot *
+                                                            pageViewWidth *
+                                                            0.55) /
+                                                        (pageViewWidth +
+                                                            0.55 *
+                                                                overshoot
+                                                                    .abs());
+                                              }
+                                              _pageController.jumpTo(
+                                                targetOffset,
+                                              );
+                                            },
+                                            onHorizontalDragEnd: (details) {
+                                              if (!_isDraggingBubble) return;
+                                              if (!_pageController.hasClients) {
+                                                return;
+                                              }
+                                              if (reduceMotion) {
+                                                _pageController.jumpToPage(
+                                                  (_pageController.page ?? 0.0)
+                                                      .round()
+                                                      .clamp(0, 3),
+                                                );
+                                              } else {
+                                                final position =
+                                                    _pageController.position
+                                                        as ScrollPositionWithSingleContext;
+                                                position.goBallistic(
+                                                  details
+                                                          .velocity
+                                                          .pixelsPerSecond
+                                                          .dx *
+                                                      (position
+                                                              .viewportDimension /
+                                                          tabWidth),
+                                                );
+                                              }
+                                              _isDraggingBubble = false;
+                                            },
+                                            onHorizontalDragCancel: () {
+                                              if (!_isDraggingBubble ||
+                                                  !_pageController.hasClients) {
+                                                return;
+                                              }
+                                              if (reduceMotion) {
+                                                _pageController.jumpToPage(
+                                                  (_pageController.page ?? 0.0)
+                                                      .round()
+                                                      .clamp(0, 3),
+                                                );
+                                              } else {
+                                                (_pageController.position
+                                                        as ScrollPositionWithSingleContext)
+                                                    .goBallistic(0);
+                                              }
+                                              _isDraggingBubble = false;
+                                            },
+                                            child: Stack(
+                                              children: [
+                                                Positioned(
+                                                  left:
+                                                      currentPage * tabWidth +
+                                                      (tabWidth - bubbleWidth) /
+                                                          2,
+                                                  top: (64 - bubbleHeight) / 2,
+                                                  width: bubbleWidth,
+                                                  height: bubbleHeight,
+                                                  child: Container(
+                                                    decoration: BoxDecoration(
+                                                      color:
+                                                          MiuixColors.of(
+                                                            context,
+                                                          ).primary.withOpacity(
+                                                            0.12,
+                                                          ),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            24,
+                                                          ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                Row(
+                                                  children: [
+                                                    _buildTabItem(
+                                                      0,
+                                                      Icons.bolt_outlined,
+                                                      Icons.bolt,
+                                                      '微教务',
+                                                    ),
+                                                    _buildTabItem(
+                                                      1,
+                                                      Icons.school_outlined,
+                                                      Icons.school,
+                                                      '安大教务',
+                                                    ),
+                                                    _buildTabItem(
+                                                      2,
+                                                      Icons
+                                                          .credit_card_outlined,
+                                                      Icons.credit_card,
+                                                      '一卡通',
+                                                    ),
+                                                    _buildTabItem(
+                                                      3,
+                                                      Icons.settings_outlined,
+                                                      Icons.settings,
+                                                      '设置',
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
                                             ),
-                                          ),
-                                          Row(
-                                            children: [
-                                              _buildTabItem(
-                                                0,
-                                                Icons.bolt_outlined,
-                                                Icons.bolt,
-                                                '微教务',
-                                              ),
-                                              _buildTabItem(
-                                                1,
-                                                Icons.school_outlined,
-                                                Icons.school,
-                                                '安大教务',
-                                              ),
-                                              _buildTabItem(
-                                                2,
-                                                Icons.credit_card_outlined,
-                                                Icons.credit_card,
-                                                '一卡通',
-                                              ),
-                                              _buildTabItem(
-                                                3,
-                                                Icons.settings_outlined,
-                                                Icons.settings,
-                                                '设置',
-                                              ),
-                                            ],
-                                          ),
-                                        ],
+                                          );
+                                        },
                                       ),
-                                    );
-                                  },
+                                    ),
+                                    if (glassEnabled)
+                                      Positioned.fill(
+                                        child: BloomStrokeLayer(
+                                          radius: 32,
+                                          isDark:
+                                              Theme.of(context).brightness ==
+                                              Brightness.dark,
+                                          enabled: glassEnabled,
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ),
                             ),

@@ -78,12 +78,10 @@ class LiquidGlassCard extends StatelessWidget {
             ),
             if (glassEnabled)
               Positioned.fill(
-                child: CustomPaint(
-                  painter: BloomStrokePainter(
-                    radius: borderRadius,
-                    isDark: isDark,
-                    enabled: glassEnabled,
-                  ),
+                child: BloomStrokeLayer(
+                  radius: borderRadius,
+                  isDark: isDark,
+                  enabled: glassEnabled,
                 ),
               ),
             if (glassEnabled)

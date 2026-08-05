@@ -1,51 +1,6 @@
 import 'package:flutter/material.dart';
 import 'miuix_theme.dart';
 
-/// Miuix 风格卡片，对应 miuix 的 [Card] 组件。
-///
-/// 使用 surfaceContainer 作为底色，16dp 圆角，浅描边。
-class MiuixCard extends StatelessWidget {
-  const MiuixCard({
-    super.key,
-    required this.child,
-    this.margin,
-    this.padding,
-    this.radius = 16,
-    this.color,
-    this.onTap,
-    this.onLongPress,
-  });
-
-  final Widget child;
-  final EdgeInsets? margin;
-  final EdgeInsets? padding;
-  final double radius;
-  final Color? color;
-  final VoidCallback? onTap;
-  final VoidCallback? onLongPress;
-
-  @override
-  Widget build(BuildContext context) {
-    final mc = MiuixColors.of(context);
-    final cardColor = color ?? mc.surfaceContainer;
-    final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(radius),
-    );
-    final content = Container(
-      margin: margin,
-      decoration: ShapeDecoration(color: cardColor, shape: shape),
-      child: padding == null ? child : Padding(padding: padding!, child: child),
-    );
-    if (onTap == null && onLongPress == null) return content;
-    return InkWell(
-      onTap: onTap,
-      onLongPress: onLongPress,
-      borderRadius: BorderRadius.circular(radius),
-      child: content,
-    );
-  }
-}
-
 /// Miuix 风格小标题，对应 miuix 的 [SmallTitle] 组件。
 ///
 /// 使用 onBackgroundVariant 色，14sp 加粗。

@@ -81,12 +81,10 @@ class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
                 ),
                 if (glassEnabled)
                   Positioned.fill(
-                    child: CustomPaint(
-                      painter: BloomStrokePainter(
-                        radius: capsuleRadius,
-                        isDark: isDark,
-                        enabled: glassEnabled,
-                      ),
+                    child: BloomStrokeLayer(
+                      radius: capsuleRadius,
+                      isDark: isDark,
+                      enabled: glassEnabled,
                     ),
                   ),
                 if (glassEnabled)

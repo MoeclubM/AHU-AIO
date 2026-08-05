@@ -10,14 +10,15 @@ Future<FragmentProgram> loadBloomStrokeProgram() async {
   );
 }
 
-/// 用 Flutter FragmentShader 精确移植 miuix-blur 的 BloomStroke 高光。
+/// 用 Flutter FragmentShader 精确绘制 miuix-blur 的 BloomStroke 高光。
 ///
-/// 参考 SukiSU Ultra / compose-miuix-ui miuix 的 BloomStroke：圆角矩形
-/// SDF + 半球法线 + 双定向光源边缘高光。shader 与 SukiSU 一致，效果对等。
+/// 这是承载 [CustomPaint] 的 StatefulWidget：加载 [FragmentProgram] 完成后
+/// 通过 [setState] 触发重绘，避免异步加载后永远不画的问题。
 ///
 /// [enabled] 为 false 时不绘制（用于高对比度等场景）。
-class BloomStrokePainter extends CustomPainter {
-  BloomStrokePainter({
+class BloomStrokeLayer extends StatefulWidget {
+  const BloomStrokeLayer({
+    super.key,
     required this.radius,
     required this.isDark,
     required this.enabled,
@@ -29,38 +30,67 @@ class BloomStrokePainter extends CustomPainter {
   final bool enabled;
   final double highlightAlpha;
 
+  @override
+  State<BloomStrokeLayer> createState() => _BloomStrokeLayerState();
+}
+
+class _BloomStrokeLayerState extends State<BloomStrokeLayer> {
   FragmentProgram? _program;
-  bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    loadBloomStrokeProgram().then((p) {
+      if (mounted) setState(() => _program = p);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final program = _program;
+    if (program == null || !widget.enabled) {
+      return const SizedBox.shrink();
+    }
+    return CustomPaint(
+      painter: _BloomStrokePainter(
+        program: program,
+        radius: widget.radius,
+        isDark: widget.isDark,
+        highlightAlpha: widget.highlightAlpha,
+      ),
+    );
+  }
+}
+
+class _BloomStrokePainter extends CustomPainter {
+  _BloomStrokePainter({
+    required this.program,
+    required this.radius,
+    required this.isDark,
+    required this.highlightAlpha,
+  });
+
+  final FragmentProgram program;
+  final double radius;
+  final bool isDark;
+  final double highlightAlpha;
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (!enabled || size.width <= 0 || size.height <= 0) return;
-
-    if (_program == null && !_loading) {
-      _loading = true;
-      loadBloomStrokeProgram().then((p) {
-        _program = p;
-        _loading = false;
-      });
-      return;
-    }
-    final program = _program;
-    if (program == null) return;
+    if (size.width <= 0 || size.height <= 0) return;
 
     final shader = program.fragmentShader();
     final r = radius.clamp(0.0, size.shortestSide / 2).toDouble();
     // GlassStrokeMiddle 预设：stroke 0.8dp、innerBlur 2.8dp。
-    // Flutter 的 CustomPaint 传入的是逻辑像素，dp 需按 (shortestSide/360) 比例换算，
-    // 使不同屏幕尺寸下高光带相对宽度一致（近似 dpr）。
+    // CustomPaint 传入逻辑像素，按 (shortestSide/360) 比例换算相对宽度。
     final density = (size.shortestSide / 360).clamp(0.5, 2.0).toDouble();
     final strokeW = (0.8 * density)
         .clamp(0.0, size.shortestSide / 2)
         .toDouble();
     final innerBlur = (2.8 * density).clamp(0.0, size.shortestSide).toDouble();
 
-    // Flutter 的 setFloat 按 float 展平索引：u_size(vec2) 占 0,1；
-    // u_corner_radius=2, u_stroke_width=3, u_inner_blur_radius=4,
-    // u_highlight_alpha=5, u_dark=6。
+    // Flutter setFloat 按 float 展平：u_size 占 0,1；u_corner_radius=2,
+    // u_stroke_width=3, u_inner_blur_radius=4, u_highlight_alpha=5, u_dark=6。
     shader
       ..setFloat(0, size.width)
       ..setFloat(1, size.height)
@@ -74,8 +104,8 @@ class BloomStrokePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant BloomStrokePainter oldDelegate) =>
-      enabled != oldDelegate.enabled ||
+  bool shouldRepaint(covariant _BloomStrokePainter oldDelegate) =>
+      program != oldDelegate.program ||
       radius != oldDelegate.radius ||
       isDark != oldDelegate.isDark ||
       highlightAlpha != oldDelegate.highlightAlpha;
