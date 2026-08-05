@@ -140,7 +140,8 @@ class MiuixColors extends ThemeExtension<MiuixColors> {
   );
 
   static MiuixColors of(BuildContext context) {
-    return Theme.of(context).extension<MiuixColors>() ?? _fromColorScheme(Theme.of(context).colorScheme);
+    return Theme.of(context).extension<MiuixColors>() ??
+        _fromColorScheme(Theme.of(context).colorScheme);
   }
 
   /// 从 [ColorScheme] 派生 [MiuixColors]，用于 Material3 模式下的安全回退。

@@ -81,17 +81,11 @@ class LiquidGlassCard extends StatelessWidget {
             if (glassEnabled && !reduceTransparency)
               Positioned.fill(
                 child: CustomPaint(
-                  painter: _LiquidGlassPainter(
-                    radius: r,
-                    isDark: isDark,
-                  ),
+                  painter: _LiquidGlassPainter(radius: r, isDark: isDark),
                 ),
               ),
             // 内容
-            Padding(
-              padding: padding ?? EdgeInsets.zero,
-              child: child,
-            ),
+            Padding(padding: padding ?? EdgeInsets.zero, child: child),
           ],
         ),
       ),

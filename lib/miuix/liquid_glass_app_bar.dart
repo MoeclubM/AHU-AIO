@@ -142,7 +142,10 @@ class _AppBarHighlightPainter extends CustomPainter {
     canvas.drawRRect(rrect, bottomPaint);
 
     // 内侧亮边
-    final inset = RRect.fromRectAndRadius(rect.deflate(0.5), const Radius.circular(99));
+    final inset = RRect.fromRectAndRadius(
+      rect.deflate(0.5),
+      const Radius.circular(99),
+    );
     final strokePaint = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.0
