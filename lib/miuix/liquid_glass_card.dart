@@ -41,7 +41,6 @@ class LiquidGlassCard extends StatelessWidget {
 
     final baseColor =
         color ?? (isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7));
-    // 玻璃半透明度：blur 开启时更通透，关闭时接近不透明但仍保留描边高光
     final fillAlpha = blurEnabled
         ? (isDark ? 0.50 : 0.60)
         : (reduceTransparency ? 0.96 : 0.88);
@@ -62,22 +61,25 @@ class LiquidGlassCard extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
         child: Stack(
-          fit: StackFit.passthrough,
           children: [
             // 背景模糊层
             if (blurEnabled)
-              BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: blurSigma, sigmaY: blurSigma),
-                child: SizedBox.expand(),
+              Positioned.fill(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(
+                    sigmaX: blurSigma,
+                    sigmaY: blurSigma,
+                  ),
+                  child: Container(color: Colors.transparent),
+                ),
               ),
             // 填充层
-            Container(
-              decoration: BoxDecoration(
+            Positioned.fill(
+              child: ColoredBox(
                 color: baseColor.withOpacity(fillAlpha),
-                borderRadius: BorderRadius.circular(borderRadius),
               ),
             ),
-            // 液态玻璃高光层（顶部高光 + 底部反射 + 内描边）
+            // 液态玻璃高光层
             if (glassEnabled && !reduceTransparency)
               Positioned.fill(
                 child: CustomPaint(
@@ -111,11 +113,10 @@ class _LiquidGlassPainter extends CustomPainter {
     final rrect = RRect.fromRectAndRadius(rect, radius);
 
     // 1. 顶部高光
-    final topHeight = size.height * 0.5;
     final topHighlight = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
-        end: Alignment(0, topHeight / size.height),
+        end: Alignment(0, 0.5),
         colors: [
           Colors.white.withOpacity(isDark ? 0.10 : 0.45),
           Colors.white.withOpacity(0),
@@ -127,7 +128,7 @@ class _LiquidGlassPainter extends CustomPainter {
     final bottomHighlight = Paint()
       ..shader = LinearGradient(
         begin: Alignment.bottomCenter,
-        end: Alignment(0, 1 - 0.3),
+        end: Alignment(0, 0.7),
         colors: [
           Colors.white.withOpacity(isDark ? 0.04 : 0.12),
           Colors.white.withOpacity(0),
