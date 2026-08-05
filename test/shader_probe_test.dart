@@ -6,7 +6,9 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('bloom stroke shader produces visible pixels', () async {
-    final program = await ui.FragmentProgram.fromAsset('shaders/bloom_stroke.frag');
+    final program = await ui.FragmentProgram.fromAsset(
+      'shaders/bloom_stroke.frag',
+    );
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
     const size = Size(400.0, 200.0);
@@ -30,6 +32,10 @@ void main() {
       if (data[i + 3] > 0) visible++;
     }
     debugPrint('visible(alpha>0) pixels=$visible total=${data.length ~/ 4}');
-    expect(visible, greaterThan(0), reason: 'shader should draw visible highlight');
+    expect(
+      visible,
+      greaterThan(0),
+      reason: 'shader should draw visible highlight',
+    );
   });
 }
