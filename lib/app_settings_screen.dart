@@ -131,10 +131,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
       decoration: BoxDecoration(
         color: _themeManager.keyColor,
         shape: BoxShape.circle,
-        border: Border.all(
-          color: MiuixColors.of(context).outline,
-          width: 1.5,
-        ),
+        border: Border.all(color: MiuixColors.of(context).outline, width: 1.5),
       ),
     );
   }
@@ -155,9 +152,21 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
-              _colorModeOption(ColorMode.system, '跟随系统', Icons.brightness_auto_outlined),
-              _colorModeOption(ColorMode.light, '浅色模式', Icons.light_mode_outlined),
-              _colorModeOption(ColorMode.dark, '深色模式', Icons.dark_mode_outlined),
+              _colorModeOption(
+                ColorMode.system,
+                '跟随系统',
+                Icons.brightness_auto_outlined,
+              ),
+              _colorModeOption(
+                ColorMode.light,
+                '浅色模式',
+                Icons.light_mode_outlined,
+              ),
+              _colorModeOption(
+                ColorMode.dark,
+                '深色模式',
+                Icons.dark_mode_outlined,
+              ),
               _colorModeOption(ColorMode.amoled, 'AMOLED 纯黑', Icons.contrast),
               const SizedBox(height: 8),
             ],
@@ -171,7 +180,10 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     final selected = _themeManager.colorMode == mode;
     final mc = MiuixColors.of(context);
     return ListTile(
-      leading: Icon(icon, color: selected ? mc.primary : mc.onSurfaceVariantActions),
+      leading: Icon(
+        icon,
+        color: selected ? mc.primary : mc.onSurfaceVariantActions,
+      ),
       title: Text(label),
       trailing: selected
           ? Icon(Icons.check_circle, color: mc.primary, size: 22)
@@ -214,7 +226,8 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   itemCount: PresetColors.presets.length,
                   itemBuilder: (context, index) {
                     final color = PresetColors.presets[index];
-                    final selected = _themeManager.keyColor.toARGB32() == color.toARGB32();
+                    final selected =
+                        _themeManager.keyColor.toARGB32() == color.toARGB32();
                     return GestureDetector(
                       onTap: () {
                         Navigator.pop(context);
@@ -239,7 +252,11 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                           ],
                         ),
                         child: selected
-                            ? const Icon(Icons.check, color: Colors.white, size: 20)
+                            ? const Icon(
+                                Icons.check,
+                                color: Colors.white,
+                                size: 20,
+                              )
                             : null,
                       ),
                     );
@@ -289,31 +306,44 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: [
-                      Colors.red, Colors.pink, Colors.purple, Colors.deepPurple,
-                      Colors.indigo, Colors.blue, Colors.lightBlue, Colors.cyan,
-                      Colors.teal, Colors.green, Colors.lightGreen, Colors.lime,
-                      Colors.amber, Colors.orange, Colors.deepOrange, Colors.brown,
-                      Colors.grey,
-                    ].map((c) {
-                      return GestureDetector(
-                        onTap: () => setState(() => picked = c),
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: c,
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: picked.toARGB32() == c.toARGB32()
-                                  ? Colors.black
-                                  : Colors.transparent,
-                              width: 2,
+                    children:
+                        [
+                          Colors.red,
+                          Colors.pink,
+                          Colors.purple,
+                          Colors.deepPurple,
+                          Colors.indigo,
+                          Colors.blue,
+                          Colors.lightBlue,
+                          Colors.cyan,
+                          Colors.teal,
+                          Colors.green,
+                          Colors.lightGreen,
+                          Colors.lime,
+                          Colors.amber,
+                          Colors.orange,
+                          Colors.deepOrange,
+                          Colors.brown,
+                          Colors.grey,
+                        ].map((c) {
+                          return GestureDetector(
+                            onTap: () => setState(() => picked = c),
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: c,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: picked.toARGB32() == c.toARGB32()
+                                      ? Colors.black
+                                      : Colors.transparent,
+                                  width: 2,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                          );
+                        }).toList(),
                   ),
                 ],
               );

@@ -8,8 +8,10 @@ enum ColorMode {
   dark, // 深色
   amoled; // AMOLED 纯黑
 
-  static ColorMode fromValue(int v) =>
-      ColorMode.values.firstWhere((e) => e.index == v, orElse: () => ColorMode.system);
+  static ColorMode fromValue(int v) => ColorMode.values.firstWhere(
+    (e) => e.index == v,
+    orElse: () => ColorMode.system,
+  );
 
   int get value => index;
 

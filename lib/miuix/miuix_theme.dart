@@ -222,31 +222,103 @@ class MiuixColors extends ThemeExtension<MiuixColors> {
       primary: Color.lerp(primary, other.primary, t)!,
       onPrimary: Color.lerp(onPrimary, other.onPrimary, t)!,
       primaryVariant: Color.lerp(primaryVariant, other.primaryVariant, t)!,
-      onPrimaryVariant: Color.lerp(onPrimaryVariant, other.onPrimaryVariant, t)!,
-      primaryContainer: Color.lerp(primaryContainer, other.primaryContainer, t)!,
-      onPrimaryContainer: Color.lerp(onPrimaryContainer, other.onPrimaryContainer, t)!,
+      onPrimaryVariant: Color.lerp(
+        onPrimaryVariant,
+        other.onPrimaryVariant,
+        t,
+      )!,
+      primaryContainer: Color.lerp(
+        primaryContainer,
+        other.primaryContainer,
+        t,
+      )!,
+      onPrimaryContainer: Color.lerp(
+        onPrimaryContainer,
+        other.onPrimaryContainer,
+        t,
+      )!,
       secondary: Color.lerp(secondary, other.secondary, t)!,
       onSecondary: Color.lerp(onSecondary, other.onSecondary, t)!,
-      secondaryVariant: Color.lerp(secondaryVariant, other.secondaryVariant, t)!,
-      onSecondaryVariant: Color.lerp(onSecondaryVariant, other.onSecondaryVariant, t)!,
-      secondaryContainer: Color.lerp(secondaryContainer, other.secondaryContainer, t)!,
-      onSecondaryContainer: Color.lerp(onSecondaryContainer, other.onSecondaryContainer, t)!,
-      tertiaryContainer: Color.lerp(tertiaryContainer, other.tertiaryContainer, t)!,
-      onTertiaryContainer: Color.lerp(onTertiaryContainer, other.onTertiaryContainer, t)!,
+      secondaryVariant: Color.lerp(
+        secondaryVariant,
+        other.secondaryVariant,
+        t,
+      )!,
+      onSecondaryVariant: Color.lerp(
+        onSecondaryVariant,
+        other.onSecondaryVariant,
+        t,
+      )!,
+      secondaryContainer: Color.lerp(
+        secondaryContainer,
+        other.secondaryContainer,
+        t,
+      )!,
+      onSecondaryContainer: Color.lerp(
+        onSecondaryContainer,
+        other.onSecondaryContainer,
+        t,
+      )!,
+      tertiaryContainer: Color.lerp(
+        tertiaryContainer,
+        other.tertiaryContainer,
+        t,
+      )!,
+      onTertiaryContainer: Color.lerp(
+        onTertiaryContainer,
+        other.onTertiaryContainer,
+        t,
+      )!,
       background: Color.lerp(background, other.background, t)!,
       onBackground: Color.lerp(onBackground, other.onBackground, t)!,
-      onBackgroundVariant: Color.lerp(onBackgroundVariant, other.onBackgroundVariant, t)!,
+      onBackgroundVariant: Color.lerp(
+        onBackgroundVariant,
+        other.onBackgroundVariant,
+        t,
+      )!,
       surface: Color.lerp(surface, other.surface, t)!,
       onSurface: Color.lerp(onSurface, other.onSurface, t)!,
       surfaceVariant: Color.lerp(surfaceVariant, other.surfaceVariant, t)!,
-      onSurfaceVariant: Color.lerp(onSurfaceVariant, other.onSurfaceVariant, t)!,
-      onSurfaceVariantSummary: Color.lerp(onSurfaceVariantSummary, other.onSurfaceVariantSummary, t)!,
-      onSurfaceVariantActions: Color.lerp(onSurfaceVariantActions, other.onSurfaceVariantActions, t)!,
-      surfaceContainer: Color.lerp(surfaceContainer, other.surfaceContainer, t)!,
-      onSurfaceContainer: Color.lerp(onSurfaceContainer, other.onSurfaceContainer, t)!,
-      onSurfaceContainerVariant: Color.lerp(onSurfaceContainerVariant, other.onSurfaceContainerVariant, t)!,
-      surfaceContainerHigh: Color.lerp(surfaceContainerHigh, other.surfaceContainerHigh, t)!,
-      surfaceContainerHighest: Color.lerp(surfaceContainerHighest, other.surfaceContainerHighest, t)!,
+      onSurfaceVariant: Color.lerp(
+        onSurfaceVariant,
+        other.onSurfaceVariant,
+        t,
+      )!,
+      onSurfaceVariantSummary: Color.lerp(
+        onSurfaceVariantSummary,
+        other.onSurfaceVariantSummary,
+        t,
+      )!,
+      onSurfaceVariantActions: Color.lerp(
+        onSurfaceVariantActions,
+        other.onSurfaceVariantActions,
+        t,
+      )!,
+      surfaceContainer: Color.lerp(
+        surfaceContainer,
+        other.surfaceContainer,
+        t,
+      )!,
+      onSurfaceContainer: Color.lerp(
+        onSurfaceContainer,
+        other.onSurfaceContainer,
+        t,
+      )!,
+      onSurfaceContainerVariant: Color.lerp(
+        onSurfaceContainerVariant,
+        other.onSurfaceContainerVariant,
+        t,
+      )!,
+      surfaceContainerHigh: Color.lerp(
+        surfaceContainerHigh,
+        other.surfaceContainerHigh,
+        t,
+      )!,
+      surfaceContainerHighest: Color.lerp(
+        surfaceContainerHighest,
+        other.surfaceContainerHighest,
+        t,
+      )!,
       outline: Color.lerp(outline, other.outline, t)!,
       dividerLine: Color.lerp(dividerLine, other.dividerLine, t)!,
       windowDimming: Color.lerp(windowDimming, other.windowDimming, t)!,
@@ -264,15 +336,26 @@ double _luminance(Color c) {
 MiuixColors _lightFromKeyColor(Color key) {
   final isLightKey = _luminance(key) > 0.7;
   final primary = key;
-  final onPrimary = isLightKey ? const Color(0xFF000000) : const Color(0xFFFFFFFF);
+  final onPrimary = isLightKey
+      ? const Color(0xFF000000)
+      : const Color(0xFFFFFFFF);
   // tertiaryContainer: 极浅的 key 色背景
-  final tertiaryContainer = Color.alphaBlend(key.withOpacity(0.12), const Color(0xFFFFFFFF));
+  final tertiaryContainer = Color.alphaBlend(
+    key.withOpacity(0.12),
+    const Color(0xFFFFFFFF),
+  );
   return MiuixColors.light.copyWith(
     primary: primary,
     onPrimary: onPrimary,
     primaryVariant: primary,
-    onPrimaryVariant: Color.alphaBlend(key.withOpacity(0.7), const Color(0xFFFFFFFF)),
-    primaryContainer: Color.alphaBlend(key.withOpacity(0.8), const Color(0xFFFFFFFF)),
+    onPrimaryVariant: Color.alphaBlend(
+      key.withOpacity(0.7),
+      const Color(0xFFFFFFFF),
+    ),
+    primaryContainer: Color.alphaBlend(
+      key.withOpacity(0.8),
+      const Color(0xFFFFFFFF),
+    ),
     tertiaryContainer: tertiaryContainer,
     onTertiaryContainer: primary,
   );
@@ -283,11 +366,26 @@ MiuixColors _darkFromKeyColor(Color key) {
   return MiuixColors.dark.copyWith(
     primary: key,
     primaryVariant: key,
-    onPrimaryVariant: Color.alphaBlend(key.withOpacity(0.5), const Color(0xFFFFFFFF)),
-    primaryContainer: Color.alphaBlend(key.withOpacity(0.25), const Color(0xFF000000)),
-    onPrimaryContainer: Color.alphaBlend(key.withOpacity(0.8), const Color(0xFFFFFFFF)),
-    tertiaryContainer: Color.alphaBlend(key.withOpacity(0.25), const Color(0xFF000000)),
-    onTertiaryContainer: Color.alphaBlend(key.withOpacity(0.8), const Color(0xFFFFFFFF)),
+    onPrimaryVariant: Color.alphaBlend(
+      key.withOpacity(0.5),
+      const Color(0xFFFFFFFF),
+    ),
+    primaryContainer: Color.alphaBlend(
+      key.withOpacity(0.25),
+      const Color(0xFF000000),
+    ),
+    onPrimaryContainer: Color.alphaBlend(
+      key.withOpacity(0.8),
+      const Color(0xFFFFFFFF),
+    ),
+    tertiaryContainer: Color.alphaBlend(
+      key.withOpacity(0.25),
+      const Color(0xFF000000),
+    ),
+    onTertiaryContainer: Color.alphaBlend(
+      key.withOpacity(0.8),
+      const Color(0xFFFFFFFF),
+    ),
   );
 }
 
@@ -320,7 +418,9 @@ ThemeData miuixDarkTheme({Color? keyColor}) {
 
 /// 构建 AMOLED 纯黑 [ThemeData]。
 ThemeData miuixAmoledTheme({Color? keyColor}) {
-  final c = keyColor != null ? _amoledFromKeyColor(keyColor) : _amoledFromKeyColor(const Color(0xFF277AF7));
+  final c = keyColor != null
+      ? _amoledFromKeyColor(keyColor)
+      : _amoledFromKeyColor(const Color(0xFF277AF7));
   return _buildTheme(c, Brightness.dark);
 }
 
