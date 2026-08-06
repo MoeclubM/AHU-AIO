@@ -1,7 +1,8 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../theme_manager.dart';
+import 'miuix_theme.dart';
 import 'bloom_stroke_painter.dart';
+import 'liquid_glass_filter.dart';
 
 /// 液态玻璃质感的卡片容器。
 ///
@@ -13,7 +14,7 @@ class LiquidGlassCard extends StatelessWidget {
     super.key,
     required this.child,
     this.borderRadius = 16,
-    this.blurSigma = 24,
+    this.blurSigma = 4,
     this.margin,
     this.padding,
     this.color,
@@ -40,11 +41,9 @@ class LiquidGlassCard extends StatelessWidget {
     final glassEnabled =
         tm.enableLiquidGlass && showHighlight && !reduceTransparency;
 
-    final baseColor =
-        color ?? (isDark ? const Color(0xFF1C1C1E) : const Color(0xFFF2F2F7));
-    final fillAlpha = blurEnabled
-        ? (isDark ? 0.45 : 0.55)
-        : (reduceTransparency ? 0.96 : 0.85);
+    final mc = MiuixColors.of(context);
+    final baseColor = color ?? mc.surfaceContainer;
+    final fillAlpha = blurEnabled ? 0.40 : (reduceTransparency ? 0.96 : 0.85);
 
     return Container(
       margin: margin,
@@ -66,10 +65,7 @@ class LiquidGlassCard extends StatelessWidget {
             if (blurEnabled)
               Positioned.fill(
                 child: BackdropFilter(
-                  filter: ImageFilter.blur(
-                    sigmaX: blurSigma,
-                    sigmaY: blurSigma,
-                  ),
+                  filter: liquidGlassImageFilter(blurSigma: blurSigma),
                   child: Container(color: Colors.transparent),
                 ),
               ),

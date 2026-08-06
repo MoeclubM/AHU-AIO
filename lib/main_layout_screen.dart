@@ -11,6 +11,7 @@ import 'auth/unified_login_page.dart';
 import 'auth/cas_auth_cache.dart';
 import 'miuix/miuix_theme.dart';
 import 'miuix/bloom_stroke_painter.dart';
+import 'miuix/liquid_glass_filter.dart';
 import 'theme_manager.dart';
 
 class MainLayoutScreen extends StatefulWidget {
@@ -28,6 +29,12 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
   late PageController _pageController;
   final ValueNotifier<double> _pagePercentNotifier = ValueNotifier(0.0);
   bool _isDraggingBubble = false;
+  // SukiSU-style bubble press spring: pressProgress spring(1, 1000).
+  late AnimationController _bubblePressController;
+  // InteractiveHighlight touch position relative to the bubble bar.
+  final ValueNotifier<Offset> _highlightPosNotifier =
+      ValueNotifier(Offset.zero);
+  bool _showHighlight = false;
   late PageController _microPageController;
   late PageController _jwPageController;
   late PageController _financePageController;
@@ -49,6 +56,11 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     _subTabAnimController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 250),
+    );
+
+    _bubblePressController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
     );
 
     if (_currentBottomIndex >= 0 && _currentBottomIndex <= 2) {
@@ -73,6 +85,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     _jwPageController.dispose();
     _financePageController.dispose();
     _subTabAnimController.dispose();
+    _bubblePressController.dispose();
+    _highlightPosNotifier.dispose();
     super.dispose();
   }
 
@@ -349,6 +363,12 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     if (index == _currentBottomIndex) return;
 
     if (mounted) {
+      _bubblePressController.forward().orCancel.then((_) {
+        if (mounted) _bubblePressController.reverse();
+      });
+    }
+
+    if (mounted) {
       final reduceMotion =
           MediaQuery.disableAnimationsOf(context) ||
           View.of(
@@ -469,25 +489,19 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(28),
                             child: BackdropFilter(
-                              filter: ImageFilter.blur(
-                                sigmaX: blurEnabled ? 22 : 0,
-                                sigmaY: blurEnabled ? 22 : 0,
-                              ),
+                              filter: blurEnabled
+                                  ? liquidGlassImageFilter(blurSigma: 4)
+                                  : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
                               child: Container(
                                 height: 56,
                                 decoration: BoxDecoration(
                                   color: blurEnabled
                                       ? MiuixColors.of(
                                           context,
-                                        ).surface.withOpacity(
-                                          Theme.of(context).brightness ==
-                                                  Brightness.dark
-                                              ? 0.55
-                                              : 0.65,
-                                        )
+                                        ).surfaceContainer.withOpacity(0.40)
                                       : MiuixColors.of(
                                           context,
-                                        ).surface.withOpacity(0.92),
+                                        ).surfaceContainer.withOpacity(0.92),
                                   borderRadius: BorderRadius.circular(28),
                                   border: Border.all(
                                     color: MiuixColors.of(context).outline
@@ -535,25 +549,19 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(32),
                             child: BackdropFilter(
-                              filter: ImageFilter.blur(
-                                sigmaX: blurEnabled ? 24 : 0,
-                                sigmaY: blurEnabled ? 24 : 0,
-                              ),
+                              filter: blurEnabled
+                                  ? liquidGlassImageFilter(blurSigma: 4)
+                                  : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
                               child: Container(
                                 height: 64,
                                 decoration: BoxDecoration(
                                   color: blurEnabled
                                       ? MiuixColors.of(
                                           context,
-                                        ).surface.withOpacity(
-                                          Theme.of(context).brightness ==
-                                                  Brightness.dark
-                                              ? 0.55
-                                              : 0.65,
-                                        )
+                                        ).surfaceContainer.withOpacity(0.40)
                                       : MiuixColors.of(
                                           context,
-                                        ).surface.withOpacity(0.92),
+                                        ).surfaceContainer.withOpacity(0.92),
                                   borderRadius: BorderRadius.circular(32),
                                   border: Border.all(
                                     color: MiuixColors.of(context).outline
@@ -596,9 +604,13 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                                         as ScrollPositionWithSingleContext)
                                                     .goIdle();
                                               }
+                                                                                            _showHighlight = true;
+                                                                                            _highlightPosNotifier.value = details.localPosition;
+                                                                                            _bubblePressController.forward();
                                             },
                                             onHorizontalDragUpdate: (details) {
                                               if (!_isDraggingBubble) return;
+                                              _highlightPosNotifier.value = details.localPosition;
                                               if (!_pageController.hasClients) {
                                                 return;
                                               }
@@ -672,6 +684,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                                 );
                                               }
                                               _isDraggingBubble = false;
+                                              _showHighlight = false;
+                                              _highlightPosNotifier.value = Offset.zero;
+                                              if (mounted) _bubblePressController.reverse();
                                             },
                                             onHorizontalDragCancel: () {
                                               if (!_isDraggingBubble ||
@@ -690,6 +705,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                                     .goBallistic(0);
                                               }
                                               _isDraggingBubble = false;
+                                              _showHighlight = false;
+                                              _highlightPosNotifier.value = Offset.zero;
+                                              if (mounted) _bubblePressController.reverse();
                                             },
                                             child: Stack(
                                               children: [
@@ -701,19 +719,54 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                                   top: (64 - bubbleHeight) / 2,
                                                   width: bubbleWidth,
                                                   height: bubbleHeight,
-                                                  child: Container(
-                                                    decoration: BoxDecoration(
-                                                      color:
-                                                          MiuixColors.of(
-                                                            context,
-                                                          ).primary.withOpacity(
-                                                            0.12,
+                                                  child: AnimatedBuilder(
+                                                    animation: Listenable.merge([
+                                                      _bubblePressController,
+                                                      _highlightPosNotifier,
+                                                    ]),
+                                                    builder: (context, _) {
+                                                      final pressProgress = _bubblePressController.value;
+                                                      final scale = 1.0 + 0.39 * pressProgress;
+                                                      final darkBg = (1.0 - pressProgress) * 0.10 + pressProgress * 0.03;
+                                                      return Transform.scale(
+                                                        scale: scale,
+                                                        child: ClipRRect(
+                                                          borderRadius: BorderRadius.circular(24),
+                                                          child: Stack(
+                                                            children: [
+                                                              Positioned.fill(
+                                                                child: ColoredBox(
+                                                                  color: Colors.black.withOpacity(darkBg),
+                                                                ),
+                                                              ),
+                                                              Positioned.fill(
+                                                                child: ColoredBox(
+                                                                  color: MiuixColors.of(context).primary.withOpacity(0.12),
+                                                                ),
+                                                              ),
+                                                              if (pressProgress > 0.01)
+                                                                Positioned.fill(
+                                                                  child: CustomPaint(
+                                                                    painter: _BubbleInnerShadowPainter(
+                                                                      radius: 8.0 * pressProgress,
+                                                                      alpha: pressProgress * 0.15,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              if (_showHighlight && pressProgress > 0.01)
+                                                                Positioned.fill(
+                                                                  child: CustomPaint(
+                                                                    painter: _InteractiveHighlightPainter(
+                                                                      position: _highlightPosNotifier.value,
+                                                                      progress: pressProgress,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                            ],
                                                           ),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            24,
-                                                          ),
-                                                    ),
+                                                        ),
+                                                      );
+                                                    },
                                                   ),
                                                 ),
                                                 Row(
@@ -793,7 +846,13 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
         borderRadius: BorderRadius.circular(32),
         highlightColor: Colors.transparent,
         splashColor: colorScheme.primary.withOpacity(0.1),
-        child: Column(
+        child: AnimatedBuilder(
+          animation: _bubblePressController,
+          builder: (context, child) {
+            final scale = 1.0 + 0.2 * _bubblePressController.value;
+            return Transform.scale(scale: scale, child: child);
+          },
+          child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
@@ -816,7 +875,97 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
             ),
           ],
         ),
+        ),
       ),
     );
   }
+}
+
+/// SukiSU-style bubble inner shadow: radius scales with press progress,
+/// color Black.copy(0.15 * alpha).
+class _BubbleInnerShadowPainter extends CustomPainter {
+  const _BubbleInnerShadowPainter({required this.radius, required this.alpha});
+
+  final double radius;
+  final double alpha;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    if (w <= 0 || h <= 0 || alpha <= 0) return;
+
+    final rrect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, w, h),
+      Radius.circular(radius.clamp(0.0, w / 2)),
+    );
+    canvas.save();
+    canvas.clipRRect(rrect);
+
+    final shadowColor = Colors.black.withOpacity(alpha);
+    final topPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment(0, 0.15),
+        colors: [shadowColor, shadowColor.withOpacity(0)],
+      ).createShader(Offset.zero & size);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, 0, w, h * 0.12),
+        Radius.circular(radius.clamp(0.0, w / 2)),
+      ),
+      topPaint,
+    );
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _BubbleInnerShadowPainter oldDelegate) =>
+      radius != oldDelegate.radius || alpha != oldDelegate.alpha;
+}
+
+/// SukiSU InteractiveHighlight: White(0.06*progress) rect (BlendMode.plus) +
+/// radial White(0.12*progress) glow at touch position, radius = minDim*1.2.
+class _InteractiveHighlightPainter extends CustomPainter {
+  const _InteractiveHighlightPainter({
+    required this.position,
+    required this.progress,
+  });
+
+  final Offset position;
+  final double progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.width <= 0 || size.height <= 0 || progress <= 0) return;
+
+    // Base white wash: White.copy(0.06 * progress)
+    final baseWash = Paint()
+      ..color = Colors.white.withOpacity(0.06 * progress)
+      ..blendMode = BlendMode.plus;
+    canvas.drawRect(Offset.zero & size, baseWash);
+
+    // Radial glow: White.copy(0.12 * progress), radius = minDim * 1.2
+    final clampedX = position.dx.clamp(0.0, size.width);
+    final clampedY = position.dy.clamp(0.0, size.height);
+    final glowPaint = Paint()
+      ..shader = RadialGradient(
+        center: FractionalOffset.fromOffsetAndRect(
+          Offset(clampedX, clampedY),
+          Offset.zero & size,
+        ),
+        radius: 1.0,
+        colors: [
+          Colors.white.withOpacity(0.12 * progress),
+          Colors.white.withOpacity(0.0),
+        ],
+        stops: const [0.0, 1.0],
+      ).createShader(Offset.zero & size)
+      ..blendMode = BlendMode.plus;
+    canvas.drawRect(Offset.zero & size, glowPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _InteractiveHighlightPainter oldDelegate) =>
+      position != oldDelegate.position || progress != oldDelegate.progress;
 }

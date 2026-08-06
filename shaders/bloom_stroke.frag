@@ -64,7 +64,7 @@ void main() {
     float strokeAlpha = smoothstep(-u_stroke_width, -u_stroke_width + 1.0, sdf);
 
     // GlassStrokeMiddle preset: stroke color white, alpha 0.05/0.06.
-    float strokeAlphaMul = mix(0.05, 0.06, u_dark);
+    float strokeAlphaMul = 0.12;
     vec3 rgb = vec3(strokeAlphaMul * strokeAlpha * strokeAlpha);
 
     vec3 n = getNormal(fragCoord, sdf, R, halfView);

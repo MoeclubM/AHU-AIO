@@ -89,7 +89,7 @@ class _BloomStrokePainter extends CustomPainter {
     final strokeW = (0.8 * density)
         .clamp(0.0, size.shortestSide / 2)
         .toDouble();
-    final innerBlur = (2.8 * density).clamp(0.0, size.shortestSide).toDouble();
+    final innerBlur = (2.0 * density).clamp(0.0, size.shortestSide).toDouble();
 
     // Flutter setFloat 按 float 展平：u_size 占 0,1；u_corner_radius=2,
     // u_stroke_width=3, u_inner_blur_radius=4, u_highlight_alpha=5, u_dark=6。

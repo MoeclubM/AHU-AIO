@@ -1,7 +1,7 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'miuix_theme.dart';
 import 'bloom_stroke_painter.dart';
+import 'liquid_glass_filter.dart';
 import '../theme_manager.dart';
 
 /// 液态玻璃风格的 AppBar 胶囊标题栏。
@@ -49,12 +49,8 @@ class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
     }
 
     final mc = MiuixColors.of(context);
-    final baseColor = isDark
-        ? const Color(0xFF1C1C1E)
-        : const Color(0xFFF2F2F7);
-    final fillAlpha = blurEnabled
-        ? (isDark ? 0.45 : 0.55)
-        : (reduceTransparency ? 0.96 : 0.85);
+    final baseColor = mc.surfaceContainer;
+    final fillAlpha = blurEnabled ? 0.40 : (reduceTransparency ? 0.96 : 0.85);
 
     return AppBar(
       toolbarHeight: 52,
@@ -72,7 +68,7 @@ class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
                 if (blurEnabled)
                   Positioned.fill(
                     child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                      filter: liquidGlassImageFilter(blurSigma: 4),
                       child: Container(color: Colors.transparent),
                     ),
                   ),
