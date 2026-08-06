@@ -84,5 +84,11 @@ void main() {
     float light2 = clamp(dot(n, secondaryLightDir) * falloff2, 0.0, 1.0);
     rgb += vec3(light2 * light2 * 0.25);
 
-    fragColor = vec4(rgb * u_highlight_alpha, 1.0) * outMask;
+    // 仅边缘带可见：矩形内部深处与外部均透明，
+    // 避免整块覆盖内容导致黑屏并遮挡点击。
+    float innerEdge = smoothstep(-u_inner_blur_radius, 0.0, sdf);
+    float outerEdge = 1.0 - smoothstep(0.0, u_stroke_width, sdf);
+    float edgeMask = min(innerEdge, outerEdge);
+
+    fragColor = vec4(rgb * u_highlight_alpha, outMask * edgeMask * u_highlight_alpha);
 }

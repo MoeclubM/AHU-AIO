@@ -51,12 +51,14 @@ class _BloomStrokeLayerState extends State<BloomStrokeLayer> {
     if (program == null || !widget.enabled) {
       return const SizedBox.shrink();
     }
-    return CustomPaint(
-      painter: _BloomStrokePainter(
-        program: program,
-        radius: widget.radius,
-        isDark: widget.isDark,
-        highlightAlpha: widget.highlightAlpha,
+    return IgnorePointer(
+      child: CustomPaint(
+        painter: _BloomStrokePainter(
+          program: program,
+          radius: widget.radius,
+          isDark: widget.isDark,
+          highlightAlpha: widget.highlightAlpha,
+        ),
       ),
     );
   }
