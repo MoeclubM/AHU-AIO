@@ -365,7 +365,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
 
     if (mounted) {
       _bubblePressController.forward().orCancel.then((_) {
-        if (mounted) _bubblePressController.reverse();
+        if (mounted) {
+          _bubblePressController.reverse();
+        }
       });
     }
 
@@ -688,11 +690,10 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                               }
                                               _isDraggingBubble = false;
                                               _showHighlight = false;
-                                              _highlightPosNotifier.value =
-                                                  Offset.zero;
-                                              if (mounted)
-                                                _bubblePressController
-                                                    .reverse();
+                                              _highlightPosNotifier.value = Offset.zero;
+                                              if (mounted) {
+                                                _bubblePressController.reverse();
+                                              }
                                             },
                                             onHorizontalDragCancel: () {
                                               if (!_isDraggingBubble ||
@@ -712,11 +713,10 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                               }
                                               _isDraggingBubble = false;
                                               _showHighlight = false;
-                                              _highlightPosNotifier.value =
-                                                  Offset.zero;
-                                              if (mounted)
-                                                _bubblePressController
-                                                    .reverse();
+                                              _highlightPosNotifier.value = Offset.zero;
+                                              if (mounted) {
+                                                _bubblePressController.reverse();
+                                              }
                                             },
                                             child: Stack(
                                               children: [
