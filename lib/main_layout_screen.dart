@@ -32,8 +32,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
   // SukiSU-style bubble press spring: pressProgress spring(1, 1000).
   late AnimationController _bubblePressController;
   // InteractiveHighlight touch position relative to the bubble bar.
-  final ValueNotifier<Offset> _highlightPosNotifier =
-      ValueNotifier(Offset.zero);
+  final ValueNotifier<Offset> _highlightPosNotifier = ValueNotifier(
+    Offset.zero,
+  );
   bool _showHighlight = false;
   late PageController _microPageController;
   late PageController _jwPageController;
@@ -604,13 +605,15 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                                         as ScrollPositionWithSingleContext)
                                                     .goIdle();
                                               }
-                                                                                            _showHighlight = true;
-                                                                                            _highlightPosNotifier.value = details.localPosition;
-                                                                                            _bubblePressController.forward();
+                                              _showHighlight = true;
+                                              _highlightPosNotifier.value =
+                                                  details.localPosition;
+                                              _bubblePressController.forward();
                                             },
                                             onHorizontalDragUpdate: (details) {
                                               if (!_isDraggingBubble) return;
-                                              _highlightPosNotifier.value = details.localPosition;
+                                              _highlightPosNotifier.value =
+                                                  details.localPosition;
                                               if (!_pageController.hasClients) {
                                                 return;
                                               }
@@ -685,8 +688,11 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                               }
                                               _isDraggingBubble = false;
                                               _showHighlight = false;
-                                              _highlightPosNotifier.value = Offset.zero;
-                                              if (mounted) _bubblePressController.reverse();
+                                              _highlightPosNotifier.value =
+                                                  Offset.zero;
+                                              if (mounted)
+                                                _bubblePressController
+                                                    .reverse();
                                             },
                                             onHorizontalDragCancel: () {
                                               if (!_isDraggingBubble ||
@@ -706,8 +712,11 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                               }
                                               _isDraggingBubble = false;
                                               _showHighlight = false;
-                                              _highlightPosNotifier.value = Offset.zero;
-                                              if (mounted) _bubblePressController.reverse();
+                                              _highlightPosNotifier.value =
+                                                  Offset.zero;
+                                              if (mounted)
+                                                _bubblePressController
+                                                    .reverse();
                                             },
                                             child: Stack(
                                               children: [
@@ -720,45 +729,76 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                                   width: bubbleWidth,
                                                   height: bubbleHeight,
                                                   child: AnimatedBuilder(
-                                                    animation: Listenable.merge([
-                                                      _bubblePressController,
-                                                      _highlightPosNotifier,
-                                                    ]),
+                                                    animation: Listenable.merge(
+                                                      [
+                                                        _bubblePressController,
+                                                        _highlightPosNotifier,
+                                                      ],
+                                                    ),
                                                     builder: (context, _) {
-                                                      final pressProgress = _bubblePressController.value;
-                                                      final scale = 1.0 + 0.39 * pressProgress;
-                                                      final darkBg = (1.0 - pressProgress) * 0.10 + pressProgress * 0.03;
+                                                      final pressProgress =
+                                                          _bubblePressController
+                                                              .value;
+                                                      final scale =
+                                                          1.0 +
+                                                          0.39 * pressProgress;
+                                                      final darkBg =
+                                                          (1.0 - pressProgress) *
+                                                              0.10 +
+                                                          pressProgress * 0.03;
                                                       return Transform.scale(
                                                         scale: scale,
                                                         child: ClipRRect(
-                                                          borderRadius: BorderRadius.circular(24),
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                24,
+                                                              ),
                                                           child: Stack(
                                                             children: [
                                                               Positioned.fill(
                                                                 child: ColoredBox(
-                                                                  color: Colors.black.withOpacity(darkBg),
+                                                                  color: Colors
+                                                                      .black
+                                                                      .withOpacity(
+                                                                        darkBg,
+                                                                      ),
                                                                 ),
                                                               ),
                                                               Positioned.fill(
                                                                 child: ColoredBox(
-                                                                  color: MiuixColors.of(context).primary.withOpacity(0.12),
+                                                                  color:
+                                                                      MiuixColors.of(
+                                                                        context,
+                                                                      ).primary.withOpacity(
+                                                                        0.12,
+                                                                      ),
                                                                 ),
                                                               ),
-                                                              if (pressProgress > 0.01)
+                                                              if (pressProgress >
+                                                                  0.01)
                                                                 Positioned.fill(
                                                                   child: CustomPaint(
                                                                     painter: _BubbleInnerShadowPainter(
-                                                                      radius: 8.0 * pressProgress,
-                                                                      alpha: pressProgress * 0.15,
+                                                                      radius:
+                                                                          8.0 *
+                                                                          pressProgress,
+                                                                      alpha:
+                                                                          pressProgress *
+                                                                          0.15,
                                                                     ),
                                                                   ),
                                                                 ),
-                                                              if (_showHighlight && pressProgress > 0.01)
+                                                              if (_showHighlight &&
+                                                                  pressProgress >
+                                                                      0.01)
                                                                 Positioned.fill(
                                                                   child: CustomPaint(
                                                                     painter: _InteractiveHighlightPainter(
-                                                                      position: _highlightPosNotifier.value,
-                                                                      progress: pressProgress,
+                                                                      position:
+                                                                          _highlightPosNotifier
+                                                                              .value,
+                                                                      progress:
+                                                                          pressProgress,
                                                                     ),
                                                                   ),
                                                                 ),
@@ -853,28 +893,28 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
             return Transform.scale(scale: scale, child: child);
           },
           child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              isSelected ? activeIcon : icon,
-              color: isSelected
-                  ? colorScheme.primary
-                  : colorScheme.onSurfaceVariant.withOpacity(0.7),
-              size: 20,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10.5,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                isSelected ? activeIcon : icon,
                 color: isSelected
                     ? colorScheme.primary
                     : colorScheme.onSurfaceVariant.withOpacity(0.7),
+                size: 20,
               ),
-            ),
-          ],
-        ),
+              const SizedBox(height: 2),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  color: isSelected
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant.withOpacity(0.7),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
