@@ -690,9 +690,11 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                               }
                                               _isDraggingBubble = false;
                                               _showHighlight = false;
-                                              _highlightPosNotifier.value = Offset.zero;
+                                              _highlightPosNotifier.value =
+                                                  Offset.zero;
                                               if (mounted) {
-                                                _bubblePressController.reverse();
+                                                _bubblePressController
+                                                    .reverse();
                                               }
                                             },
                                             onHorizontalDragCancel: () {
@@ -713,9 +715,11 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                               }
                                               _isDraggingBubble = false;
                                               _showHighlight = false;
-                                              _highlightPosNotifier.value = Offset.zero;
+                                              _highlightPosNotifier.value =
+                                                  Offset.zero;
                                               if (mounted) {
-                                                _bubblePressController.reverse();
+                                                _bubblePressController
+                                                    .reverse();
                                               }
                                             },
                                             child: Stack(
