@@ -52,6 +52,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
       }
     } catch (_) {}
   }
+
   Future<void> _loadData() async {
     // 有本地缓存时先展示缓存，避免抖动白屏及“有时候加载失败”的体感
     final hasExistingTable = _tableData != null;
@@ -60,15 +61,20 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
       try {
         final prefs = await SharedPreferences.getInstance();
         int? cachedSemId =
-            _selectedSemesterId ?? prefs.getInt('jw_schedule_selected_semester_id');
-        String? cachedSemName = prefs.getString('jw_schedule_selected_semester_name');
+            _selectedSemesterId ??
+            prefs.getInt('jw_schedule_selected_semester_id');
+        String? cachedSemName = prefs.getString(
+          'jw_schedule_selected_semester_name',
+        );
         // 若无记录的选中学期，尝试扫描任意一个课表缓存作为兜底
         String? cachedStr;
         if (cachedSemId != null) {
           cachedStr = prefs.getString('jw_schedule_cache_$cachedSemId');
         }
         if (cachedStr == null) {
-          final keys = prefs.getKeys().where((k) => k.startsWith('jw_schedule_cache_'));
+          final keys = prefs.getKeys().where(
+            (k) => k.startsWith('jw_schedule_cache_'),
+          );
           for (final k in keys) {
             final v = prefs.getString(k);
             if (v != null && v.isNotEmpty) {
@@ -132,11 +138,14 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
       } catch (_) {}
 
       // 对瞬时网络抖动自动重试 3 次
-      final weekRaw =
-          await jwRetry<Map<String, dynamic>>(() => _api.getCurrentTeachWeek());
+      final weekRaw = await jwRetry<Map<String, dynamic>>(
+        () => _api.getCurrentTeachWeek(),
+      );
       final weekInfo = TeachWeekInfo.fromJson(weekRaw);
       // 非学期/负周数等异常统一校正，避免显示负周数
-      _realCurrentWeek = weekInfo.isInSemester ? weekInfo.effectiveWeekIndex : null;
+      _realCurrentWeek = weekInfo.isInSemester
+          ? weekInfo.effectiveWeekIndex
+          : null;
 
       // 学期列表同样重试；getSemesters 内部对多个 semId 单次请求，已做 catch，整体再包一层重试
       final semList = await jwRetry<List<dynamic>>(() async {
@@ -190,13 +199,21 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
       final prefs = await SharedPreferences.getInstance();
       // 持久化选中学期与教学周，供下次离线兜底
       if (_selectedSemesterId != null) {
-        await prefs.setInt('jw_schedule_selected_semester_id', _selectedSemesterId!);
+        await prefs.setInt(
+          'jw_schedule_selected_semester_id',
+          _selectedSemesterId!,
+        );
         if (_selectedSemesterName != null) {
           await prefs.setString(
-              'jw_schedule_selected_semester_name', _selectedSemesterName!);
+            'jw_schedule_selected_semester_name',
+            _selectedSemesterName!,
+          );
         }
       }
-      await prefs.setString('jw_schedule_teach_week_cache', jsonEncode(weekRaw));
+      await prefs.setString(
+        'jw_schedule_teach_week_cache',
+        jsonEncode(weekRaw),
+      );
 
       // 先尝试读取本地缓存快速展示（若之前未展示）
       final cacheKey = 'jw_schedule_cache_$_selectedSemesterId';
@@ -217,7 +234,8 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
       }
 
       final raw = await jwRetry<Map<String, dynamic>>(
-          () => _api.getCourseTablePrintData(_selectedSemesterId!));
+        () => _api.getCourseTablePrintData(_selectedSemesterId!),
+      );
       final freshData = CourseTableData.fromJson(raw);
 
       await prefs.setString(cacheKey, jsonEncode(raw));
@@ -347,14 +365,15 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
             padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
             color: _error != null
                 ? Theme.of(context).colorScheme.errorContainer.withOpacity(0.92)
-                : Theme.of(context)
-                    .colorScheme
-                    .primaryContainer
-                    .withOpacity(0.7),
+                : Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer.withOpacity(0.7),
             child: Row(
               children: [
                 Icon(
-                  _error != null ? Icons.cloud_off_outlined : Icons.info_outline,
+                  _error != null
+                      ? Icons.cloud_off_outlined
+                      : Icons.info_outline,
                   size: 14,
                   color: _error != null
                       ? Theme.of(context).colorScheme.onErrorContainer
@@ -381,7 +400,10 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
                     onTap: _loadData,
                     borderRadius: BorderRadius.circular(8),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       child: Text(
                         '重试',
                         style: TextStyle(
@@ -681,7 +703,8 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
             children: List.generate(25, (index) {
               final week = index + 1;
               final isSelected = week == _currentWeek;
-              final isRealCurrent = _realCurrentWeek != null && week == _realCurrentWeek;
+              final isRealCurrent =
+                  _realCurrentWeek != null && week == _realCurrentWeek;
               return ChoiceChip(
                 avatar: isRealCurrent
                     ? Icon(

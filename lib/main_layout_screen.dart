@@ -502,12 +502,14 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                 decoration: BoxDecoration(
                                   color: isTransparentBottomBar
                                       ? (blurEnabled
-                                          ? MiuixTheme.of(
-                                              context,
-                                            ).colors.surfaceContainer.withOpacity(0.40)
-                                          : MiuixTheme.of(
-                                              context,
-                                            ).colors.surfaceContainer.withOpacity(0.92))
+                                            ? MiuixTheme.of(context)
+                                                  .colors
+                                                  .surfaceContainer
+                                                  .withOpacity(0.40)
+                                            : MiuixTheme.of(context)
+                                                  .colors
+                                                  .surfaceContainer
+                                                  .withOpacity(0.92))
                                       : MiuixTheme.of(
                                           context,
                                         ).colors.surfaceContainer,
@@ -570,12 +572,14 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                 decoration: BoxDecoration(
                                   color: isTransparentBottomBar
                                       ? (blurEnabled
-                                          ? MiuixTheme.of(
-                                              context,
-                                            ).colors.surfaceContainer.withOpacity(0.40)
-                                          : MiuixTheme.of(
-                                              context,
-                                            ).colors.surfaceContainer.withOpacity(0.92))
+                                            ? MiuixTheme.of(context)
+                                                  .colors
+                                                  .surfaceContainer
+                                                  .withOpacity(0.40)
+                                            : MiuixTheme.of(context)
+                                                  .colors
+                                                  .surfaceContainer
+                                                  .withOpacity(0.92))
                                       : MiuixTheme.of(
                                           context,
                                         ).colors.surfaceContainer,
@@ -788,10 +792,13 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                                                 child: ColoredBox(
                                                                   color:
                                                                       MiuixTheme.of(
-                                                                        context,
-                                                                      ).colors.primary.withOpacity(
-                                                                        0.12,
-                                                                      ),
+                                                                            context,
+                                                                          )
+                                                                          .colors
+                                                                          .primary
+                                                                          .withOpacity(
+                                                                            0.12,
+                                                                          ),
                                                                 ),
                                                               ),
                                                               if (pressProgress >

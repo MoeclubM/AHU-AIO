@@ -81,10 +81,12 @@ class _JwHomePageState extends State<JwHomePage> {
 
     try {
       // 对瞬时抖动自动重试 3 次，认证类错误由 JwApi 拦截器重登录，不在此重试
-      final weekRaw =
-          await jwRetry<Map<String, dynamic>>(() => _api.getCurrentTeachWeek());
-      final noticeRaw =
-          await jwRetry<Map<String, dynamic>>(() => _api.getNoticeCounts());
+      final weekRaw = await jwRetry<Map<String, dynamic>>(
+        () => _api.getCurrentTeachWeek(),
+      );
+      final noticeRaw = await jwRetry<Map<String, dynamic>>(
+        () => _api.getNoticeCounts(),
+      );
 
       // 写入缓存
       try {
@@ -153,31 +155,31 @@ class _JwHomePageState extends State<JwHomePage> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : showFullscreenError
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(_error!),
-                      const SizedBox(height: 16),
-                      ElevatedButton(onPressed: _loadData, child: const Text('重试')),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadData,
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 148),
-                    children: [
-                      if (showCachedBanner) _buildCacheBanner(),
-                      if (showCachedBanner) const SizedBox(height: 12),
-                      _buildTeachWeekCard(),
-                      const SizedBox(height: 16),
-                      _buildNoticeCard(),
-                      const SizedBox(height: 16),
-                      _buildFeatureGrid(),
-                    ],
-                  ),
-                ),
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(_error!),
+                  const SizedBox(height: 16),
+                  ElevatedButton(onPressed: _loadData, child: const Text('重试')),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _loadData,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 148),
+                children: [
+                  if (showCachedBanner) _buildCacheBanner(),
+                  if (showCachedBanner) const SizedBox(height: 12),
+                  _buildTeachWeekCard(),
+                  const SizedBox(height: 16),
+                  _buildNoticeCard(),
+                  const SizedBox(height: 16),
+                  _buildFeatureGrid(),
+                ],
+              ),
+            ),
     );
   }
 
@@ -270,7 +272,6 @@ class _JwHomePageState extends State<JwHomePage> {
       ),
     );
   }
-
 
   Widget _buildNoticeCard() {
     final notices = _notices;

@@ -89,10 +89,9 @@ Future<T> jwRetry<T>(
   int maxAttempts = JwRetry.defaultMaxAttempts,
   Duration initialDelay = JwRetry.defaultInitialDelay,
   bool Function(Object error)? retryIf,
-}) =>
-    JwRetry.withRetry(
-      task,
-      maxAttempts: maxAttempts,
-      initialDelay: initialDelay,
-      retryIf: retryIf,
-    );
+}) => JwRetry.withRetry(
+  task,
+  maxAttempts: maxAttempts,
+  initialDelay: initialDelay,
+  retryIf: retryIf,
+);

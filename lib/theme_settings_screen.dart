@@ -33,9 +33,7 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
     final mc = MiuixTheme.of(context).colors;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('个性化与主题'),
-      ),
+      appBar: AppBar(title: const Text('个性化与主题')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 48),
         children: [
@@ -141,7 +139,9 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
                           color: color,
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: isSelected ? mc.onSurface : Colors.transparent,
+                            color: isSelected
+                                ? mc.onSurface
+                                : Colors.transparent,
                             width: 3,
                           ),
                           boxShadow: [
@@ -289,7 +289,11 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
                   color: mc.primary.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Icon(Icons.favorite_rounded, color: mc.primary, size: 20),
+                child: Icon(
+                  Icons.favorite_rounded,
+                  color: mc.primary,
+                  size: 20,
+                ),
               ),
             ],
           ),

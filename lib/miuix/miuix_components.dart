@@ -49,8 +49,10 @@ class MiuixButton extends StatelessWidget {
     this.minWidth = 58,
     this.minHeight = 40,
     this.colors,
-    this.insideMargin =
-        const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+    this.insideMargin = const EdgeInsets.symmetric(
+      horizontal: 16,
+      vertical: 13,
+    ),
   });
 
   final VoidCallback? onPressed;
@@ -70,11 +72,7 @@ class MiuixButton extends StatelessWidget {
       label = Row(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          icon!,
-          const SizedBox(width: 8),
-          child,
-        ],
+        children: [icon!, const SizedBox(width: 8), child],
       );
     }
     return miuix_pkg.MiuixButton(

@@ -39,9 +39,9 @@ class MyApp extends StatelessWidget {
           builder: (context, child) {
             final Color effectiveKeyColor =
                 (themeManager.colorMode == ColorMode.monet &&
-                        lightDynamic != null)
-                    ? lightDynamic.primary
-                    : themeManager.keyColor;
+                    lightDynamic != null)
+                ? lightDynamic.primary
+                : themeManager.keyColor;
 
             final ThemeData light;
             final ThemeData dark;
@@ -55,10 +55,7 @@ class MyApp extends StatelessWidget {
               );
               miuixDarkColors = themeManager.isAmoled
                   ? amoledColorScheme(keyColor: effectiveKeyColor)
-                  : miuixColorsFromSeed(
-                      seed: effectiveKeyColor,
-                      dark: true,
-                    );
+                  : miuixColorsFromSeed(seed: effectiveKeyColor, dark: true);
               light = miuixLightTheme(keyColor: effectiveKeyColor);
               dark = themeManager.isAmoled
                   ? miuixAmoledTheme(keyColor: effectiveKeyColor)
@@ -105,8 +102,8 @@ class MyApp extends StatelessWidget {
             final currentBrightness = themeManager.colorMode == ColorMode.light
                 ? Brightness.light
                 : (themeManager.colorMode.isDark
-                    ? Brightness.dark
-                    : systemBrightness);
+                      ? Brightness.dark
+                      : systemBrightness);
 
             return MiuixTheme(
               data: MiuixThemeData.of(
