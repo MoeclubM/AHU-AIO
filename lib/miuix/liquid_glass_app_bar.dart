@@ -48,7 +48,7 @@ class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
       );
     }
 
-    final mc = MiuixColors.of(context);
+    final mc = MiuixTheme.of(context).colors;
     final baseColor = mc.surfaceContainer;
     final fillAlpha = blurEnabled ? 0.40 : (reduceTransparency ? 0.96 : 0.85);
 

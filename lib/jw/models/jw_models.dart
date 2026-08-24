@@ -26,6 +26,39 @@ class TeachWeekInfo {
       isInSemester: json['isInSemester'] == true,
     );
   }
+
+  /// 原始周数是否在学期内且落在合法区间 [1, 25]
+  bool get isWeekValid =>
+      isInSemester && weekIndex != null && weekIndex! >= 1 && weekIndex! <= 25;
+
+  /// 供 UI 使用的安全周数：
+  /// - 学期内且 1..25 直接返回
+  /// - 学期内但周数异常（负数/越界/null）回落到 1
+  /// - 非学期返回 1（避免负数导致课表空白/显示异常），由 [weekLabel] 区分文案
+  int get effectiveWeekIndex {
+    if (!isInSemester) return 1;
+    if (weekIndex == null || weekIndex! < 1) return 1;
+    if (weekIndex! > 25) return 25;
+    return weekIndex!;
+  }
+
+  /// 顶栏/卡片显示文案
+  String get weekLabel {
+    if (!isInSemester) return '假期中';
+    return '第 $effectiveWeekIndex 周';
+  }
+
+  /// 副标题：学期内显示"教学进行中"，非学期显示"非教学周"，周数异常时追加提示
+  String get statusLabel {
+    if (!isInSemester) return '非教学周';
+    if (weekIndex != null && (weekIndex! < 1 || weekIndex! > 25)) {
+      return '教学进行中 · 周数已校正';
+    }
+    return '教学进行中';
+  }
+
+  /// 兼容旧调用：安全周数（等同 effectiveWeekIndex）
+  int get sanitizedWeekIndex => effectiveWeekIndex;
 }
 
 // ============================================================

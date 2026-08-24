@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api/jw_api.dart';
 import '../models/jw_models.dart';
+import '../utils/jw_retry.dart';
 
 class JwSchedulePage extends StatefulWidget {
   final bool embed;
@@ -51,19 +52,98 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
       }
     } catch (_) {}
   }
-
   Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-    try {
-      final weekRaw = await _api.getCurrentTeachWeek();
-      final weekInfo = TeachWeekInfo.fromJson(weekRaw);
-      _realCurrentWeek = weekInfo.weekIndex;
+    // 有本地缓存时先展示缓存，避免抖动白屏及“有时候加载失败”的体感
+    final hasExistingTable = _tableData != null;
+    bool restoredCache = hasExistingTable;
+    if (!hasExistingTable) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        int? cachedSemId =
+            _selectedSemesterId ?? prefs.getInt('jw_schedule_selected_semester_id');
+        String? cachedSemName = prefs.getString('jw_schedule_selected_semester_name');
+        // 若无记录的选中学期，尝试扫描任意一个课表缓存作为兜底
+        String? cachedStr;
+        if (cachedSemId != null) {
+          cachedStr = prefs.getString('jw_schedule_cache_$cachedSemId');
+        }
+        if (cachedStr == null) {
+          final keys = prefs.getKeys().where((k) => k.startsWith('jw_schedule_cache_'));
+          for (final k in keys) {
+            final v = prefs.getString(k);
+            if (v != null && v.isNotEmpty) {
+              cachedStr = v;
+              final idStr = k.replaceFirst('jw_schedule_cache_', '');
+              cachedSemId = int.tryParse(idStr) ?? cachedSemId;
+              break;
+            }
+          }
+        }
+        if (cachedStr != null) {
+          final cachedData = CourseTableData.fromJson(jsonDecode(cachedStr));
+          if (cachedSemId != null) _selectedSemesterId = cachedSemId;
+          if (cachedSemName != null) _selectedSemesterName = cachedSemName;
+          // 同步恢复上次的教学周以正确计算 _currentWeek / _realCurrentWeek
+          final weekCacheStr = prefs.getString('jw_schedule_teach_week_cache');
+          if (weekCacheStr != null) {
+            try {
+              final wm = jsonDecode(weekCacheStr) as Map<String, dynamic>;
+              final wi = TeachWeekInfo.fromJson(wm);
+              _realCurrentWeek = wi.isInSemester ? wi.effectiveWeekIndex : null;
+              if (_selectedSemesterId != null && _currentWeek < 1) {
+                _currentWeek = wi.effectiveWeekIndex;
+              }
+            } catch (_) {}
+          }
+          setState(() {
+            _tableData = cachedData;
+            _isCached = true;
+            _isLoading = false;
+            _error = null;
+          });
+          restoredCache = true;
+        } else {
+          setState(() {
+            _isLoading = true;
+            _error = null;
+          });
+        }
+      } catch (_) {
+        if (!hasExistingTable) {
+          setState(() {
+            _isLoading = true;
+            _error = null;
+          });
+        }
+      }
+    } else {
+      // 已有数据，保持展示并标记为缓存态，直至刷新成功
+      setState(() {
+        _isCached = true;
+        _isLoading = false;
+        _error = null;
+      });
+    }
 
-      // 从成绩 API 获取学期列表
-      final semList = await _api.getSemesters();
+    try {
+      // 确保 JwApi 已初始化（cookie 等）
+      try {
+        await _api.init();
+      } catch (_) {}
+
+      // 对瞬时网络抖动自动重试 3 次
+      final weekRaw =
+          await jwRetry<Map<String, dynamic>>(() => _api.getCurrentTeachWeek());
+      final weekInfo = TeachWeekInfo.fromJson(weekRaw);
+      // 非学期/负周数等异常统一校正，避免显示负周数
+      _realCurrentWeek = weekInfo.isInSemester ? weekInfo.effectiveWeekIndex : null;
+
+      // 学期列表同样重试；getSemesters 内部对多个 semId 单次请求，已做 catch，整体再包一层重试
+      final semList = await jwRetry<List<dynamic>>(() async {
+        final list = await _api.getSemesters();
+        if (list.isEmpty) throw StateError('学期列表为空');
+        return list;
+      });
       _semesters = semList;
 
       final currentName = weekInfo.currentSemester ?? '';
@@ -81,7 +161,13 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
         semId ??= semList.isNotEmpty ? toInt(semList.last['id']) : null;
         semId ??= 112;
         _selectedSemesterId = semId;
-        _currentWeek = weekInfo.weekIndex ?? 1;
+        // 假期/异常周数回落到第 1 周，避免负数
+        _currentWeek = weekInfo.effectiveWeekIndex;
+      } else {
+        // 已选学期但当前周仍可能为负/越界，做一次校正（仅在首次或异常时）
+        if (_currentWeek < 1 || _currentWeek > 25) {
+          _currentWeek = weekInfo.effectiveWeekIndex;
+        }
       }
 
       // 获取当前选中的学期名称
@@ -102,24 +188,41 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
       }
 
       final prefs = await SharedPreferences.getInstance();
+      // 持久化选中学期与教学周，供下次离线兜底
+      if (_selectedSemesterId != null) {
+        await prefs.setInt('jw_schedule_selected_semester_id', _selectedSemesterId!);
+        if (_selectedSemesterName != null) {
+          await prefs.setString(
+              'jw_schedule_selected_semester_name', _selectedSemesterName!);
+        }
+      }
+      await prefs.setString('jw_schedule_teach_week_cache', jsonEncode(weekRaw));
+
+      // 先尝试读取本地缓存快速展示（若之前未展示）
       final cacheKey = 'jw_schedule_cache_$_selectedSemesterId';
-      final cachedStr = prefs.getString(cacheKey);
-      if (cachedStr != null) {
-        try {
-          final cachedData = CourseTableData.fromJson(jsonDecode(cachedStr));
-          setState(() {
-            _tableData = cachedData;
-            _isCached = true;
-            _isLoading = false;
-          });
-        } catch (_) {}
+      if (_tableData == null) {
+        final cachedStr = prefs.getString(cacheKey);
+        if (cachedStr != null) {
+          try {
+            final cachedData = CourseTableData.fromJson(jsonDecode(cachedStr));
+            if (mounted) {
+              setState(() {
+                _tableData = cachedData;
+                _isCached = true;
+                _isLoading = false;
+              });
+            }
+          } catch (_) {}
+        }
       }
 
-      final raw = await _api.getCourseTablePrintData(_selectedSemesterId!);
+      final raw = await jwRetry<Map<String, dynamic>>(
+          () => _api.getCourseTablePrintData(_selectedSemesterId!));
       final freshData = CourseTableData.fromJson(raw);
 
       await prefs.setString(cacheKey, jsonEncode(raw));
 
+      if (!mounted) return;
       setState(() {
         _tableData = freshData;
         _isCached = false;
@@ -127,16 +230,18 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
         _error = null;
       });
     } catch (e) {
-      if (_tableData != null) {
+      if (!mounted) return;
+      if (_tableData != null || restoredCache) {
         setState(() {
           _isCached = true;
           _isLoading = false;
-          _error = '更新课表失败，显示为本地缓存';
+          _error = '网络波动，已自动重试多次仍失败，当前为本地缓存';
         });
       } else {
         setState(() {
           _error = '加载失败: $e';
           _isLoading = false;
+          _isCached = false;
         });
       }
     }
@@ -240,29 +345,54 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-            color: Theme.of(
-              context,
-            ).colorScheme.primaryContainer.withOpacity(0.7),
+            color: _error != null
+                ? Theme.of(context).colorScheme.errorContainer.withOpacity(0.92)
+                : Theme.of(context)
+                    .colorScheme
+                    .primaryContainer
+                    .withOpacity(0.7),
             child: Row(
               children: [
                 Icon(
-                  Icons.info_outline,
+                  _error != null ? Icons.cloud_off_outlined : Icons.info_outline,
                   size: 14,
-                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  color: _error != null
+                      ? Theme.of(context).colorScheme.onErrorContainer
+                      : Theme.of(context).colorScheme.onPrimaryContainer,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    _error != null && _error!.contains('更新课表失败')
-                        ? '更新最新课表失败，当前显示为本地缓存数据'
-                        : '当前为本地缓存数据，正在加载最新数据...',
+                    _error != null && _error!.isNotEmpty
+                        ? _error!
+                        : '当前为本地缓存，正在刷新最新数据...',
                     style: TextStyle(
                       fontSize: 11.5,
-                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                      color: _error != null
+                          ? Theme.of(context).colorScheme.onErrorContainer
+                          : Theme.of(context).colorScheme.onPrimaryContainer,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
+                if (_error != null) ...[
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: _loadData,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      child: Text(
+                        '重试',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -520,7 +650,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
                   IconButton(
                     icon: const Icon(Icons.chevron_right),
                     color: highContrast ? colorScheme.onSurface : Colors.white,
-                    onPressed: _currentWeek < 20
+                    onPressed: _currentWeek < 25
                         ? () => setState(() => _currentWeek++)
                         : null,
                   ),
@@ -548,10 +678,10 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
           child: Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: List.generate(20, (index) {
+            children: List.generate(25, (index) {
               final week = index + 1;
               final isSelected = week == _currentWeek;
-              final isRealCurrent = week == _realCurrentWeek;
+              final isRealCurrent = _realCurrentWeek != null && week == _realCurrentWeek;
               return ChoiceChip(
                 avatar: isRealCurrent
                     ? Icon(

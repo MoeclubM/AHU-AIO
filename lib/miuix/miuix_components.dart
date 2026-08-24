@@ -1,35 +1,10 @@
 import 'package:flutter/material.dart';
-import 'miuix_theme.dart';
+import 'package:flutter_miuix/miuix.dart' as miuix_pkg;
+import 'package:flutter_miuix/miuix.dart' hide MiuixButton, MiuixTextButton;
 
-/// Miuix 风格小标题，对应 miuix 的 [SmallTitle] 组件。
-///
-/// 使用 onBackgroundVariant 色，14sp 加粗。
-class MiuixSmallTitle extends StatelessWidget {
-  const MiuixSmallTitle(this.text, {super.key, this.padding});
+export 'package:flutter_miuix/miuix.dart' hide MiuixButton, MiuixTextButton;
 
-  final String text;
-  final EdgeInsets? padding;
-
-  @override
-  Widget build(BuildContext context) {
-    final mc = MiuixColors.of(context);
-    return Padding(
-      padding: padding ?? const EdgeInsets.fromLTRB(28, 8, 28, 8),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-          color: mc.onBackgroundVariant,
-        ),
-      ),
-    );
-  }
-}
-
-/// Miuix 风格设置项行，对应 miuix 的 [Component] / preference 项。
-///
-/// 左侧图标 + 标题/副标题，右侧 trailing，点击回调。
+/// Miuix 风格设置项行组件，兼容原 [MiuixComponent] 接口并基于 [MiuixBasicComponent] 与 [MiuixTheme] 实现。
 class MiuixComponent extends StatelessWidget {
   const MiuixComponent({
     super.key,
@@ -50,47 +25,72 @@ class MiuixComponent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mc = MiuixColors.of(context);
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding:
-            padding ?? const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        child: Row(
-          children: [
-            if (leading != null) ...[leading!, const SizedBox(width: 14)],
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(fontSize: 16, color: mc.onSurface),
-                  ),
-                  if (summary != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      summary!,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: mc.onSurfaceVariantSummary,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            if (trailing != null) ...[const SizedBox(width: 8), trailing!],
-          ],
-        ),
-      ),
+    return MiuixBasicComponent(
+      title: title,
+      summary: summary,
+      startAction: leading,
+      endActions: trailing != null ? [trailing!] : null,
+      onClick: onTap,
+      insideMargin:
+          padding ?? const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
     );
   }
 }
 
-/// Miuix 风格主按钮，对应 miuix 的 [Button] (buttonColorsPrimary)。
-///
-/// primary 色填充，白色文字，16dp 圆角。
+/// Miuix 风格按钮，封装 [flutter_miuix] 的 [MiuixButton]，支持 child、icon 以及自定义样式。
+class MiuixButton extends StatelessWidget {
+  const MiuixButton({
+    super.key,
+    required this.onPressed,
+    required this.child,
+    this.icon,
+    this.enabled = true,
+    this.cornerRadius = 16,
+    this.minWidth = 58,
+    this.minHeight = 40,
+    this.colors,
+    this.insideMargin =
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+  });
+
+  final VoidCallback? onPressed;
+  final Widget child;
+  final Widget? icon;
+  final bool enabled;
+  final double cornerRadius;
+  final double minWidth;
+  final double minHeight;
+  final miuix_pkg.MiuixButtonColors? colors;
+  final EdgeInsetsGeometry insideMargin;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget label = child;
+    if (icon != null) {
+      label = Row(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          icon!,
+          const SizedBox(width: 8),
+          child,
+        ],
+      );
+    }
+    return miuix_pkg.MiuixButton(
+      onPressed: onPressed,
+      enabled: enabled,
+      cornerRadius: cornerRadius,
+      minWidth: minWidth,
+      minHeight: minHeight,
+      colors: colors,
+      insideMargin: insideMargin,
+      child: Center(widthFactor: 1, heightFactor: 1, child: label),
+    );
+  }
+}
+
+/// Miuix 风格主按钮，基于 [MiuixButton] 并使用 primary 配色。
 class MiuixPrimaryButton extends StatelessWidget {
   const MiuixPrimaryButton({
     super.key,
@@ -111,127 +111,21 @@ class MiuixPrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mc = MiuixColors.of(context);
-    final enabled = onPressed != null;
-    final color = enabled ? mc.primary : mc.primary.withOpacity(0.38);
-    final style = FilledButton.styleFrom(
-      backgroundColor: color,
-      foregroundColor: mc.onPrimary,
-      disabledBackgroundColor: color,
-      disabledForegroundColor: mc.onPrimary,
-      minimumSize: minimumSize,
-      padding:
+    return MiuixButton(
+      onPressed: onPressed,
+      icon: icon,
+      colors: miuix_pkg.MiuixButtonDefaults.buttonColorsPrimary(context),
+      cornerRadius: borderRadius,
+      minHeight: minimumSize.height,
+      minWidth: minimumSize.width,
+      insideMargin:
           padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(borderRadius),
-      ),
-      elevation: 0,
+      child: child,
     );
-    if (icon != null) {
-      return FilledButton.icon(
-        onPressed: onPressed,
-        style: style,
-        icon: icon!,
-        label: child,
-      );
-    }
-    return FilledButton(onPressed: onPressed, style: style, child: child);
-  }
-}
-
-/// Miuix 风格次按钮，对应 miuix 的 [Button] (buttonColors)。
-///
-/// secondaryVariant 灰色填充，onSecondaryVariant 文字，16dp 圆角。
-class MiuixButton extends StatelessWidget {
-  const MiuixButton({
-    super.key,
-    required this.onPressed,
-    required this.child,
-    this.icon,
-    this.minimumSize = const Size.fromHeight(48),
-    this.borderRadius = 16,
-    this.padding,
-  });
-
-  final VoidCallback? onPressed;
-  final Widget child;
-  final Widget? icon;
-  final Size minimumSize;
-  final double borderRadius;
-  final EdgeInsets? padding;
-
-  @override
-  Widget build(BuildContext context) {
-    final mc = MiuixColors.of(context);
-    final enabled = onPressed != null;
-    final style = FilledButton.styleFrom(
-      backgroundColor: enabled
-          ? mc.secondaryVariant
-          : mc.secondaryVariant.withOpacity(0.38),
-      foregroundColor: mc.onSecondaryVariant,
-      disabledBackgroundColor: mc.secondaryVariant.withOpacity(0.38),
-      disabledForegroundColor: mc.onSecondaryVariant.withOpacity(0.5),
-      minimumSize: minimumSize,
-      padding:
-          padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(borderRadius),
-      ),
-      elevation: 0,
-    );
-    if (icon != null) {
-      return FilledButton.icon(
-        onPressed: onPressed,
-        style: style,
-        icon: icon!,
-        label: child,
-      );
-    }
-    return FilledButton(onPressed: onPressed, style: style, child: child);
-  }
-}
-
-/// Miuix 风格文本按钮，对应 miuix 的 [TextButton]。
-///
-/// 透明背景，primary 色文字，16dp 圆角。
-class MiuixTextButton extends StatelessWidget {
-  const MiuixTextButton({
-    super.key,
-    required this.onPressed,
-    required this.child,
-    this.icon,
-    this.borderRadius = 16,
-  });
-
-  final VoidCallback? onPressed;
-  final Widget child;
-  final Widget? icon;
-  final double borderRadius;
-
-  @override
-  Widget build(BuildContext context) {
-    final mc = MiuixColors.of(context);
-    final style = TextButton.styleFrom(
-      foregroundColor: mc.primary,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(borderRadius),
-      ),
-    );
-    if (icon != null) {
-      return TextButton.icon(
-        onPressed: onPressed,
-        style: style,
-        icon: icon!,
-        label: child,
-      );
-    }
-    return TextButton(onPressed: onPressed, style: style, child: child);
   }
 }
 
 /// Miuix 风格危险按钮，用于退出登录等破坏性操作。
-///
-/// error 色填充，onError 文字，16dp 圆角。
 class MiuixDangerButton extends StatelessWidget {
   const MiuixDangerButton({
     super.key,
@@ -250,29 +144,73 @@ class MiuixDangerButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final enabled = onPressed != null;
-    final style = FilledButton.styleFrom(
-      backgroundColor: enabled
-          ? theme.colorScheme.error
-          : theme.colorScheme.error.withOpacity(0.38),
-      foregroundColor: theme.colorScheme.onError,
-      disabledBackgroundColor: theme.colorScheme.error.withOpacity(0.38),
-      disabledForegroundColor: theme.colorScheme.onError.withOpacity(0.5),
-      minimumSize: minimumSize,
+    final colors = MiuixTheme.of(context).colors;
+    return MiuixButton(
+      onPressed: onPressed,
+      icon: icon,
+      colors: miuix_pkg.MiuixButtonColors(
+        color: colors.error,
+        disabledColor: colors.error.withOpacity(0.38),
+        contentColor: colors.onError,
+        disabledContentColor: colors.onError.withOpacity(0.5),
+      ),
+      cornerRadius: borderRadius,
+      minHeight: minimumSize.height,
+      minWidth: minimumSize.width,
+      child: child,
+    );
+  }
+}
+
+/// Miuix 风格文本按钮，支持 positional text 或 named child/text。
+class MiuixTextButton extends StatelessWidget {
+  const MiuixTextButton({
+    super.key,
+    this.text,
+    required this.onPressed,
+    this.child,
+    this.icon,
+    this.enabled = true,
+    this.borderRadius = 16,
+  });
+
+  final String? text;
+  final VoidCallback? onPressed;
+  final Widget? child;
+  final Widget? icon;
+  final bool enabled;
+  final double borderRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    if (text != null && child == null && icon == null) {
+      return miuix_pkg.MiuixTextButton(
+        text!,
+        onPressed: onPressed,
+        enabled: enabled,
+        cornerRadius: borderRadius,
+      );
+    }
+    final theme = MiuixTheme.of(context);
+    final style = TextButton.styleFrom(
+      foregroundColor: theme.colors.primary,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(borderRadius),
       ),
-      elevation: 0,
     );
+    final Widget label = child ?? Text(text ?? '');
     if (icon != null) {
-      return FilledButton.icon(
-        onPressed: onPressed,
+      return TextButton.icon(
+        onPressed: enabled ? onPressed : null,
         style: style,
         icon: icon!,
-        label: child,
+        label: label,
       );
     }
-    return FilledButton(onPressed: onPressed, style: style, child: child);
+    return TextButton(
+      onPressed: enabled ? onPressed : null,
+      style: style,
+      child: label,
+    );
   }
 }

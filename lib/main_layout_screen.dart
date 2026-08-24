@@ -265,9 +265,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                     height: bubbleHeight,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: MiuixColors.of(
+                        color: MiuixTheme.of(
                           context,
-                        ).primary.withOpacity(0.12),
+                        ).colors.primary.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(20),
                       ),
                     ),
@@ -408,8 +408,10 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
         View.of(context).platformDispatcher.accessibilityFeatures.reduceMotion;
     final reduceTransparency = MediaQuery.highContrastOf(context);
     final tm = ThemeManager();
-    final blurEnabled = tm.enableBlur && !reduceTransparency;
-    final glassEnabled = tm.enableLiquidGlass && !reduceTransparency;
+    final isTransparentBottomBar =
+        tm.enableBottomBarTransparent && !reduceTransparency;
+    final blurEnabled = tm.enableBlur && isTransparentBottomBar;
+    final glassEnabled = tm.enableLiquidGlass && isTransparentBottomBar;
 
     if (!isLoggedIn) {
       return UnifiedLoginPage(
@@ -498,18 +500,24 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                               child: Container(
                                 height: 56,
                                 decoration: BoxDecoration(
-                                  color: blurEnabled
-                                      ? MiuixColors.of(
+                                  color: isTransparentBottomBar
+                                      ? (blurEnabled
+                                          ? MiuixTheme.of(
+                                              context,
+                                            ).colors.surfaceContainer.withOpacity(0.40)
+                                          : MiuixTheme.of(
+                                              context,
+                                            ).colors.surfaceContainer.withOpacity(0.92))
+                                      : MiuixTheme.of(
                                           context,
-                                        ).surfaceContainer.withOpacity(0.40)
-                                      : MiuixColors.of(
-                                          context,
-                                        ).surfaceContainer.withOpacity(0.92),
+                                        ).colors.surfaceContainer,
                                   borderRadius: BorderRadius.circular(28),
                                   border: Border.all(
-                                    color: MiuixColors.of(context).outline
+                                    color: MiuixTheme.of(context).colors.outline
                                         .withOpacity(
-                                          reduceTransparency ? 0.9 : 0.5,
+                                          isTransparentBottomBar
+                                              ? (reduceTransparency ? 0.9 : 0.5)
+                                              : 0.8,
                                         ),
                                     width: 0.5,
                                   ),
@@ -543,8 +551,10 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                             borderRadius: BorderRadius.circular(32),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.06),
-                                blurRadius: 16,
+                                color: Colors.black.withOpacity(
+                                  isTransparentBottomBar ? 0.06 : 0.12,
+                                ),
+                                blurRadius: isTransparentBottomBar ? 16 : 20,
                                 offset: const Offset(0, 4),
                               ),
                             ],
@@ -558,18 +568,24 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                               child: Container(
                                 height: 64,
                                 decoration: BoxDecoration(
-                                  color: blurEnabled
-                                      ? MiuixColors.of(
+                                  color: isTransparentBottomBar
+                                      ? (blurEnabled
+                                          ? MiuixTheme.of(
+                                              context,
+                                            ).colors.surfaceContainer.withOpacity(0.40)
+                                          : MiuixTheme.of(
+                                              context,
+                                            ).colors.surfaceContainer.withOpacity(0.92))
+                                      : MiuixTheme.of(
                                           context,
-                                        ).surfaceContainer.withOpacity(0.40)
-                                      : MiuixColors.of(
-                                          context,
-                                        ).surfaceContainer.withOpacity(0.92),
+                                        ).colors.surfaceContainer,
                                   borderRadius: BorderRadius.circular(32),
                                   border: Border.all(
-                                    color: MiuixColors.of(context).outline
+                                    color: MiuixTheme.of(context).colors.outline
                                         .withOpacity(
-                                          reduceTransparency ? 0.9 : 0.5,
+                                          isTransparentBottomBar
+                                              ? (reduceTransparency ? 0.9 : 0.5)
+                                              : 0.8,
                                         ),
                                     width: 0.5,
                                   ),
@@ -771,9 +787,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                                               Positioned.fill(
                                                                 child: ColoredBox(
                                                                   color:
-                                                                      MiuixColors.of(
+                                                                      MiuixTheme.of(
                                                                         context,
-                                                                      ).primary.withOpacity(
+                                                                      ).colors.primary.withOpacity(
                                                                         0.12,
                                                                       ),
                                                                 ),

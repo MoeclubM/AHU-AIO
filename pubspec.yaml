@@ -50,6 +50,8 @@ dependencies:
   webview_flutter_wkwebview: ^3.26.0
   flutter_inappwebview: ^6.1.5
   path_provider: ^2.1.6
+  flutter_miuix: ^1.1.1
+  dynamic_color: ^1.9.0
 
 dev_dependencies:
   flutter_test:

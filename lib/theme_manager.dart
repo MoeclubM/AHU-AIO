@@ -6,7 +6,8 @@ enum ColorMode {
   system, // 跟随系统
   light, // 浅色
   dark, // 深色
-  amoled; // AMOLED 纯黑
+  amoled, // AMOLED 纯黑
+  monet; // Monet 动态取色
 
   static ColorMode fromValue(int v) => ColorMode.values.firstWhere(
     (e) => e.index == v,
@@ -17,6 +18,7 @@ enum ColorMode {
 
   bool get isDark => this == ColorMode.dark || this == ColorMode.amoled;
   bool get isAmoled => this == ColorMode.amoled;
+  bool get isMonet => this == ColorMode.monet;
 }
 
 /// 界面风格模式，参考 SukiSU Ultra 的 UiMode。
@@ -71,12 +73,14 @@ class ThemeManager extends ChangeNotifier {
   UiMode _uiMode = UiMode.miuix;
   bool _enableBlur = true;
   bool _enableLiquidGlass = true;
+  bool _enableBottomBarTransparent = true;
 
   ColorMode get colorMode => _colorMode;
   Color get keyColor => _keyColor;
   UiMode get uiMode => _uiMode;
   bool get enableBlur => _enableBlur;
   bool get enableLiquidGlass => _enableLiquidGlass;
+  bool get enableBottomBarTransparent => _enableBottomBarTransparent;
 
   bool get isMiuix => _uiMode == UiMode.miuix;
   bool get isMaterial3 => _uiMode == UiMode.material3;
@@ -90,10 +94,10 @@ class ThemeManager extends ChangeNotifier {
       case ColorMode.light:
         return 'light';
       case ColorMode.dark:
-        return 'dark';
       case ColorMode.amoled:
         return 'dark';
       case ColorMode.system:
+      case ColorMode.monet:
         return 'system';
     }
   }
@@ -106,6 +110,7 @@ class ThemeManager extends ChangeNotifier {
       case ColorMode.amoled:
         return ThemeMode.dark;
       case ColorMode.system:
+      case ColorMode.monet:
         return ThemeMode.system;
     }
   }
@@ -118,6 +123,8 @@ class ThemeManager extends ChangeNotifier {
         return '深色模式';
       case ColorMode.amoled:
         return 'AMOLED 纯黑';
+      case ColorMode.monet:
+        return '动态壁纸取色';
       case ColorMode.system:
         return '跟随系统';
     }
@@ -171,6 +178,13 @@ class ThemeManager extends ChangeNotifier {
     await prefs.setBool('enableLiquidGlass', value);
   }
 
+  Future<void> setEnableBottomBarTransparent(bool value) async {
+    _enableBottomBarTransparent = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('enableBottomBarTransparent', value);
+  }
+
   // 兼容旧的 setThemeMode 字符串接口
   Future<void> setThemeMode(String mode) async {
     final cm = switch (mode) {
@@ -204,6 +218,8 @@ class ThemeManager extends ChangeNotifier {
     }
     _enableBlur = prefs.getBool('enableBlur') ?? true;
     _enableLiquidGlass = prefs.getBool('enableLiquidGlass') ?? true;
+    _enableBottomBarTransparent =
+        prefs.getBool('enableBottomBarTransparent') ?? true;
     notifyListeners();
   }
 }
