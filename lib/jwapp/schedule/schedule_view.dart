@@ -18,8 +18,9 @@ class SchedulePage extends StatefulWidget {
 
 class _SchedulePageState extends State<SchedulePage> {
   late final ScheduleLogic _logic;
-  double _slotHeight = 64.0;
-  double _baseScaleSlotHeight = 64.0;
+  double _slotHeight = 50.0;
+  double _baseScaleSlotHeight = 50.0;
+  bool _isManualScaled = false;
   static const _weekdays = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
 
   @override
@@ -32,14 +33,30 @@ class _SchedulePageState extends State<SchedulePage> {
   Future<void> _loadSavedHeight() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final savedHeight = prefs.getDouble('jwapp_schedule_slot_height');
+      final savedHeight = prefs.getDouble('jwapp_schedule_slot_height_v2');
       if (savedHeight != null) {
         setState(() {
           _slotHeight = savedHeight;
           _baseScaleSlotHeight = savedHeight;
+          _isManualScaled = true;
         });
       }
     } catch (_) {}
+  }
+
+  /// 自动计算契合屏幕视口高度的节次高度（避免纵向过度拉长）
+  double _getEffectiveSlotHeight(BuildContext context) {
+    if (_isManualScaled) return _slotHeight;
+    final screenH = MediaQuery.sizeOf(context).height;
+    final topPadding = MediaQuery.paddingOf(context).top;
+    final bottomPadding = MediaQuery.paddingOf(context).bottom;
+    // 自动适配屏幕：扣除状态栏、顶栏/AppBar、学期选择下拉框、表头以及底部两排导航栏 (约 225px)
+    final available = screenH - topPadding - bottomPadding - 225;
+    if (available > 0) {
+      final calculated = available / 11;
+      return calculated.clamp(44.0, 68.0);
+    }
+    return 48.0;
   }
 
   @override
@@ -107,16 +124,26 @@ class _SchedulePageState extends State<SchedulePage> {
           onRefresh: _logic.refreshData,
           child: GestureDetector(
             onScaleStart: (details) {
-              _baseScaleSlotHeight = _slotHeight;
+              _baseScaleSlotHeight = _getEffectiveSlotHeight(context);
             },
             onScaleUpdate: (details) {
               final newHeight = (_baseScaleSlotHeight * details.verticalScale)
-                  .clamp(50.0, 240.0);
+                  .clamp(40.0, 160.0);
               setState(() {
                 _slotHeight = newHeight;
+                _isManualScaled = true;
               });
               SharedPreferences.getInstance().then((prefs) {
-                prefs.setDouble('jwapp_schedule_slot_height', newHeight);
+                prefs.setDouble('jwapp_schedule_slot_height_v2', newHeight);
+              });
+            },
+            onDoubleTap: () {
+              // 双击快速恢复为自适应全览高度
+              setState(() {
+                _isManualScaled = false;
+              });
+              SharedPreferences.getInstance().then((prefs) {
+                prefs.remove('jwapp_schedule_slot_height_v2');
               });
             },
             child: SingleChildScrollView(
@@ -421,6 +448,7 @@ class _SchedulePageState extends State<SchedulePage> {
   Widget _buildScheduleTable(Map<int, List<ScheduleEntry>> scheduleByDay) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final slotHeight = _getEffectiveSlotHeight(context);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -430,13 +458,14 @@ class _SchedulePageState extends State<SchedulePage> {
 
         return Column(
           children: [
-            // 1. 顶部表头：月份 + 周一至周日及日期 (当天高亮)
+            // 1. 顶部表头：月份 + 周一至周日及日期 (当天高亮加深)
             _buildHeader(theme, dayWidth, timeColWidth),
-            // 2. 连续 1..11 节次时间轴 + 7 列纵向长条卡片网格
+            // 2. 连续 1..11 节次时间轴 + 7 列纵向长条卡片网格 (自适应视口高度)
             _buildTimelineGrid(
               scheduleByDay,
               dayWidth,
               timeColWidth,
+              slotHeight,
               theme,
               isDark,
             ),
@@ -451,6 +480,7 @@ class _SchedulePageState extends State<SchedulePage> {
     final selectedWeek = _logic.selectedWeek.value;
     final startDate = _logic.semesterStartDate;
     final realCurrentWeek = _logic.realCurrentWeek;
+    final isDark = theme.brightness == Brightness.dark;
 
     DateTime? mondayDate;
     if (startDate != null) {
@@ -465,7 +495,7 @@ class _SchedulePageState extends State<SchedulePage> {
         color: theme.cardColor,
         border: Border(
           bottom: BorderSide(
-            color: theme.colorScheme.outlineVariant.withOpacity(0.35),
+            color: theme.colorScheme.outlineVariant.withOpacity(0.45),
             width: 0.8,
           ),
         ),
@@ -480,8 +510,8 @@ class _SchedulePageState extends State<SchedulePage> {
             decoration: BoxDecoration(
               border: Border(
                 right: BorderSide(
-                  color: theme.colorScheme.outlineVariant.withOpacity(0.25),
-                  width: 0.5,
+                  color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+                  width: 0.6,
                 ),
               ),
             ),
@@ -508,12 +538,14 @@ class _SchedulePageState extends State<SchedulePage> {
               height: 48,
               decoration: BoxDecoration(
                 color: isToday
-                    ? theme.colorScheme.primaryContainer.withOpacity(0.35)
+                    ? (isDark
+                        ? theme.colorScheme.primary.withOpacity(0.24)
+                        : theme.colorScheme.primary.withOpacity(0.18))
                     : null,
                 border: Border(
                   right: BorderSide(
-                    color: theme.colorScheme.outlineVariant.withOpacity(0.25),
-                    width: 0.5,
+                    color: theme.colorScheme.outlineVariant.withOpacity(isToday ? 0.65 : 0.4),
+                    width: isToday ? 0.8 : 0.5,
                   ),
                 ),
               ),
@@ -534,13 +566,20 @@ class _SchedulePageState extends State<SchedulePage> {
                   if (dayDate != null)
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 5,
-                        vertical: 1,
+                        horizontal: 6,
+                        vertical: 1.5,
                       ),
                       decoration: isToday
                           ? BoxDecoration(
                               color: theme.colorScheme.primary,
                               borderRadius: BorderRadius.circular(10),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: theme.colorScheme.primary.withOpacity(0.35),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
                             )
                           : null,
                       child: Text(
@@ -552,7 +591,7 @@ class _SchedulePageState extends State<SchedulePage> {
                           color: isToday
                               ? theme.colorScheme.onPrimary
                               : theme.colorScheme.onSurfaceVariant.withOpacity(
-                                  0.7,
+                                  0.75,
                                 ),
                         ),
                       ),
@@ -571,11 +610,14 @@ class _SchedulePageState extends State<SchedulePage> {
     Map<int, List<ScheduleEntry>> scheduleByDay,
     double dayWidth,
     double timeColWidth,
+    double slotHeight,
     ThemeData theme,
     bool isDark,
   ) {
     const totalSlots = 11;
-    final totalHeight = totalSlots * _slotHeight;
+    final totalHeight = totalSlots * slotHeight;
+    final selectedWeek = _logic.selectedWeek.value;
+    final realCurrentWeek = _logic.realCurrentWeek;
 
     return SizedBox(
       height: totalHeight,
@@ -587,11 +629,11 @@ class _SchedulePageState extends State<SchedulePage> {
             width: timeColWidth,
             height: totalHeight,
             decoration: BoxDecoration(
-              color: theme.cardColor.withOpacity(0.65),
+              color: theme.cardColor.withOpacity(0.7),
               border: Border(
                 right: BorderSide(
-                  color: theme.colorScheme.outlineVariant.withOpacity(0.3),
-                  width: 0.5,
+                  color: theme.colorScheme.outlineVariant.withOpacity(0.45),
+                  width: 0.8,
                 ),
               ),
             ),
@@ -602,15 +644,15 @@ class _SchedulePageState extends State<SchedulePage> {
                     TimeUtils.standardUnitStartTimes[slot] ?? '';
 
                 return Container(
-                  height: _slotHeight,
+                  height: slotHeight,
                   alignment: Alignment.center,
                   decoration: BoxDecoration(
                     border: Border(
                       bottom: BorderSide(
                         color: (slot == 4 || slot == 8)
-                            ? theme.colorScheme.outlineVariant.withOpacity(0.65)
-                            : theme.colorScheme.outlineVariant.withOpacity(0.2),
-                        width: (slot == 4 || slot == 8) ? 1.0 : 0.5,
+                            ? theme.colorScheme.primary.withOpacity(0.55)
+                            : theme.colorScheme.outlineVariant.withOpacity(0.45),
+                        width: (slot == 4 || slot == 8) ? 1.2 : 0.6,
                       ),
                     ),
                   ),
@@ -625,13 +667,13 @@ class _SchedulePageState extends State<SchedulePage> {
                           color: theme.colorScheme.onSurface,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 1),
                       Text(
                         startTime,
                         style: TextStyle(
-                          fontSize: 8.5,
+                          fontSize: 8.0,
                           color: theme.colorScheme.onSurfaceVariant
-                              .withOpacity(0.7),
+                              .withOpacity(0.8),
                         ),
                       ),
                     ],
@@ -645,39 +687,47 @@ class _SchedulePageState extends State<SchedulePage> {
           ...List.generate(7, (dayIdx) {
             final weekday = dayIdx + 1;
             final entries = scheduleByDay[weekday] ?? [];
+            final isToday = DateTime.now().weekday == weekday &&
+                selectedWeek == realCurrentWeek;
 
             return Container(
               width: dayWidth,
               height: totalHeight,
               decoration: BoxDecoration(
+                color: isToday
+                    ? (isDark
+                        ? theme.colorScheme.primary.withOpacity(0.14)
+                        : theme.colorScheme.primary.withOpacity(0.10))
+                    : null,
                 border: Border(
                   right: BorderSide(
-                    color: theme.colorScheme.outlineVariant.withOpacity(0.3),
-                    width: 0.5,
+                    color: theme.colorScheme.outlineVariant.withOpacity(isToday ? 0.65 : 0.45),
+                    width: isToday ? 0.8 : 0.6,
                   ),
                 ),
               ),
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  // 背景每节分割虚线
+                  // 背景每节分割线（加深明显）
                   ...List.generate(totalSlots, (slotIdx) {
                     final slot = slotIdx + 1;
                     return Positioned(
-                      top: slotIdx * _slotHeight,
+                      top: slotIdx * slotHeight,
                       left: 0,
                       right: 0,
-                      height: _slotHeight,
+                      height: slotHeight,
                       child: Container(
                         decoration: BoxDecoration(
                           border: Border(
                             bottom: BorderSide(
                               color: (slot == 4 || slot == 8)
-                                  ? theme.colorScheme.outlineVariant
-                                      .withOpacity(0.55)
+                                  ? (isToday
+                                      ? theme.colorScheme.primary.withOpacity(0.7)
+                                      : theme.colorScheme.primary.withOpacity(0.5))
                                   : theme.colorScheme.outlineVariant
-                                      .withOpacity(0.18),
-                              width: (slot == 4 || slot == 8) ? 1.0 : 0.5,
+                                      .withOpacity(isToday ? 0.5 : 0.4),
+                              width: (slot == 4 || slot == 8) ? 1.2 : 0.6,
                             ),
                           ),
                         ),
@@ -691,9 +741,9 @@ class _SchedulePageState extends State<SchedulePage> {
                         entry.effectiveStartUnit.clamp(1, totalSlots);
                     final end = entry.effectiveEndUnit.clamp(start, totalSlots);
                     final span = (end - start + 1).clamp(1, totalSlots);
-                    final top = (start - 1) * _slotHeight + 1.5;
+                    final top = (start - 1) * slotHeight + 1.5;
                     final cardHeight =
-                        (span * _slotHeight - 3.0).clamp(24.0, double.infinity);
+                        (span * slotHeight - 3.0).clamp(24.0, double.infinity);
 
                     return Positioned(
                       top: top,
