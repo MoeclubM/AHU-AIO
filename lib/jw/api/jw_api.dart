@@ -4,6 +4,7 @@ import 'package:cookie_jar/cookie_jar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../auth/cas_auth_cache.dart';
 import '../../auth/cas_native_client.dart';
+import '../../jwapp/schedule/semester_config.dart';
 import '../models/jw_models.dart';
 
 /// 新教务系统 API 客户端 (jw.ahu.edu.cn)
@@ -282,10 +283,10 @@ class JwApi {
     return Map<String, dynamic>.from(resp.data);
   }
 
-  /// 获取所有学期列表（从多个 grade sheet 请求收集）
+  /// 获取所有学期列表（从多个 grade sheet 请求收集与微教务元数据聚合）
   Future<List<Map<String, dynamic>>> getSemesters() async {
     final allSemesters = <int, Map<String, dynamic>>{};
-    for (final semId in [112, 92, 72, 52]) {
+    for (final semId in [212, 192, 172, 152, 132, 112, 92, 72, 52]) {
       try {
         final raw = await getGrades(semId);
         final semesters = raw['semesters'] as List? ?? [];
@@ -297,6 +298,41 @@ class JwApi {
         }
       } catch (_) {}
     }
+
+    try {
+      final appSemesters = await SemesterConfig.getAllSemesters();
+      if (appSemesters != null) {
+        for (final s in appSemesters) {
+          if (!allSemesters.containsKey(s.id)) {
+            allSemesters[s.id] = {
+              'id': s.id,
+              'code': s.code,
+              'nameZh': s.nameZh,
+              'nameEn': s.nameEn,
+              'schoolYear': s.schoolYear,
+              'startDate': s.startDate,
+              'endDate': s.endDate,
+            };
+          }
+        }
+      }
+    } catch (_) {}
+
+    try {
+      final cur = await SemesterConfig.getCurrentSemesterInfo();
+      if (cur != null && !allSemesters.containsKey(cur.id)) {
+        allSemesters[cur.id] = {
+          'id': cur.id,
+          'code': cur.code,
+          'nameZh': cur.nameZh,
+          'nameEn': cur.nameEn,
+          'schoolYear': cur.schoolYear,
+          'startDate': cur.startDate,
+          'endDate': cur.endDate,
+        };
+      }
+    } catch (_) {}
+
     final sorted = allSemesters.values.toList()
       ..sort((a, b) => (toInt(b['id']) ?? 0).compareTo(toInt(a['id']) ?? 0));
     return sorted;

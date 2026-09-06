@@ -25,6 +25,7 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
   List<dynamic> _semesters = [];
   int? _selectedSemesterId;
   String? _selectedSemesterName;
+  bool _isUserManuallySelected = false;
 
   static const _weekdays = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
   static const _maxSlots = 11;
@@ -67,21 +68,30 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
       _semesters = semList;
 
       final currentName = weekInfo.currentSemester ?? '';
+      final matchedCurrentSemId = _findMatchingSemesterId(semList, currentName);
 
-      // 如果还没选择学期，自动检测
-      if (_selectedSemesterId == null) {
-        int? semId;
-        for (final s in semList) {
-          if (s['nameZh']?.toString() == currentName ||
-              s['nameEn']?.toString() == currentName) {
-            semId = toInt(s['id']);
-            break;
-          }
+      // 如果未曾手动切换学期，默认自动定位到当前教学周所在学期；
+      // 若当前教学周未匹配到，则默认定位到列表中的最新学期（first），避免误降级到最旧的 2024 学期
+      if (!_isUserManuallySelected || _selectedSemesterId == null) {
+        final targetSemId = matchedCurrentSemId ??
+            (semList.isNotEmpty ? toInt(semList.first['id']) : null) ??
+            192; // 默认最新 2026 第一学期
+        _selectedSemesterId = targetSemId;
+        _currentWeek = (weekInfo.weekIndex != null &&
+                weekInfo.weekIndex! >= 1 &&
+                weekInfo.weekIndex! <= 25)
+            ? weekInfo.weekIndex!
+            : 1;
+      } else {
+        if (_selectedSemesterId == matchedCurrentSemId) {
+          _currentWeek = (weekInfo.weekIndex != null &&
+                  weekInfo.weekIndex! >= 1 &&
+                  weekInfo.weekIndex! <= 25)
+              ? weekInfo.weekIndex!
+              : 1;
+        } else if (_currentWeek < 1 || _currentWeek > 25) {
+          _currentWeek = 1;
         }
-        semId ??= semList.isNotEmpty ? toInt(semList.last['id']) : null;
-        semId ??= 112;
-        _selectedSemesterId = semId;
-        _currentWeek = weekInfo.weekIndex ?? 1;
       }
 
       // 获取当前选中的学期名称
@@ -338,8 +348,56 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
     );
   }
 
+  int? _findMatchingSemesterId(List<dynamic> semList, String currentName) {
+    if (currentName.isEmpty || semList.isEmpty) return null;
+
+    // 1. 精确匹配 code, nameZh, nameEn
+    for (final s in semList) {
+      final code = s['code']?.toString() ?? '';
+      final nameZh = s['nameZh']?.toString() ?? '';
+      final nameEn = s['nameEn']?.toString() ?? '';
+      if (code == currentName || nameZh == currentName || nameEn == currentName) {
+        final id = toInt(s['id']);
+        if (id != null) return id;
+      }
+    }
+
+    // 2. 规范化提取匹配：如 currentName="2026-2027-1", nameZh="2026-2027学年第1学期"
+    final match = RegExp(r'(\d{4}-\d{4})[^\d]*([123])').firstMatch(currentName);
+    if (match != null) {
+      final year = match.group(1)!;
+      final semNum = match.group(2)!;
+      final semNumZh = semNum == '1' ? '一' : (semNum == '2' ? '二' : '三');
+
+      for (final s in semList) {
+        final text = '${s['code']} ${s['nameZh']} ${s['nameEn']} ${s['schoolYear']}';
+        if (text.contains(year) &&
+            (text.contains(semNum) || text.contains(semNumZh))) {
+          final id = toInt(s['id']);
+          if (id != null) return id;
+        }
+      }
+    }
+
+    // 3. 匹配学年
+    final yearMatch = RegExp(r'\d{4}-\d{4}').firstMatch(currentName);
+    if (yearMatch != null) {
+      final year = yearMatch.group(0)!;
+      for (final s in semList) {
+        final text = '${s['code']} ${s['nameZh']} ${s['nameEn']} ${s['schoolYear']}';
+        if (text.contains(year)) {
+          final id = toInt(s['id']);
+          if (id != null) return id;
+        }
+      }
+    }
+
+    return null;
+  }
+
   void _switchSemester(int? semId) {
     if (semId == null || _selectedSemesterId == semId) return;
+    _isUserManuallySelected = true;
     setState(() {
       _selectedSemesterId = semId;
       _tableData = null; // 清空旧数据以展示加载中
@@ -367,16 +425,16 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
               sigmaX: highContrast ? 0 : 12,
               sigmaY: highContrast ? 0 : 12,
             ),
-            child: Container(
-              decoration: BoxDecoration(
-                color: colorScheme.surface.withOpacity(
-                  highContrast ? 0.96 : 0.72,
-                ),
+            child: Material(
+              color: colorScheme.surface.withOpacity(
+                highContrast ? 0.96 : 0.72,
+              ),
+              shape: RoundedRectangleBorder(
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(20),
                   topRight: Radius.circular(20),
                 ),
-                border: Border.all(
+                side: BorderSide(
                   color: colorScheme.outlineVariant.withOpacity(
                     highContrast ? 0.9 : 0.3,
                   ),
