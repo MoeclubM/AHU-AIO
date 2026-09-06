@@ -18,8 +18,9 @@ class SchedulePage extends StatefulWidget {
 
 class _SchedulePageState extends State<SchedulePage> {
   late final ScheduleLogic _logic;
-  double _slotHeight = 95.0;
-  double _baseScaleSlotHeight = 95.0;
+  double _slotHeight = 64.0;
+  double _baseScaleSlotHeight = 64.0;
+  static const _weekdays = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
 
   @override
   void initState() {
@@ -416,327 +417,593 @@ class _SchedulePageState extends State<SchedulePage> {
     );
   }
 
-  /// 构建课表表格
+  /// 构建 WakeUp 风格的连续时间轴与纵向长条课程表
   Widget _buildScheduleTable(Map<int, List<ScheduleEntry>> scheduleByDay) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    // 收集所有时间段，构建节次表
-    final timeSlots = _buildTimeSlots(scheduleByDay);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final totalWidth = constraints.maxWidth;
+        const timeColWidth = 38.0;
+        final dayWidth = (totalWidth - timeColWidth) / 7;
 
-    if (timeSlots.isEmpty) {
-      return const SizedBox.shrink();
+        return Column(
+          children: [
+            // 1. 顶部表头：月份 + 周一至周日及日期 (当天高亮)
+            _buildHeader(theme, dayWidth, timeColWidth),
+            // 2. 连续 1..11 节次时间轴 + 7 列纵向长条卡片网格
+            _buildTimelineGrid(
+              scheduleByDay,
+              dayWidth,
+              timeColWidth,
+              theme,
+              isDark,
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// 构建顶部星期与日期行 (WakeUp 经典表头)
+  Widget _buildHeader(ThemeData theme, double dayWidth, double timeColWidth) {
+    final selectedWeek = _logic.selectedWeek.value;
+    final startDate = _logic.semesterStartDate;
+    final realCurrentWeek = _logic.realCurrentWeek;
+
+    DateTime? mondayDate;
+    if (startDate != null) {
+      final daysOffset = (selectedWeek - 1) * 7;
+      mondayDate = startDate.add(Duration(days: daysOffset));
     }
+
+    final int month = mondayDate?.month ?? DateTime.now().month;
 
     return Container(
-      margin: EdgeInsets.zero,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final tableWidth = constraints.maxWidth;
-          const timeColumnWidth = 56.0;
-          final courseColumnWidth = (tableWidth - timeColumnWidth) / 7;
-
-          return Table(
-            columnWidths: {
-              0: const FixedColumnWidth(timeColumnWidth),
-              for (var index = 1; index <= 7; index++)
-                index: FixedColumnWidth(courseColumnWidth),
-            },
-            border: TableBorder(
-              horizontalInside: BorderSide(
-                color: theme.colorScheme.outlineVariant.withOpacity(0.4),
-                width: 0.5,
-              ),
-              verticalInside: BorderSide(
-                color: theme.colorScheme.outlineVariant.withOpacity(0.4),
-                width: 0.5,
-              ),
-            ),
-            children: [
-              // 表头：时间 | 周一 | 周二 | ... | 周日
-              _buildHeaderRow(theme, isDark),
-              // 每个时间段一行
-              ...timeSlots.map(
-                (slot) => _buildTimeSlotRow(slot, scheduleByDay, theme, isDark),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  /// 构建时间段列表
-  List<_TimeSlot> _buildTimeSlots(Map<int, List<ScheduleEntry>> scheduleByDay) {
-    final allSlots = <_TimeSlot>{};
-
-    for (final entries in scheduleByDay.values) {
-      for (final entry in entries) {
-        allSlots.add(
-          _TimeSlot(startTime: entry.startTime, endTime: entry.endTime),
-        );
-      }
-    }
-
-    final slots = allSlots.toList();
-
-    // 按开始时间的分钟数排序，避免字符串比较问题（如 "8:00" vs "10:00"）
-    slots.sort((a, b) {
-      final aMinutes = TimeUtils.timeToMinutes(a.startTime);
-      final bMinutes = TimeUtils.timeToMinutes(b.startTime);
-      return aMinutes.compareTo(bMinutes);
-    });
-
-    return slots;
-  }
-
-  /// 构建表头行
-  TableRow _buildHeaderRow(ThemeData theme, bool isDark) {
-    final headerStyle = theme.textTheme.labelMedium?.copyWith(
-      fontWeight: FontWeight.bold,
-    );
-    final headerBgColor = isDark ? Colors.grey.shade800 : Colors.grey.shade100;
-
-    final weekdays = ['时间', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-
-    return TableRow(
-      decoration: BoxDecoration(color: headerBgColor),
-      children: weekdays.map((day) {
-        return TableCell(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-            alignment: Alignment.center,
-            child: Text(day, style: headerStyle),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  String _getSectionLabel(String start, String end) {
-    final startMin = _timeToMinutes(start);
-    if (startMin >= 460 && startMin <= 500) return '1-2节';
-    if (startMin >= 580 && startMin <= 625) return '3-4节';
-    if (startMin >= 820 && startMin <= 880) return '5-6节';
-    if (startMin >= 940 && startMin <= 1000) return '7-8节';
-    if (startMin >= 1090 && startMin <= 1160) return '9-10节';
-    return '';
-  }
-
-  int _timeToMinutes(String timeStr) {
-    try {
-      final parts = timeStr.split(':');
-      if (parts.length >= 2) {
-        final hours = int.parse(parts[0]);
-        final minutes = int.parse(parts[1]);
-        return hours * 60 + minutes;
-      }
-    } catch (_) {}
-    return 0;
-  }
-
-  /// 构建时间段行
-  TableRow _buildTimeSlotRow(
-    _TimeSlot slot,
-    Map<int, List<ScheduleEntry>> scheduleByDay,
-    ThemeData theme,
-    bool isDark,
-  ) {
-    final labelStyle = theme.textTheme.labelSmall?.copyWith(
-      color: isDark ? Colors.grey.shade300 : Colors.grey.shade800,
-      fontWeight: FontWeight.bold,
-      fontSize: 10,
-    );
-    final timeStyle = theme.textTheme.labelSmall?.copyWith(
-      color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
-      fontSize: 9,
-    );
-    final sectionLabel = _getSectionLabel(slot.startTime, slot.endTime);
-
-    return TableRow(
-      children: [
-        // 时间列
-        TableCell(
-          verticalAlignment: TableCellVerticalAlignment.middle,
-          child: Container(
-            constraints: BoxConstraints(minHeight: _slotHeight),
-            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (sectionLabel.isNotEmpty) ...[
-                  Text(sectionLabel, style: labelStyle),
-                  const SizedBox(height: 2),
-                ],
-                Text(slot.startTime, style: timeStyle),
-                Text('-', style: timeStyle),
-                Text(slot.endTime, style: timeStyle),
-              ],
-            ),
+      decoration: BoxDecoration(
+        color: theme.cardColor,
+        border: Border(
+          bottom: BorderSide(
+            color: theme.colorScheme.outlineVariant.withOpacity(0.35),
+            width: 0.8,
           ),
         ),
-        // 周一到周日的课程
-        ...List.generate(7, (index) {
-          final weekday = index + 1;
-          final entries = scheduleByDay[weekday] ?? [];
-          final matchingEntries = entries.where(
-            (e) => e.startTime == slot.startTime && e.endTime == slot.endTime,
-          );
+      ),
+      child: Row(
+        children: [
+          // 左上角月份指示
+          Container(
+            width: timeColWidth,
+            height: 48,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              border: Border(
+                right: BorderSide(
+                  color: theme.colorScheme.outlineVariant.withOpacity(0.25),
+                  width: 0.5,
+                ),
+              ),
+            ),
+            child: Text(
+              '$month\n月',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurfaceVariant,
+                height: 1.15,
+              ),
+            ),
+          ),
+          // 周一至周日 7 列
+          ...List.generate(7, (i) {
+            final weekday = i + 1;
+            final dayDate = mondayDate?.add(Duration(days: i));
+            final isToday = DateTime.now().weekday == weekday &&
+                selectedWeek == realCurrentWeek;
 
-          if (matchingEntries.isEmpty) {
-            return TableCell(
-              child: Container(
-                constraints: BoxConstraints(minHeight: _slotHeight),
-                padding: const EdgeInsets.all(2),
+            return Container(
+              width: dayWidth,
+              height: 48,
+              decoration: BoxDecoration(
+                color: isToday
+                    ? theme.colorScheme.primaryContainer.withOpacity(0.35)
+                    : null,
+                border: Border(
+                  right: BorderSide(
+                    color: theme.colorScheme.outlineVariant.withOpacity(0.25),
+                    width: 0.5,
+                  ),
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    _weekdays[weekday],
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: isToday ? FontWeight.bold : FontWeight.w500,
+                      color: isToday
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  if (dayDate != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 1,
+                      ),
+                      decoration: isToday
+                          ? BoxDecoration(
+                              color: theme.colorScheme.primary,
+                              borderRadius: BorderRadius.circular(10),
+                            )
+                          : null,
+                      child: Text(
+                        '${dayDate.day}',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight:
+                              isToday ? FontWeight.bold : FontWeight.normal,
+                          color: isToday
+                              ? theme.colorScheme.onPrimary
+                              : theme.colorScheme.onSurfaceVariant.withOpacity(
+                                  0.7,
+                                ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             );
-          }
-
-          return TableCell(
-            child: _buildCourseCell(matchingEntries.toList(), theme, isDark),
-          );
-        }),
-      ],
-    );
-  }
-
-  Color _courseColor(String name) {
-    const colors = [
-      Color(0xFF2563EB),
-      Color(0xFF059669),
-      Color(0xFFEA580C),
-      Color(0xFF7C3AED),
-      Color(0xFF0891B2),
-      Color(0xFFDB2777),
-      Color(0xFF4F46E5),
-    ];
-    var sum = 0;
-    for (final unit in name.codeUnits) {
-      sum += unit;
-    }
-    return colors[sum % colors.length];
-  }
-
-  String _formatCourseName(String name) {
-    if (name.isEmpty) return name;
-    final StringBuffer buffer = StringBuffer();
-    for (int i = 0; i < name.length; i++) {
-      buffer.write(name[i]);
-      if ((i + 1) % 3 == 0 && (i + 1) < name.length) {
-        buffer.write('\n');
-      }
-    }
-    return buffer.toString();
-  }
-
-  /// 构建课程单元格
-  Widget _buildCourseCell(
-    List<ScheduleEntry> entries,
-    ThemeData theme,
-    bool isDark,
-  ) {
-    final maxLines = _slotHeight > 100
-        ? (_slotHeight / 22).floor().clamp(3, 12)
-        : 3;
-    return Container(
-      constraints: BoxConstraints(minHeight: _slotHeight),
-      padding: const EdgeInsets.symmetric(horizontal: 1.5, vertical: 1),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: entries.map((entry) {
-          final color = _courseColor(entry.courseName);
-          final double alpha = entry.isCurrentWeek ? 0.13 : 0.04;
-          final double borderAlpha = entry.isCurrentWeek ? 0.45 : 0.15;
-
-          return Container(
-            width: double.infinity,
-            margin: entries.length > 1
-                ? const EdgeInsets.only(bottom: 2)
-                : null,
-            padding: const EdgeInsets.symmetric(horizontal: 1.5, vertical: 2),
-            decoration: BoxDecoration(
-              color: color.withOpacity(alpha),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(
-                color: color.withOpacity(borderAlpha),
-                width: entry.isCurrentWeek ? 1.2 : 0.5,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 课程名称
-                Text(
-                  _formatCourseName(entry.courseName),
-                  style: TextStyle(
-                    color: entry.isCurrentWeek ? color : color.withOpacity(0.6),
-                    fontWeight: FontWeight.w800,
-                    fontSize: 11.0,
-                    height: 1.1,
-                  ),
-                  softWrap: true,
-                  maxLines: maxLines,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                if (entry.roomName.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    entry.roomName,
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurfaceVariant.withOpacity(
-                        entry.isCurrentWeek ? 0.9 : 0.5,
-                      ),
-                      fontSize: 9.5,
-                      height: 1.1,
-                    ),
-                    softWrap: true,
-                    maxLines: _slotHeight > 160
-                        ? 3
-                        : (_slotHeight > 110 ? 2 : 1),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-                if (entry.teacherName.isNotEmpty) ...[
-                  const SizedBox(height: 1.5),
-                  Text(
-                    entry.teacherName,
-                    style: TextStyle(
-                      color: theme.colorScheme.onSurfaceVariant.withOpacity(
-                        entry.isCurrentWeek ? 0.9 : 0.5,
-                      ),
-                      fontSize: 9.5,
-                      height: 1.1,
-                    ),
-                    softWrap: true,
-                    maxLines: _slotHeight > 160
-                        ? 3
-                        : (_slotHeight > 110 ? 2 : 1),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ],
-            ),
-          );
-        }).toList(),
+          }),
+        ],
       ),
     );
   }
-}
 
-/// 时间段数据类
-class _TimeSlot {
-  final String startTime;
-  final String endTime;
+  /// 构建连续作息时间网格与纵向长条课程
+  Widget _buildTimelineGrid(
+    Map<int, List<ScheduleEntry>> scheduleByDay,
+    double dayWidth,
+    double timeColWidth,
+    ThemeData theme,
+    bool isDark,
+  ) {
+    const totalSlots = 11;
+    final totalHeight = totalSlots * _slotHeight;
 
-  _TimeSlot({required this.startTime, required this.endTime});
+    return SizedBox(
+      height: totalHeight,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 左侧连续时间轴 (1..11 节)
+          Container(
+            width: timeColWidth,
+            height: totalHeight,
+            decoration: BoxDecoration(
+              color: theme.cardColor.withOpacity(0.65),
+              border: Border(
+                right: BorderSide(
+                  color: theme.colorScheme.outlineVariant.withOpacity(0.3),
+                  width: 0.5,
+                ),
+              ),
+            ),
+            child: Column(
+              children: List.generate(totalSlots, (idx) {
+                final slot = idx + 1;
+                final startTime =
+                    TimeUtils.standardUnitStartTimes[slot] ?? '';
 
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is _TimeSlot &&
-          startTime == other.startTime &&
-          endTime == other.endTime;
+                return Container(
+                  height: _slotHeight,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: (slot == 4 || slot == 8)
+                            ? theme.colorScheme.outlineVariant.withOpacity(0.65)
+                            : theme.colorScheme.outlineVariant.withOpacity(0.2),
+                        width: (slot == 4 || slot == 8) ? 1.0 : 0.5,
+                      ),
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '$slot',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        startTime,
+                        style: TextStyle(
+                          fontSize: 8.5,
+                          color: theme.colorScheme.onSurfaceVariant
+                              .withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ),
+          ),
 
-  @override
-  int get hashCode => startTime.hashCode ^ endTime.hashCode;
+          // 右侧周一至周日 7 列网格
+          ...List.generate(7, (dayIdx) {
+            final weekday = dayIdx + 1;
+            final entries = scheduleByDay[weekday] ?? [];
+
+            return Container(
+              width: dayWidth,
+              height: totalHeight,
+              decoration: BoxDecoration(
+                border: Border(
+                  right: BorderSide(
+                    color: theme.colorScheme.outlineVariant.withOpacity(0.3),
+                    width: 0.5,
+                  ),
+                ),
+              ),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // 背景每节分割虚线
+                  ...List.generate(totalSlots, (slotIdx) {
+                    final slot = slotIdx + 1;
+                    return Positioned(
+                      top: slotIdx * _slotHeight,
+                      left: 0,
+                      right: 0,
+                      height: _slotHeight,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              color: (slot == 4 || slot == 8)
+                                  ? theme.colorScheme.outlineVariant
+                                      .withOpacity(0.55)
+                                  : theme.colorScheme.outlineVariant
+                                      .withOpacity(0.18),
+                              width: (slot == 4 || slot == 8) ? 1.0 : 0.5,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+
+                  // 纵向长条课程卡片
+                  ...entries.map((entry) {
+                    final start =
+                        entry.effectiveStartUnit.clamp(1, totalSlots);
+                    final end = entry.effectiveEndUnit.clamp(start, totalSlots);
+                    final span = (end - start + 1).clamp(1, totalSlots);
+                    final top = (start - 1) * _slotHeight + 1.5;
+                    final cardHeight =
+                        (span * _slotHeight - 3.0).clamp(24.0, double.infinity);
+
+                    return Positioned(
+                      top: top,
+                      left: 1.5,
+                      right: 1.5,
+                      height: cardHeight,
+                      child: _buildWakeUpCourseCard(
+                        entry,
+                        span,
+                        theme,
+                        isDark,
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  /// 构建纵向长条课程卡片 (WakeUp 经典风格)
+  Widget _buildWakeUpCourseCard(
+    ScheduleEntry entry,
+    int span,
+    ThemeData theme,
+    bool isDark,
+  ) {
+    final bg = _getCourseBgColor(entry.courseName, isDark);
+    final textColor = _getCourseTextColor(entry.courseName, isDark);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _showCourseDetailsModal(entry, context),
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 3.5, vertical: 4.0),
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: textColor.withOpacity(isDark ? 0.35 : 0.22),
+              width: 0.6,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
+                blurRadius: 3,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 课程名称 (根据跨节长度自适应行数)
+              Text(
+                entry.courseName,
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                  height: 1.15,
+                ),
+                maxLines: span >= 3 ? 5 : (span >= 2 ? 3 : 2),
+                overflow: TextOverflow.ellipsis,
+              ),
+              if (entry.roomName.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  '@ ${entry.roomName}',
+                  style: TextStyle(
+                    fontSize: 9.0,
+                    fontWeight: FontWeight.w500,
+                    color: textColor.withOpacity(0.85),
+                    height: 1.1,
+                  ),
+                  maxLines: span >= 3 ? 3 : (span >= 2 ? 2 : 1),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+              if (span >= 2 && entry.teacherName.isNotEmpty) ...[
+                const SizedBox(height: 1.5),
+                Text(
+                  entry.teacherName,
+                  style: TextStyle(
+                    fontSize: 8.5,
+                    color: textColor.withOpacity(0.7),
+                    height: 1.1,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 点击长条卡片弹出详细信息底栏
+  void _showCourseDetailsModal(ScheduleEntry entry, BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final bg = _getCourseBgColor(entry.courseName, isDark);
+    final textColor = _getCourseTextColor(entry.courseName, isDark);
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Material(
+          color: colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 36,
+                      height: 4.5,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: colorScheme.onSurfaceVariant.withOpacity(0.4),
+                        borderRadius: BorderRadius.circular(2.25),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: bg,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: textColor.withOpacity(0.3),
+                          ),
+                        ),
+                        child: Text(
+                          '${entry.effectiveStartUnit}-${entry.effectiveEndUnit}节',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: textColor,
+                          ),
+                        ),
+                      ),
+                      if (entry.isHonorCourse) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.amber.shade100,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            '荣誉课程',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.deepOrange,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    entry.courseName,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildDetailItem(
+                    Icons.place_outlined,
+                    '上课教室',
+                    entry.roomName,
+                  ),
+                  _buildDetailItem(
+                    Icons.person_outline,
+                    '任课教师',
+                    entry.teacherName,
+                  ),
+                  _buildDetailItem(
+                    Icons.access_time,
+                    '具体时间',
+                    '${entry.startTime} - ${entry.endTime}',
+                  ),
+                  _buildDetailItem(
+                    Icons.calendar_today_outlined,
+                    '星期与周次',
+                    '${_weekdays[entry.weekday]} · 第${_logic.selectedWeek.value}周',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailItem(IconData icon, String title, String value) {
+    if (value.trim().isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 18, color: theme.colorScheme.primary),
+          const SizedBox(width: 10),
+          Text(
+            '$title: ',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 13,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getCourseBgColor(String name, bool isDark) {
+    final hash = name.hashCode.abs();
+    final lightColors = [
+      const Color(0xFFE8F0FE),
+      const Color(0xFFE6F4EA),
+      const Color(0xFFFEF7E0),
+      const Color(0xFFFCE8E6),
+      const Color(0xFFF3E8FD),
+      const Color(0xFFE0F2F1),
+      const Color(0xFFFFF0F5),
+      const Color(0xFFEFEBE9),
+      const Color(0xFFE1F5FE),
+      const Color(0xFFF9FBE7),
+    ];
+    final darkColors = [
+      const Color(0xFF1E3A5F),
+      const Color(0xFF1B4332),
+      const Color(0xFF4A3E1B),
+      const Color(0xFF4A2028),
+      const Color(0xFF38234D),
+      const Color(0xFF1B3D3B),
+      const Color(0xFF4A2A38),
+      const Color(0xFF36322F),
+      const Color(0xFF1E3747),
+      const Color(0xFF363D1F),
+    ];
+    final list = isDark ? darkColors : lightColors;
+    return list[hash % list.length];
+  }
+
+  Color _getCourseTextColor(String name, bool isDark) {
+    final hash = name.hashCode.abs();
+    final lightTextColors = [
+      const Color(0xFF1A56DB),
+      const Color(0xFF0D6832),
+      const Color(0xFF946200),
+      const Color(0xFFB42318),
+      const Color(0xFF6B21A8),
+      const Color(0xFF0E7090),
+      const Color(0xFF9D174D),
+      const Color(0xFF5D4037),
+      const Color(0xFF0284C7),
+      const Color(0xFF556B2F),
+    ];
+    final darkTextColors = [
+      const Color(0xFF93C5FD),
+      const Color(0xFF86EFAC),
+      const Color(0xFFFDE047),
+      const Color(0xFFFCA5A5),
+      const Color(0xFFD8B4FE),
+      const Color(0xFF67E8F9),
+      const Color(0xFFF472B6),
+      const Color(0xFFD7CCC8),
+      const Color(0xFF7DD3FC),
+      const Color(0xFFBEF264),
+    ];
+    final list = isDark ? darkTextColors : lightTextColors;
+    return list[hash % list.length];
+  }
 }

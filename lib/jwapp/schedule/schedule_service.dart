@@ -18,6 +18,8 @@ class ScheduleEntry {
     required this.isCurrentWeek,
     required this.isHonorCourse,
     required this.details,
+    this.startUnit,
+    this.endUnit,
   });
 
   final int weekday;
@@ -29,8 +31,18 @@ class ScheduleEntry {
   final bool isCurrentWeek;
   final bool isHonorCourse;
   final List<dynamic> details;
+  final int? startUnit;
+  final int? endUnit;
 
   int get startMinutes => TimeUtils.timeToMinutes(startTime);
+  int get endMinutes => TimeUtils.timeToMinutes(endTime);
+
+  int get effectiveStartUnit =>
+      startUnit ?? TimeUtils.resolveStartUnit(startTime);
+  int get effectiveEndUnit =>
+      endUnit ?? TimeUtils.resolveEndUnit(endTime, effectiveStartUnit);
+  int get unitSpan =>
+      (effectiveEndUnit - effectiveStartUnit + 1).clamp(1, 11);
 }
 
 class ScheduleService extends ChangeNotifier {
@@ -206,6 +218,20 @@ class ScheduleService extends ChangeNotifier {
           continue;
         }
 
+        final rawStartUnit = _tryParseInt(
+          schedule['startUnit'] ??
+              schedule['startSection'] ??
+              schedule['startSlot'] ??
+              schedule['unit'] ??
+              rawClass['startUnit'],
+        );
+        final rawEndUnit = _tryParseInt(
+          schedule['endUnit'] ??
+              schedule['endSection'] ??
+              schedule['endSlot'] ??
+              rawClass['endUnit'],
+        );
+
         result[weekday]!.add(
           ScheduleEntry(
             weekday: weekday,
@@ -217,6 +243,8 @@ class ScheduleService extends ChangeNotifier {
             isCurrentWeek: highlightCurrentWeek,
             isHonorCourse: isHonorCourse || _isHonorCourse(schedule),
             details: [schedule],
+            startUnit: rawStartUnit,
+            endUnit: rawEndUnit,
           ),
         );
       }
