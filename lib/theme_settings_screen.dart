@@ -37,7 +37,7 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 48),
         children: [
-          // 1. 实时预览卡片
+          // 1. 实时预览条（精简版）
           _buildLivePreviewCard(context, mc),
           const SizedBox(height: 12),
 
@@ -56,7 +56,6 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
               children: [
                 MiuixRadioButtonPreference(
                   title: '跟随系统',
-                  summary: '自动匹配系统深浅色与夜间模式设置',
                   selected: _themeManager.colorMode == ColorMode.system,
                   radioButtonLocation: MiuixRadioButtonLocation.end,
                   onClick: () => _themeManager.setColorMode(ColorMode.system),
@@ -64,7 +63,6 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
                 const Divider(height: 0.5, indent: 20, endIndent: 20),
                 MiuixRadioButtonPreference(
                   title: '浅色模式',
-                  summary: '明亮通透的高对比度视觉质感',
                   selected: _themeManager.colorMode == ColorMode.light,
                   radioButtonLocation: MiuixRadioButtonLocation.end,
                   onClick: () => _themeManager.setColorMode(ColorMode.light),
@@ -72,7 +70,6 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
                 const Divider(height: 0.5, indent: 20, endIndent: 20),
                 MiuixRadioButtonPreference(
                   title: '深色模式',
-                  summary: '弱光环境下舒适的深色调',
                   selected: _themeManager.colorMode == ColorMode.dark,
                   radioButtonLocation: MiuixRadioButtonLocation.end,
                   onClick: () => _themeManager.setColorMode(ColorMode.dark),
@@ -80,7 +77,7 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
                 const Divider(height: 0.5, indent: 20, endIndent: 20),
                 MiuixRadioButtonPreference(
                   title: 'AMOLED 纯黑',
-                  summary: '极致纯黑底色，专为 OLED 屏幕极致省电与纯净对比优化',
+                  summary: '专为 OLED 屏幕优化纯黑背景',
                   selected: _themeManager.colorMode == ColorMode.amoled,
                   radioButtonLocation: MiuixRadioButtonLocation.end,
                   onClick: () => _themeManager.setColorMode(ColorMode.amoled),
@@ -88,7 +85,7 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
                 const Divider(height: 0.5, indent: 20, endIndent: 20),
                 MiuixRadioButtonPreference(
                   title: '动态壁纸取色 (Monet)',
-                  summary: '基于 Android 12+ Monet 引擎，从系统壁纸提取主色',
+                  summary: '从系统壁纸自动提取主色',
                   selected: _themeManager.colorMode == ColorMode.monet,
                   radioButtonLocation: MiuixRadioButtonLocation.end,
                   onClick: () => _themeManager.setColorMode(ColorMode.monet),
@@ -183,51 +180,42 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
           ),
           const SizedBox(height: 16),
 
-          // 5. 悬浮导航栏定制
-          const MiuixSmallTitle('悬浮导航栏定制'),
-          const SizedBox(height: 6),
-          MiuixCard(
-            cornerRadius: 18,
-            child: Column(
-              children: [
-                MiuixSwitchPreference(
-                  title: '悬浮底栏透明/毛玻璃',
-                  summary: _themeManager.enableBottomBarTransparent
-                      ? '已开启：液态毛玻璃半透明透视与边缘高光'
-                      : '已关闭：纯色实底悬浮底栏，背景不透光',
-                  value: _themeManager.enableBottomBarTransparent,
-                  onChanged: (v) =>
-                      _themeManager.setEnableBottomBarTransparent(v),
-                ),
-              ],
+          // 5. 视觉效果与细节（整合与精简）
+          if (_themeManager.isMiuix) ...[
+            const MiuixSmallTitle('Miuix 专属视觉'),
+            const SizedBox(height: 6),
+            MiuixCard(
+              cornerRadius: 18,
+              child: Column(
+                children: [
+                  MiuixSwitchPreference(
+                    title: '悬浮底栏毛玻璃透视',
+                    summary: _themeManager.enableBottomBarTransparent
+                        ? '底栏半透明透视与高斯模糊'
+                        : '纯色实底底栏，背景不透光',
+                    value: _themeManager.enableBottomBarTransparent,
+                    onChanged: (v) =>
+                        _themeManager.setEnableBottomBarTransparent(v),
+                  ),
+                  const Divider(height: 0.5, indent: 20, endIndent: 20),
+                  MiuixSwitchPreference(
+                    title: '背景高斯模糊',
+                    summary: '为顶栏与底栏启用实时背景高斯模糊',
+                    value: _themeManager.enableBlur,
+                    onChanged: (v) => _themeManager.setEnableBlur(v),
+                  ),
+                  const Divider(height: 0.5, indent: 20, endIndent: 20),
+                  MiuixSwitchPreference(
+                    title: '液态玻璃与边缘高光',
+                    summary: 'Bloom Stroke 高光边缘着色',
+                    value: _themeManager.enableLiquidGlass,
+                    enabled: _themeManager.enableBlur,
+                    onChanged: (v) => _themeManager.setEnableLiquidGlass(v),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
-
-          // 6. 视觉特效与物理渲染
-          const MiuixSmallTitle('视觉特效与物理渲染'),
-          const SizedBox(height: 6),
-          MiuixCard(
-            cornerRadius: 18,
-            child: Column(
-              children: [
-                MiuixSwitchPreference(
-                  title: '背景高斯模糊',
-                  summary: '为悬浮底栏和顶栏启用实时背景高斯模糊',
-                  value: _themeManager.enableBlur,
-                  onChanged: (v) => _themeManager.setEnableBlur(v),
-                ),
-                const Divider(height: 0.5, indent: 20, endIndent: 20),
-                MiuixSwitchPreference(
-                  title: '液态玻璃与边缘高光',
-                  summary: '为悬浮组件启用 HyperOS 标志性 Bloom Stroke 高光润色',
-                  value: _themeManager.enableLiquidGlass,
-                  enabled: _themeManager.enableBlur,
-                  onChanged: (v) => _themeManager.setEnableLiquidGlass(v),
-                ),
-              ],
-            ),
-          ),
+          ],
         ],
       ),
     );
@@ -235,67 +223,56 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
 
   Widget _buildLivePreviewCard(BuildContext context, MiuixColors mc) {
     return MiuixCard(
-      cornerRadius: 20,
-      insideMargin: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      cornerRadius: 18,
+      insideMargin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  color: mc.primary,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '实时效果预览 (${_themeManager.isMiuix ? "HyperOS Miuix" : "Material 3"} / ${_themeManager.currentColorModeName})',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: mc.onSurfaceVariantActions,
-                ),
-              ),
-            ],
+          Container(
+            width: 12,
+            height: 12,
+            decoration: BoxDecoration(
+              color: mc.primary,
+              shape: BoxShape.circle,
+            ),
           ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: MiuixPrimaryButton(
-                  onPressed: () {},
-                  minimumSize: const Size.fromHeight(38),
-                  borderRadius: 12,
-                  child: const Text('主按钮', style: TextStyle(fontSize: 13)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  '${_themeManager.isMiuix ? "HyperOS Miuix" : "Material 3"} · ${_themeManager.currentColorModeName}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: MiuixButton(
-                  onPressed: () {},
-                  minHeight: 38,
-                  cornerRadius: 12,
-                  child: const Text('次级按钮', style: TextStyle(fontSize: 13)),
+                Text(
+                  _themeManager.isMaterial3
+                      ? '原生贴底实色导航 · 标准控件规范'
+                      : '连续圆角气泡 · 悬浮毛玻璃动效',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: mc.onSurfaceVariantActions,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: mc.primary.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  Icons.favorite_rounded,
-                  color: mc.primary,
-                  size: 20,
-                ),
-              ),
-            ],
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: mc.primary.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              _themeManager.isMaterial3
+                  ? Icons.widgets_outlined
+                  : Icons.phone_iphone_rounded,
+              color: mc.primary,
+              size: 18,
+            ),
           ),
         ],
       ),

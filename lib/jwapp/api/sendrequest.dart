@@ -1,16 +1,24 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../login/login_service.dart';
+import '../../globals.dart' as globals;
+
+bool _isRefreshingToken = false;
 
 Future<http.Response?> sendRequest(
   String url,
   String token, {
   String method = 'GET',
   Map<String, dynamic>? body,
+  bool allowRetry = true,
 }) async {
   try {
+    final effectiveToken = token.isNotEmpty ? token : (globals.idToken ?? '');
+
     final headers = {
       'accept': 'application/json',
-      'authorization': token, // 直接使用token，不带JWTToken前缀
+      'authorization': effectiveToken,
       'content-type': 'application/json;charset=UTF-8',
       'referer': 'https://jwapp.ahu.edu.cn/uniapp/',
       'user-agent':
@@ -19,8 +27,8 @@ Future<http.Response?> sendRequest(
           '"Chromium";v="140", "Not=A?Brand";v="24", "Google Chrome";v="140"',
       'sec-ch-ua-mobile': '?0',
       'sec-ch-ua-platform': '"Windows"',
-      'usertoken': token,
-      'x-id-token': token,
+      'usertoken': effectiveToken,
+      'x-id-token': effectiveToken,
     };
 
     late Future<http.Response> responseFuture;
@@ -50,8 +58,53 @@ Future<http.Response?> sendRequest(
     }
 
     final response = await responseFuture.timeout(const Duration(seconds: 15));
+
+    // 401 凭据失效自动重连机制
+    if (allowRetry && response.statusCode == 401) {
+      final refreshed = await _refreshJwappToken();
+      if (refreshed && globals.idToken != null) {
+        return sendRequest(
+          url,
+          globals.idToken!,
+          method: method,
+          body: body,
+          allowRetry: false,
+        );
+      }
+    }
+
     return response;
   } catch (e) {
-    return null; // 请求超时或其他错误
+    return null;
+  }
+}
+
+Future<bool> _refreshJwappToken() async {
+  if (_isRefreshingToken) return false;
+  _isRefreshingToken = true;
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final username = prefs.getString('username');
+    final password = prefs.getString('password');
+    if (username != null &&
+        password != null &&
+        username.isNotEmpty &&
+        password.isNotEmpty) {
+      final newToken = await LoginService.login(
+        username: username,
+        password: password,
+      );
+      if (newToken != null && newToken.isNotEmpty) {
+        globals.idToken = newToken;
+        await prefs.setString('idToken', newToken);
+        globals.onLoginStateChanged?.call();
+        return true;
+      }
+    }
+    return false;
+  } catch (_) {
+    return false;
+  } finally {
+    _isRefreshingToken = false;
   }
 }

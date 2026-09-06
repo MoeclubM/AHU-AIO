@@ -42,6 +42,8 @@ class _BloomStrokeLayerState extends State<BloomStrokeLayer> {
     super.initState();
     loadBloomStrokeProgram().then((p) {
       if (mounted) setState(() => _program = p);
+    }).catchError((_) {
+      // 优雅降级：若平台不支持着色器或资源加载失败则不绘制高光
     });
   }
 

@@ -67,12 +67,23 @@ class MiuixButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveEnabled = enabled && onPressed != null;
+    final c = colors ?? miuix_pkg.MiuixButtonDefaults.buttonColors(context);
+    final txtColor = effectiveEnabled ? c.contentColor : c.disabledContentColor;
+
     Widget label = child;
     if (icon != null) {
       label = Row(
         mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.center,
-        children: [icon!, const SizedBox(width: 8), child],
+        children: [
+          IconTheme.merge(
+            data: IconThemeData(color: txtColor, size: 20),
+            child: icon!,
+          ),
+          const SizedBox(width: 8),
+          child,
+        ],
       );
     }
     return miuix_pkg.MiuixButton(

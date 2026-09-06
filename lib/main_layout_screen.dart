@@ -408,10 +408,11 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
         View.of(context).platformDispatcher.accessibilityFeatures.reduceMotion;
     final reduceTransparency = MediaQuery.highContrastOf(context);
     final tm = ThemeManager();
+    final isMaterial3 = tm.isMaterial3;
     final isTransparentBottomBar =
-        tm.enableBottomBarTransparent && !reduceTransparency;
-    final blurEnabled = tm.enableBlur && isTransparentBottomBar;
-    final glassEnabled = tm.enableLiquidGlass && isTransparentBottomBar;
+        !isMaterial3 && tm.enableBottomBarTransparent && !reduceTransparency;
+    final blurEnabled = !isMaterial3 && tm.enableBlur && isTransparentBottomBar;
+    final glassEnabled = !isMaterial3 && tm.enableLiquidGlass && isTransparentBottomBar;
 
     if (!isLoggedIn) {
       return UnifiedLoginPage(
@@ -490,37 +491,42 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                       Transform.translate(
                         offset: Offset(0, yOffset),
                         child: Padding(
-                          padding: const EdgeInsets.fromLTRB(64, 0, 64, 76),
+                          padding: isMaterial3
+                              ? const EdgeInsets.fromLTRB(16, 0, 16, 68)
+                              : const EdgeInsets.fromLTRB(64, 0, 64, 76),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(28),
+                            borderRadius: BorderRadius.circular(isMaterial3 ? 16 : 28),
                             child: BackdropFilter(
                               filter: blurEnabled
                                   ? liquidGlassImageFilter(blurSigma: 4)
                                   : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
                               child: Container(
-                                height: 56,
+                                height: isMaterial3 ? 48 : 56,
                                 decoration: BoxDecoration(
-                                  color: isTransparentBottomBar
-                                      ? (blurEnabled
-                                            ? MiuixTheme.of(context)
+                                  color: isMaterial3
+                                      ? Theme.of(context).colorScheme.surfaceContainerHigh
+                                      : (isTransparentBottomBar
+                                          ? (blurEnabled
+                                              ? MiuixTheme.of(context)
                                                   .colors
                                                   .surfaceContainer
                                                   .withOpacity(0.40)
-                                            : MiuixTheme.of(context)
+                                              : MiuixTheme.of(context)
                                                   .colors
                                                   .surfaceContainer
                                                   .withOpacity(0.92))
-                                      : MiuixTheme.of(
-                                          context,
-                                        ).colors.surfaceContainer,
-                                  borderRadius: BorderRadius.circular(28),
+                                          : MiuixTheme.of(
+                                              context,
+                                            ).colors.surfaceContainer),
+                                  borderRadius: BorderRadius.circular(isMaterial3 ? 16 : 28),
                                   border: Border.all(
-                                    color: MiuixTheme.of(context).colors.outline
-                                        .withOpacity(
-                                          isTransparentBottomBar
-                                              ? (reduceTransparency ? 0.9 : 0.5)
-                                              : 0.8,
-                                        ),
+                                    color: isMaterial3
+                                        ? Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5)
+                                        : MiuixTheme.of(context).colors.outline.withOpacity(
+                                            isTransparentBottomBar
+                                                ? (reduceTransparency ? 0.9 : 0.5)
+                                                : 0.8,
+                                          ),
                                     width: 0.5,
                                   ),
                                 ),
@@ -547,22 +553,36 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+                        padding: isMaterial3
+                            ? EdgeInsets.zero
+                            : const EdgeInsets.fromLTRB(24, 0, 24, 12),
                         child: Container(
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(32),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(
-                                  isTransparentBottomBar ? 0.06 : 0.12,
-                                ),
-                                blurRadius: isTransparentBottomBar ? 16 : 20,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
+                            borderRadius: isMaterial3
+                                ? BorderRadius.zero
+                                : BorderRadius.circular(32),
+                            boxShadow: isMaterial3
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, -2),
+                                    ),
+                                  ]
+                                : [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(
+                                        isTransparentBottomBar ? 0.06 : 0.12,
+                                      ),
+                                      blurRadius: isTransparentBottomBar ? 16 : 20,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
                           ),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(32),
+                            borderRadius: isMaterial3
+                                ? BorderRadius.zero
+                                : BorderRadius.circular(32),
                             child: BackdropFilter(
                               filter: blurEnabled
                                   ? liquidGlassImageFilter(blurSigma: 4)
@@ -570,29 +590,40 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                               child: Container(
                                 height: 64,
                                 decoration: BoxDecoration(
-                                  color: isTransparentBottomBar
-                                      ? (blurEnabled
-                                            ? MiuixTheme.of(context)
+                                  color: isMaterial3
+                                      ? Theme.of(context).colorScheme.surfaceContainer
+                                      : (isTransparentBottomBar
+                                          ? (blurEnabled
+                                              ? MiuixTheme.of(context)
                                                   .colors
                                                   .surfaceContainer
                                                   .withOpacity(0.40)
-                                            : MiuixTheme.of(context)
+                                              : MiuixTheme.of(context)
                                                   .colors
                                                   .surfaceContainer
                                                   .withOpacity(0.92))
-                                      : MiuixTheme.of(
-                                          context,
-                                        ).colors.surfaceContainer,
-                                  borderRadius: BorderRadius.circular(32),
-                                  border: Border.all(
-                                    color: MiuixTheme.of(context).colors.outline
-                                        .withOpacity(
-                                          isTransparentBottomBar
-                                              ? (reduceTransparency ? 0.9 : 0.5)
-                                              : 0.8,
+                                          : MiuixTheme.of(
+                                              context,
+                                            ).colors.surfaceContainer),
+                                  borderRadius: isMaterial3
+                                      ? BorderRadius.zero
+                                      : BorderRadius.circular(32),
+                                  border: isMaterial3
+                                      ? Border(
+                                          top: BorderSide(
+                                            color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.4),
+                                            width: 0.5,
+                                          ),
+                                        )
+                                      : Border.all(
+                                          color: MiuixTheme.of(context).colors.outline
+                                              .withOpacity(
+                                                isTransparentBottomBar
+                                                    ? (reduceTransparency ? 0.9 : 0.5)
+                                                    : 0.8,
+                                              ),
+                                          width: 0.5,
                                         ),
-                                    width: 0.5,
-                                  ),
                                 ),
                                 child: Stack(
                                   children: [
@@ -603,14 +634,17 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                               constraints.maxWidth;
                                           final double tabWidth =
                                               totalWidth / 4;
-                                          final double bubbleWidth =
-                                              tabWidth - 8;
-                                          final double bubbleHeight = 48;
+                                          final double bubbleWidth = isMaterial3
+                                              ? (tabWidth - 16)
+                                              : (tabWidth - 8);
+                                          final double bubbleHeight = isMaterial3 ? 36 : 48;
 
                                           return GestureDetector(
                                             behavior:
                                                 HitTestBehavior.translucent,
-                                            onHorizontalDragStart: (details) {
+                                            onHorizontalDragStart: isMaterial3
+                                                ? null
+                                                : (details) {
                                               final double bubbleLeft =
                                                   currentPage * tabWidth +
                                                   (tabWidth - bubbleWidth) / 2;
@@ -763,9 +797,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                                       final pressProgress =
                                                           _bubblePressController
                                                               .value;
-                                                      final scale =
-                                                          1.0 +
-                                                          0.39 * pressProgress;
+                                                      final scale = isMaterial3
+                                                          ? 1.0
+                                                          : (1.0 + 0.39 * pressProgress);
                                                       final darkBg =
                                                           (1.0 - pressProgress) *
                                                               0.10 +
@@ -775,23 +809,25 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                                         child: ClipRRect(
                                                           borderRadius:
                                                               BorderRadius.circular(
-                                                                24,
-                                                              ),
+                                                            isMaterial3 ? 18 : 24,
+                                                          ),
                                                           child: Stack(
                                                             children: [
-                                                              Positioned.fill(
-                                                                child: ColoredBox(
-                                                                  color: Colors
-                                                                      .black
-                                                                      .withOpacity(
-                                                                        darkBg,
-                                                                      ),
+                                                              if (!isMaterial3)
+                                                                Positioned.fill(
+                                                                  child: ColoredBox(
+                                                                    color: Colors
+                                                                        .black
+                                                                        .withOpacity(
+                                                                          darkBg,
+                                                                        ),
+                                                                  ),
                                                                 ),
-                                                              ),
                                                               Positioned.fill(
                                                                 child: ColoredBox(
-                                                                  color:
-                                                                      MiuixTheme.of(
+                                                                  color: isMaterial3
+                                                                      ? Theme.of(context).colorScheme.secondaryContainer
+                                                                      : MiuixTheme.of(
                                                                             context,
                                                                           )
                                                                           .colors
@@ -801,7 +837,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                                                           ),
                                                                 ),
                                                               ),
-                                                              if (pressProgress >
+                                                              if (!isMaterial3 && pressProgress >
                                                                   0.01)
                                                                 Positioned.fill(
                                                                   child: CustomPaint(
@@ -815,7 +851,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                                                     ),
                                                                   ),
                                                                 ),
-                                                              if (_showHighlight &&
+                                                              if (!isMaterial3 && _showHighlight &&
                                                                   pressProgress >
                                                                       0.01)
                                                                 Positioned.fill(
@@ -907,42 +943,69 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
   ) {
     final bool isSelected = _currentBottomIndex == index;
     final colorScheme = Theme.of(context).colorScheme;
+    final isMaterial3 = ThemeManager().isMaterial3;
     return Expanded(
       child: InkWell(
         onTap: () => _handleTabSwitch(index),
         borderRadius: BorderRadius.circular(32),
         highlightColor: Colors.transparent,
         splashColor: colorScheme.primary.withOpacity(0.1),
-        child: AnimatedBuilder(
-          animation: _bubblePressController,
-          builder: (context, child) {
-            final scale = 1.0 + 0.2 * _bubblePressController.value;
-            return Transform.scale(scale: scale, child: child);
-          },
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                isSelected ? activeIcon : icon,
-                color: isSelected
-                    ? colorScheme.primary
-                    : colorScheme.onSurfaceVariant.withOpacity(0.7),
-                size: 20,
-              ),
-              const SizedBox(height: 2),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected
-                      ? colorScheme.primary
-                      : colorScheme.onSurfaceVariant.withOpacity(0.7),
+        child: isMaterial3
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    isSelected ? activeIcon : icon,
+                    color: isSelected
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
+                    size: 22,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isSelected
+                          ? colorScheme.primary
+                          : colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              )
+            : AnimatedBuilder(
+                animation: _bubblePressController,
+                builder: (context, child) {
+                  final scale = 1.0 + 0.2 * _bubblePressController.value;
+                  return Transform.scale(scale: scale, child: child);
+                },
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      isSelected ? activeIcon : icon,
+                      color: isSelected
+                          ? colorScheme.primary
+                          : colorScheme.onSurfaceVariant.withOpacity(0.7),
+                      size: 20,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight:
+                            isSelected ? FontWeight.bold : FontWeight.normal,
+                        color: isSelected
+                            ? colorScheme.primary
+                            : colorScheme.onSurfaceVariant.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
       ),
     );
   }
