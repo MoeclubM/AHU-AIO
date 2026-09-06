@@ -412,7 +412,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     final isTransparentBottomBar =
         !isMaterial3 && tm.enableBottomBarTransparent && !reduceTransparency;
     final blurEnabled = !isMaterial3 && tm.enableBlur && isTransparentBottomBar;
-    final glassEnabled = !isMaterial3 && tm.enableLiquidGlass && isTransparentBottomBar;
+    final glassEnabled =
+        !isMaterial3 && tm.enableLiquidGlass && isTransparentBottomBar;
 
     if (!isLoggedIn) {
       return UnifiedLoginPage(
@@ -495,7 +496,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                               ? const EdgeInsets.fromLTRB(16, 0, 16, 68)
                               : const EdgeInsets.fromLTRB(64, 0, 64, 76),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(isMaterial3 ? 16 : 28),
+                            borderRadius: BorderRadius.circular(
+                              isMaterial3 ? 16 : 28,
+                            ),
                             child: BackdropFilter(
                               filter: blurEnabled
                                   ? liquidGlassImageFilter(blurSigma: 4)
@@ -504,27 +507,38 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                 height: isMaterial3 ? 48 : 56,
                                 decoration: BoxDecoration(
                                   color: isMaterial3
-                                      ? Theme.of(context).colorScheme.surfaceContainerHigh
+                                      ? Theme.of(
+                                          context,
+                                        ).colorScheme.surfaceContainerHigh
                                       : (isTransparentBottomBar
-                                          ? (blurEnabled
-                                              ? MiuixTheme.of(context)
-                                                  .colors
-                                                  .surfaceContainer
-                                                  .withOpacity(0.40)
-                                              : MiuixTheme.of(context)
-                                                  .colors
-                                                  .surfaceContainer
-                                                  .withOpacity(0.92))
-                                          : MiuixTheme.of(
-                                              context,
-                                            ).colors.surfaceContainer),
-                                  borderRadius: BorderRadius.circular(isMaterial3 ? 16 : 28),
+                                            ? (blurEnabled
+                                                  ? MiuixTheme.of(context)
+                                                        .colors
+                                                        .surfaceContainer
+                                                        .withOpacity(0.40)
+                                                  : MiuixTheme.of(context)
+                                                        .colors
+                                                        .surfaceContainer
+                                                        .withOpacity(0.92))
+                                            : MiuixTheme.of(
+                                                context,
+                                              ).colors.surfaceContainer),
+                                  borderRadius: BorderRadius.circular(
+                                    isMaterial3 ? 16 : 28,
+                                  ),
                                   border: Border.all(
                                     color: isMaterial3
-                                        ? Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5)
-                                        : MiuixTheme.of(context).colors.outline.withOpacity(
+                                        ? Theme.of(context)
+                                              .colorScheme
+                                              .outlineVariant
+                                              .withOpacity(0.5)
+                                        : MiuixTheme.of(
+                                            context,
+                                          ).colors.outline.withOpacity(
                                             isTransparentBottomBar
-                                                ? (reduceTransparency ? 0.9 : 0.5)
+                                                ? (reduceTransparency
+                                                      ? 0.9
+                                                      : 0.5)
                                                 : 0.8,
                                           ),
                                     width: 0.5,
@@ -574,7 +588,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                       color: Colors.black.withOpacity(
                                         isTransparentBottomBar ? 0.06 : 0.12,
                                       ),
-                                      blurRadius: isTransparentBottomBar ? 16 : 20,
+                                      blurRadius: isTransparentBottomBar
+                                          ? 16
+                                          : 20,
                                       offset: const Offset(0, 4),
                                     ),
                                   ],
@@ -591,35 +607,44 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                 height: 64,
                                 decoration: BoxDecoration(
                                   color: isMaterial3
-                                      ? Theme.of(context).colorScheme.surfaceContainer
+                                      ? Theme.of(
+                                          context,
+                                        ).colorScheme.surfaceContainer
                                       : (isTransparentBottomBar
-                                          ? (blurEnabled
-                                              ? MiuixTheme.of(context)
-                                                  .colors
-                                                  .surfaceContainer
-                                                  .withOpacity(0.40)
-                                              : MiuixTheme.of(context)
-                                                  .colors
-                                                  .surfaceContainer
-                                                  .withOpacity(0.92))
-                                          : MiuixTheme.of(
-                                              context,
-                                            ).colors.surfaceContainer),
+                                            ? (blurEnabled
+                                                  ? MiuixTheme.of(context)
+                                                        .colors
+                                                        .surfaceContainer
+                                                        .withOpacity(0.40)
+                                                  : MiuixTheme.of(context)
+                                                        .colors
+                                                        .surfaceContainer
+                                                        .withOpacity(0.92))
+                                            : MiuixTheme.of(
+                                                context,
+                                              ).colors.surfaceContainer),
                                   borderRadius: isMaterial3
                                       ? BorderRadius.zero
                                       : BorderRadius.circular(32),
                                   border: isMaterial3
                                       ? Border(
                                           top: BorderSide(
-                                            color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.4),
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .outlineVariant
+                                                .withOpacity(0.4),
                                             width: 0.5,
                                           ),
                                         )
                                       : Border.all(
-                                          color: MiuixTheme.of(context).colors.outline
+                                          color: MiuixTheme.of(context)
+                                              .colors
+                                              .outline
                                               .withOpacity(
                                                 isTransparentBottomBar
-                                                    ? (reduceTransparency ? 0.9 : 0.5)
+                                                    ? (reduceTransparency
+                                                          ? 0.9
+                                                          : 0.5)
                                                     : 0.8,
                                               ),
                                           width: 0.5,
@@ -637,7 +662,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                           final double bubbleWidth = isMaterial3
                                               ? (tabWidth - 16)
                                               : (tabWidth - 8);
-                                          final double bubbleHeight = isMaterial3 ? 36 : 48;
+                                          final double bubbleHeight =
+                                              isMaterial3 ? 36 : 48;
 
                                           return GestureDetector(
                                             behavior:
@@ -645,27 +671,35 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                             onHorizontalDragStart: isMaterial3
                                                 ? null
                                                 : (details) {
-                                              final double bubbleLeft =
-                                                  currentPage * tabWidth +
-                                                  (tabWidth - bubbleWidth) / 2;
-                                              final double bubbleRight =
-                                                  bubbleLeft + bubbleWidth;
-                                              final double touchX =
-                                                  details.localPosition.dx;
-                                              _isDraggingBubble =
-                                                  touchX >= bubbleLeft &&
-                                                  touchX <= bubbleRight;
-                                              if (_isDraggingBubble &&
-                                                  _pageController.hasClients) {
-                                                (_pageController.position
-                                                        as ScrollPositionWithSingleContext)
-                                                    .goIdle();
-                                              }
-                                              _showHighlight = true;
-                                              _highlightPosNotifier.value =
-                                                  details.localPosition;
-                                              _bubblePressController.forward();
-                                            },
+                                                    final double bubbleLeft =
+                                                        currentPage * tabWidth +
+                                                        (tabWidth -
+                                                                bubbleWidth) /
+                                                            2;
+                                                    final double bubbleRight =
+                                                        bubbleLeft +
+                                                        bubbleWidth;
+                                                    final double touchX =
+                                                        details
+                                                            .localPosition
+                                                            .dx;
+                                                    _isDraggingBubble =
+                                                        touchX >= bubbleLeft &&
+                                                        touchX <= bubbleRight;
+                                                    if (_isDraggingBubble &&
+                                                        _pageController
+                                                            .hasClients) {
+                                                      (_pageController.position
+                                                              as ScrollPositionWithSingleContext)
+                                                          .goIdle();
+                                                    }
+                                                    _showHighlight = true;
+                                                    _highlightPosNotifier
+                                                            .value =
+                                                        details.localPosition;
+                                                    _bubblePressController
+                                                        .forward();
+                                                  },
                                             onHorizontalDragUpdate: (details) {
                                               if (!_isDraggingBubble) return;
                                               _highlightPosNotifier.value =
@@ -799,7 +833,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                                               .value;
                                                       final scale = isMaterial3
                                                           ? 1.0
-                                                          : (1.0 + 0.39 * pressProgress);
+                                                          : (1.0 +
+                                                                0.39 *
+                                                                    pressProgress);
                                                       final darkBg =
                                                           (1.0 - pressProgress) *
                                                               0.10 +
@@ -809,8 +845,10 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                                         child: ClipRRect(
                                                           borderRadius:
                                                               BorderRadius.circular(
-                                                            isMaterial3 ? 18 : 24,
-                                                          ),
+                                                                isMaterial3
+                                                                    ? 18
+                                                                    : 24,
+                                                              ),
                                                           child: Stack(
                                                             children: [
                                                               if (!isMaterial3)
@@ -825,20 +863,21 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                                                 ),
                                                               Positioned.fill(
                                                                 child: ColoredBox(
-                                                                  color: isMaterial3
-                                                                      ? Theme.of(context).colorScheme.secondaryContainer
+                                                                  color:
+                                                                      isMaterial3
+                                                                      ? Theme.of(
+                                                                          context,
+                                                                        ).colorScheme.secondaryContainer
                                                                       : MiuixTheme.of(
-                                                                            context,
-                                                                          )
-                                                                          .colors
-                                                                          .primary
-                                                                          .withOpacity(
-                                                                            0.12,
-                                                                          ),
+                                                                          context,
+                                                                        ).colors.primary.withOpacity(
+                                                                          0.12,
+                                                                        ),
                                                                 ),
                                                               ),
-                                                              if (!isMaterial3 && pressProgress >
-                                                                  0.01)
+                                                              if (!isMaterial3 &&
+                                                                  pressProgress >
+                                                                      0.01)
                                                                 Positioned.fill(
                                                                   child: CustomPaint(
                                                                     painter: _BubbleInnerShadowPainter(
@@ -851,7 +890,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                                                     ),
                                                                   ),
                                                                 ),
-                                                              if (!isMaterial3 && _showHighlight &&
+                                                              if (!isMaterial3 &&
+                                                                  _showHighlight &&
                                                                   pressProgress >
                                                                       0.01)
                                                                 Positioned.fill(
@@ -966,8 +1006,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                     label,
                     style: TextStyle(
                       fontSize: 11,
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                       color: isSelected
                           ? colorScheme.primary
                           : colorScheme.onSurfaceVariant,
@@ -996,8 +1037,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                       label,
                       style: TextStyle(
                         fontSize: 10.5,
-                        fontWeight:
-                            isSelected ? FontWeight.bold : FontWeight.normal,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
                         color: isSelected
                             ? colorScheme.primary
                             : colorScheme.onSurfaceVariant.withOpacity(0.7),
