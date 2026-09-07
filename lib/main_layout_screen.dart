@@ -485,17 +485,22 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                       : _getSubTabVisibility(currentPage);
                   final finalVisibility =
                       _subTabAnimController.value * gestureVisibility;
-                  final double yOffset = (1.0 - finalVisibility) * 44.0;
+                  final double maxTranslate = isMaterial3 ? 72.0 : 88.0;
+                  final double yOffset = (1.0 - finalVisibility) * maxTranslate;
 
                   return Stack(
                     alignment: Alignment.bottomCenter,
                     children: [
-                      Transform.translate(
-                        offset: Offset(0, yOffset),
-                        child: Padding(
-                          padding: isMaterial3
-                              ? const EdgeInsets.fromLTRB(16, 0, 16, 68)
-                              : const EdgeInsets.fromLTRB(64, 0, 64, 76),
+                      IgnorePointer(
+                        ignoring: finalVisibility < 0.5,
+                        child: Opacity(
+                          opacity: finalVisibility.clamp(0.0, 1.0),
+                          child: Transform.translate(
+                            offset: Offset(0, yOffset),
+                            child: Padding(
+                              padding: isMaterial3
+                                  ? const EdgeInsets.fromLTRB(16, 0, 16, 68)
+                                  : const EdgeInsets.fromLTRB(64, 0, 64, 76),
                           child: ClipRRect(
                             borderRadius: BorderRadius.circular(
                               isMaterial3 ? 16 : 28,
@@ -567,7 +572,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                           ),
                         ),
                       ),
-                      Padding(
+                    ),
+                  ),
+                  Padding(
                         padding: isMaterial3
                             ? EdgeInsets.zero
                             : const EdgeInsets.fromLTRB(24, 0, 24, 12),

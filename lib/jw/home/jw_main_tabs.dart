@@ -48,7 +48,7 @@ class _JwMainTabsState extends State<JwMainTabs> {
               title: '安大教务',
               actions: [
                 Padding(
-                  padding: const EdgeInsets.only(right: 24),
+                  padding: const EdgeInsets.only(right: 16),
                   child: IconButton(
                     icon: const Icon(
                       Icons.notifications_none_outlined,

@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
 import 'miuix_theme.dart';
-import 'bloom_stroke_painter.dart';
 import 'liquid_glass_filter.dart';
 import '../theme_manager.dart';
 
-/// 液态玻璃风格的 AppBar 胶囊标题栏。
+/// 渐变浸润式风格的 AppBar 顶栏。
 ///
-/// 参考 SukiSU Ultra / compose-miuix-ui miuix 的 Liquid Glass 实现：
-/// 背景模糊 + BloomStroke 边缘高光 + 内阴影。
-/// 根据 [ThemeManager.enableBlur] 控制模糊，[ThemeManager.enableLiquidGlass]
-/// 控制高光绘制。
+/// 移除传统胶囊药丸气泡框，采用横向贯通的顶部平滑渐变背景层，
+/// 居中显示页面标题文字，右侧保留操作按钮，与主流现代移动 App 规范统一。
 class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   const LiquidGlassAppBar({
     super.key,
@@ -28,12 +25,9 @@ class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final reduceTransparency = MediaQuery.highContrastOf(context);
     final tm = ThemeManager();
     final blurEnabled = tm.enableBlur && !reduceTransparency;
-    final glassEnabled = tm.enableLiquidGlass && !reduceTransparency;
-    const capsuleRadius = 99.0;
 
     // Material3 模式下使用标准 AppBar
     if (tm.isMaterial3) {
@@ -49,8 +43,7 @@ class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
     }
 
     final mc = MiuixTheme.of(context).colors;
-    final baseColor = mc.surfaceContainer;
-    final fillAlpha = blurEnabled ? 0.40 : (reduceTransparency ? 0.96 : 0.85);
+    final baseColor = theme.colorScheme.surface;
 
     return AppBar(
       toolbarHeight: 52,
@@ -58,40 +51,39 @@ class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: centerTitle,
-      flexibleSpace: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(capsuleRadius),
-            child: Stack(
-              children: [
-                if (blurEnabled)
-                  Positioned.fill(
-                    child: BackdropFilter(
-                      filter: liquidGlassImageFilter(blurSigma: 4),
-                      child: Container(color: Colors.transparent),
-                    ),
-                  ),
-                Positioned.fill(
-                  child: ColoredBox(color: baseColor.withOpacity(fillAlpha)),
+      flexibleSpace: ClipRect(
+        child: Stack(
+          children: [
+            if (blurEnabled)
+              Positioned.fill(
+                child: BackdropFilter(
+                  filter: liquidGlassImageFilter(blurSigma: 6),
+                  child: const SizedBox.expand(),
                 ),
-                if (glassEnabled)
-                  Positioned.fill(
-                    child: BloomStrokeLayer(
-                      radius: capsuleRadius,
-                      isDark: isDark,
-                      enabled: glassEnabled,
-                    ),
+              ),
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      baseColor.withOpacity(
+                        reduceTransparency ? 0.98 : (blurEnabled ? 0.85 : 0.94),
+                      ),
+                      baseColor.withOpacity(
+                        reduceTransparency ? 0.92 : (blurEnabled ? 0.45 : 0.65),
+                      ),
+                      baseColor.withOpacity(
+                        reduceTransparency ? 0.85 : (blurEnabled ? 0.05 : 0.20),
+                      ),
+                    ],
+                    stops: const [0.0, 0.65, 1.0],
                   ),
-                if (glassEnabled)
-                  Positioned.fill(
-                    child: CustomPaint(
-                      painter: _CapsuleInnerShadowPainter(isDark: isDark),
-                    ),
-                  ),
-              ],
+                ),
+              ),
             ),
-          ),
+          ],
         ),
       ),
       title: Text(
@@ -105,65 +97,4 @@ class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
       actions: actions,
     );
   }
-}
-
-/// 胶囊内阴影。
-class _CapsuleInnerShadowPainter extends CustomPainter {
-  const _CapsuleInnerShadowPainter({required this.isDark});
-
-  final bool isDark;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-    if (w <= 0 || h <= 0) return;
-
-    const r = 99.0;
-    final rrect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(0, 0, w, h),
-      const Radius.circular(r),
-    );
-
-    canvas.save();
-    canvas.clipRRect(rrect);
-
-    // 顶部内阴影
-    final topShadow = Colors.black.withOpacity(isDark ? 0.20 : 0.06);
-    final topPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment(0, 0.2),
-        colors: [topShadow, topShadow.withOpacity(0)],
-      ).createShader(Offset.zero & size);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(0, 0, w, h * 0.15),
-        const Radius.circular(r),
-      ),
-      topPaint,
-    );
-
-    // 底部内阴影
-    final bottomShadow = Colors.black.withOpacity(isDark ? 0.12 : 0.03);
-    final bottomPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.bottomCenter,
-        end: Alignment(0, 0.8),
-        colors: [bottomShadow, bottomShadow.withOpacity(0)],
-      ).createShader(Offset.zero & size);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(0, h * 0.85, w, h * 0.15),
-        const Radius.circular(r),
-      ),
-      bottomPaint,
-    );
-
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant _CapsuleInnerShadowPainter oldDelegate) =>
-      isDark != oldDelegate.isDark;
 }
