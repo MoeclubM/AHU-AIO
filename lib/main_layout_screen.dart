@@ -501,80 +501,84 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                               padding: isMaterial3
                                   ? const EdgeInsets.fromLTRB(16, 0, 16, 68)
                                   : const EdgeInsets.fromLTRB(64, 0, 64, 76),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(
-                              isMaterial3 ? 16 : 28,
-                            ),
-                            child: BackdropFilter(
-                              filter: blurEnabled
-                                  ? liquidGlassImageFilter(blurSigma: 4)
-                                  : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
-                              child: Container(
-                                height: isMaterial3 ? 48 : 56,
-                                decoration: BoxDecoration(
-                                  color: isMaterial3
-                                      ? Theme.of(
-                                          context,
-                                        ).colorScheme.surfaceContainerHigh
-                                      : (isTransparentBottomBar
-                                            ? (blurEnabled
-                                                  ? MiuixTheme.of(context)
-                                                        .colors
-                                                        .surfaceContainer
-                                                        .withOpacity(0.40)
-                                                  : MiuixTheme.of(context)
-                                                        .colors
-                                                        .surfaceContainer
-                                                        .withOpacity(0.92))
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(
+                                  isMaterial3 ? 16 : 28,
+                                ),
+                                child: BackdropFilter(
+                                  filter: blurEnabled
+                                      ? liquidGlassImageFilter(blurSigma: 4)
+                                      : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
+                                  child: Container(
+                                    height: isMaterial3 ? 48 : 56,
+                                    decoration: BoxDecoration(
+                                      color: isMaterial3
+                                          ? Theme.of(
+                                              context,
+                                            ).colorScheme.surfaceContainerHigh
+                                          : (isTransparentBottomBar
+                                                ? (blurEnabled
+                                                      ? MiuixTheme.of(context)
+                                                            .colors
+                                                            .surfaceContainer
+                                                            .withOpacity(0.40)
+                                                      : MiuixTheme.of(context)
+                                                            .colors
+                                                            .surfaceContainer
+                                                            .withOpacity(0.92))
+                                                : MiuixTheme.of(
+                                                    context,
+                                                  ).colors.surfaceContainer),
+                                      borderRadius: BorderRadius.circular(
+                                        isMaterial3 ? 16 : 28,
+                                      ),
+                                      border: Border.all(
+                                        color: isMaterial3
+                                            ? Theme.of(context)
+                                                  .colorScheme
+                                                  .outlineVariant
+                                                  .withOpacity(0.5)
                                             : MiuixTheme.of(
                                                 context,
-                                              ).colors.surfaceContainer),
-                                  borderRadius: BorderRadius.circular(
-                                    isMaterial3 ? 16 : 28,
-                                  ),
-                                  border: Border.all(
-                                    color: isMaterial3
-                                        ? Theme.of(context)
-                                              .colorScheme
-                                              .outlineVariant
-                                              .withOpacity(0.5)
-                                        : MiuixTheme.of(
-                                            context,
-                                          ).colors.outline.withOpacity(
-                                            isTransparentBottomBar
-                                                ? (reduceTransparency
-                                                      ? 0.9
-                                                      : 0.5)
-                                                : 0.8,
-                                          ),
-                                    width: 0.5,
-                                  ),
-                                ),
-                                child: Stack(
-                                  children: [
-                                    Positioned.fill(
-                                      child: _buildSubTabBarChild(currentPage),
-                                    ),
-                                    if (glassEnabled)
-                                      Positioned.fill(
-                                        child: BloomStrokeLayer(
-                                          radius: 28,
-                                          isDark:
-                                              Theme.of(context).brightness ==
-                                              Brightness.dark,
-                                          enabled: glassEnabled,
-                                        ),
+                                              ).colors.outline.withOpacity(
+                                                isTransparentBottomBar
+                                                    ? (reduceTransparency
+                                                          ? 0.9
+                                                          : 0.5)
+                                                    : 0.8,
+                                              ),
+                                        width: 0.5,
                                       ),
-                                  ],
+                                    ),
+                                    child: Stack(
+                                      children: [
+                                        Positioned.fill(
+                                          child: _buildSubTabBarChild(
+                                            currentPage,
+                                          ),
+                                        ),
+                                        if (glassEnabled)
+                                          Positioned.fill(
+                                            child: BloomStrokeLayer(
+                                              radius: 28,
+                                              isDark:
+                                                  Theme.of(
+                                                    context,
+                                                  ).brightness ==
+                                                  Brightness.dark,
+                                              enabled: glassEnabled,
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                  Padding(
+                      Padding(
                         padding: isMaterial3
                             ? EdgeInsets.zero
                             : const EdgeInsets.fromLTRB(24, 0, 24, 12),
