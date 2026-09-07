@@ -121,8 +121,8 @@ jobs:
           fi
           APK_CERTS=$("$APKSIGNER" verify --print-certs build/app/outputs/flutter-apk/app-release.apk 2>&1)
           echo "$APK_CERTS"
-          APK_SHA=$(echo "$APK_CERTS" | grep -i "SHA-256 digest" | head -1 | sed 's/.*: *//' | tr -d ': ' | tr 'A-Z' 'a-z')
-          KEY_SHA=$(keytool -list -v -keystore android/app/release-key.jks -storepass "$KEYSTORE_PASSWORD" -alias ahu-aio 2>/dev/null | grep -i "SHA256:" | head -1 | sed 's/.*: *//' | tr -d ': ' | tr 'A-Z' 'a-z')
+          APK_SHA=$(echo "$APK_CERTS" | grep -i "SHA-256 digest" | head -1 | sed 's/^.*digest:[[:space:]]*//' | tr -d ': ' | tr 'A-Z' 'a-z')
+          KEY_SHA=$(keytool -list -v -keystore android/app/release-key.jks -storepass "$KEYSTORE_PASSWORD" -alias ahu-aio 2>/dev/null | grep -i "SHA256:" | head -1 | sed 's/^.*SHA256:[[:space:]]*//' | tr -d ': ' | tr 'A-Z' 'a-z')
           if [ -z "$APK_SHA" ]; then
             echo "::error::无法读取 APK 签名信息。"
             exit 1
