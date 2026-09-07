@@ -834,12 +834,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                                       final scale = isMaterial3
                                                           ? 1.0
                                                           : (1.0 +
-                                                                0.39 *
+                                                                0.06 *
                                                                     pressProgress);
-                                                      final darkBg =
-                                                          (1.0 - pressProgress) *
-                                                              0.10 +
-                                                          pressProgress * 0.03;
                                                       return Transform.scale(
                                                         scale: scale,
                                                         child: ClipRRect(
@@ -851,45 +847,32 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                                               ),
                                                           child: Stack(
                                                             children: [
-                                                              if (!isMaterial3)
-                                                                Positioned.fill(
-                                                                  child: ColoredBox(
-                                                                    color: Colors
-                                                                        .black
-                                                                        .withOpacity(
-                                                                          darkBg,
-                                                                        ),
-                                                                  ),
-                                                                ),
                                                               Positioned.fill(
-                                                                child: ColoredBox(
-                                                                  color:
-                                                                      isMaterial3
-                                                                      ? Theme.of(
-                                                                          context,
-                                                                        ).colorScheme.secondaryContainer
-                                                                      : MiuixTheme.of(
-                                                                          context,
-                                                                        ).colors.primary.withOpacity(
-                                                                          0.12,
-                                                                        ),
+                                                                child: Container(
+                                                                  decoration: BoxDecoration(
+                                                                    color: isMaterial3
+                                                                        ? Theme.of(
+                                                                            context,
+                                                                          ).colorScheme.secondaryContainer
+                                                                        : MiuixTheme.of(
+                                                                            context,
+                                                                          ).colors.primary.withOpacity(
+                                                                            0.12 + 0.04 * pressProgress,
+                                                                          ),
+                                                                    borderRadius: BorderRadius.circular(
+                                                                      isMaterial3 ? 18 : 24,
+                                                                    ),
+                                                                    border: isMaterial3
+                                                                        ? null
+                                                                        : Border.all(
+                                                                            color: MiuixTheme.of(context).colors.primary.withOpacity(
+                                                                              0.16 + 0.08 * pressProgress,
+                                                                            ),
+                                                                            width: 0.8,
+                                                                          ),
+                                                                  ),
                                                                 ),
                                                               ),
-                                                              if (!isMaterial3 &&
-                                                                  pressProgress >
-                                                                      0.01)
-                                                                Positioned.fill(
-                                                                  child: CustomPaint(
-                                                                    painter: _BubbleInnerShadowPainter(
-                                                                      radius:
-                                                                          8.0 *
-                                                                          pressProgress,
-                                                                      alpha:
-                                                                          pressProgress *
-                                                                          0.15,
-                                                                    ),
-                                                                  ),
-                                                                ),
                                                               if (!isMaterial3 &&
                                                                   _showHighlight &&
                                                                   pressProgress >
@@ -1051,49 +1034,6 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
       ),
     );
   }
-}
-
-/// SukiSU-style bubble inner shadow: radius scales with press progress,
-/// color Black.copy(0.15 * alpha).
-class _BubbleInnerShadowPainter extends CustomPainter {
-  const _BubbleInnerShadowPainter({required this.radius, required this.alpha});
-
-  final double radius;
-  final double alpha;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-    if (w <= 0 || h <= 0 || alpha <= 0) return;
-
-    final rrect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(0, 0, w, h),
-      Radius.circular(radius.clamp(0.0, w / 2)),
-    );
-    canvas.save();
-    canvas.clipRRect(rrect);
-
-    final shadowColor = Colors.black.withOpacity(alpha);
-    final topPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment(0, 0.15),
-        colors: [shadowColor, shadowColor.withOpacity(0)],
-      ).createShader(Offset.zero & size);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(0, 0, w, h * 0.12),
-        Radius.circular(radius.clamp(0.0, w / 2)),
-      ),
-      topPaint,
-    );
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant _BubbleInnerShadowPainter oldDelegate) =>
-      radius != oldDelegate.radius || alpha != oldDelegate.alpha;
 }
 
 /// SukiSU InteractiveHighlight: White(0.06*progress) rect (BlendMode.plus) +
