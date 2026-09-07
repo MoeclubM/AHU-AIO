@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../login/login_service.dart';
 import '../../globals.dart' as globals;
+import '../../auth/auth_manager.dart';
 
 bool _isRefreshingToken = false;
 
@@ -85,7 +86,7 @@ Future<bool> _refreshJwappToken() async {
   try {
     final prefs = await SharedPreferences.getInstance();
     final username = prefs.getString('username');
-    final password = prefs.getString('password');
+    final password = await AuthManager().getJwappPassword();
     if (username != null &&
         password != null &&
         username.isNotEmpty &&

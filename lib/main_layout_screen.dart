@@ -63,14 +63,16 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
   @override
   void initState() {
     super.initState();
-    _pageController = PageController();
+    _pageController = PageController(initialPage: 0, keepPage: false);
     _pageController.addListener(() {
-      _pagePercentNotifier.value = _pageController.page ?? 0.0;
+      if (_pageController.hasClients) {
+        _pagePercentNotifier.value = _pageController.page ?? 0.0;
+      }
     });
 
-    _microPageController = PageController();
-    _jwPageController = PageController();
-    _financePageController = PageController();
+    _microPageController = PageController(initialPage: 0, keepPage: false);
+    _jwPageController = PageController(initialPage: 0, keepPage: false);
+    _financePageController = PageController(initialPage: 0, keepPage: false);
 
     _subTabAnimController = AnimationController(
       vsync: this,
@@ -109,8 +111,32 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     super.dispose();
   }
 
+  void _resetToHomeTab() {
+    _currentBottomIndex = 0;
+    _pagePercentNotifier.value = 0.0;
+    _subTabAnimController.value = 1.0;
+    _bubblePressController.value = 0.0;
+    _showHighlight = false;
+    _highlightPosNotifier.value = Offset.zero;
+    _isDraggingBubble = false;
+
+    if (_pageController.hasClients) {
+      _pageController.jumpToPage(0);
+    }
+    if (_microPageController.hasClients) {
+      _microPageController.jumpToPage(0);
+    }
+    if (_jwPageController.hasClients) {
+      _jwPageController.jumpToPage(0);
+    }
+    if (_financePageController.hasClients) {
+      _financePageController.jumpToPage(0);
+    }
+  }
+
   void _onLoginStateChanged() {
     if (mounted) {
+      _resetToHomeTab();
       setState(() {});
     }
   }
@@ -128,6 +154,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     globals.jwLoggedIn = await CasAuthCache.isLoggedIn();
     globals.jwStudentNo = prefs.getString('jwStudentNo');
     if (mounted) {
+      _resetToHomeTab();
       setState(() {
         _isInitializing = false;
       });
@@ -364,33 +391,34 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
   Future<void> _handleTabSwitch(int index) async {
     if (index == _currentBottomIndex) return;
 
-    if (mounted) {
-      _bubblePressController.forward().orCancel.then((_) {
-        if (mounted) {
-          _bubblePressController.reverse();
-        }
-      });
-    }
+    final reduceMotion =
+        MediaQuery.disableAnimationsOf(context) ||
+        View.of(
+          context,
+        ).platformDispatcher.accessibilityFeatures.reduceMotion;
 
-    if (mounted) {
-      final reduceMotion =
-          MediaQuery.disableAnimationsOf(context) ||
-          View.of(
-            context,
-          ).platformDispatcher.accessibilityFeatures.reduceMotion;
-      if (reduceMotion) {
+    setState(() {
+      _currentBottomIndex = index;
+    });
+
+    if (reduceMotion) {
+      _subTabAnimController.value = (index >= 0 && index <= 2) ? 1.0 : 0.0;
+      if (_pageController.hasClients) {
         _pageController.jumpToPage(index);
+      }
+    } else {
+      if (index >= 0 && index <= 2) {
+        _subTabAnimController.forward();
       } else {
+        _subTabAnimController.reverse();
+      }
+      if (_pageController.hasClients) {
         await _pageController.animateToPage(
           index,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
         );
       }
-
-      setState(() {
-        _currentBottomIndex = index;
-      });
     }
   }
 
@@ -419,6 +447,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     if (!isLoggedIn) {
       return UnifiedLoginPage(
         onLoginSuccess: () {
+          _resetToHomeTab();
           setState(() {});
         },
       );
@@ -433,20 +462,22 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
             ),
             controller: _pageController,
             onPageChanged: (index) {
-              setState(() {
-                _currentBottomIndex = index;
-              });
-              if (index >= 0 && index <= 2) {
-                if (reduceMotion) {
-                  _subTabAnimController.value = 1;
+              if (_currentBottomIndex != index) {
+                setState(() {
+                  _currentBottomIndex = index;
+                });
+                if (index >= 0 && index <= 2) {
+                  if (reduceMotion) {
+                    _subTabAnimController.value = 1.0;
+                  } else {
+                    _subTabAnimController.forward();
+                  }
                 } else {
-                  _subTabAnimController.forward();
-                }
-              } else {
-                if (reduceMotion) {
-                  _subTabAnimController.value = 0;
-                } else {
-                  _subTabAnimController.reverse();
+                  if (reduceMotion) {
+                    _subTabAnimController.value = 0.0;
+                  } else {
+                    _subTabAnimController.reverse();
+                  }
                 }
               }
             },
@@ -1022,7 +1053,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
             : AnimatedBuilder(
                 animation: _bubblePressController,
                 builder: (context, child) {
-                  final scale = 1.0 + 0.2 * _bubblePressController.value;
+                  final scale = isSelected
+                      ? (1.0 + 0.05 * _bubblePressController.value)
+                      : 1.0;
                   return Transform.scale(scale: scale, child: child);
                 },
                 child: Column(

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../auth/auth_manager.dart';
 import '../../auth/cas_auth_cache.dart';
 import '../../auth/cas_native_client.dart';
 import '../../jwapp/schedule/semester_config.dart';
@@ -114,7 +115,7 @@ class JwApi {
     try {
       final prefs = await SharedPreferences.getInstance();
       final u = prefs.getString('username');
-      final p = prefs.getString('password');
+      final p = await AuthManager().getJwPassword();
       if (u != null && p != null && u.isNotEmpty && p.isNotEmpty) {
         final cas = CasNativeClient(cookieJar: _cookieJar);
         await cas.login(
