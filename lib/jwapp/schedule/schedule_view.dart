@@ -530,7 +530,8 @@ class _SchedulePageState extends State<SchedulePage> {
           ...List.generate(7, (i) {
             final weekday = i + 1;
             final dayDate = mondayDate?.add(Duration(days: i));
-            final isToday = DateTime.now().weekday == weekday &&
+            final isToday =
+                DateTime.now().weekday == weekday &&
                 selectedWeek == realCurrentWeek;
 
             return Container(
@@ -539,12 +540,14 @@ class _SchedulePageState extends State<SchedulePage> {
               decoration: BoxDecoration(
                 color: isToday
                     ? (isDark
-                        ? theme.colorScheme.primary.withOpacity(0.24)
-                        : theme.colorScheme.primary.withOpacity(0.18))
+                          ? theme.colorScheme.primary.withOpacity(0.24)
+                          : theme.colorScheme.primary.withOpacity(0.18))
                     : null,
                 border: Border(
                   right: BorderSide(
-                    color: theme.colorScheme.outlineVariant.withOpacity(isToday ? 0.65 : 0.4),
+                    color: theme.colorScheme.outlineVariant.withOpacity(
+                      isToday ? 0.65 : 0.4,
+                    ),
                     width: isToday ? 0.8 : 0.5,
                   ),
                 ),
@@ -575,7 +578,9 @@ class _SchedulePageState extends State<SchedulePage> {
                               borderRadius: BorderRadius.circular(10),
                               boxShadow: [
                                 BoxShadow(
-                                  color: theme.colorScheme.primary.withOpacity(0.35),
+                                  color: theme.colorScheme.primary.withOpacity(
+                                    0.35,
+                                  ),
                                   blurRadius: 4,
                                   offset: const Offset(0, 1),
                                 ),
@@ -586,8 +591,9 @@ class _SchedulePageState extends State<SchedulePage> {
                         '${dayDate.day}',
                         style: TextStyle(
                           fontSize: 10,
-                          fontWeight:
-                              isToday ? FontWeight.bold : FontWeight.normal,
+                          fontWeight: isToday
+                              ? FontWeight.bold
+                              : FontWeight.normal,
                           color: isToday
                               ? theme.colorScheme.onPrimary
                               : theme.colorScheme.onSurfaceVariant.withOpacity(
@@ -640,8 +646,7 @@ class _SchedulePageState extends State<SchedulePage> {
             child: Column(
               children: List.generate(totalSlots, (idx) {
                 final slot = idx + 1;
-                final startTime =
-                    TimeUtils.standardUnitStartTimes[slot] ?? '';
+                final startTime = TimeUtils.standardUnitStartTimes[slot] ?? '';
 
                 return Container(
                   height: slotHeight,
@@ -651,7 +656,9 @@ class _SchedulePageState extends State<SchedulePage> {
                       bottom: BorderSide(
                         color: (slot == 4 || slot == 8)
                             ? theme.colorScheme.primary.withOpacity(0.55)
-                            : theme.colorScheme.outlineVariant.withOpacity(0.45),
+                            : theme.colorScheme.outlineVariant.withOpacity(
+                                0.45,
+                              ),
                         width: (slot == 4 || slot == 8) ? 1.2 : 0.6,
                       ),
                     ),
@@ -672,8 +679,9 @@ class _SchedulePageState extends State<SchedulePage> {
                         startTime,
                         style: TextStyle(
                           fontSize: 8.0,
-                          color: theme.colorScheme.onSurfaceVariant
-                              .withOpacity(0.8),
+                          color: theme.colorScheme.onSurfaceVariant.withOpacity(
+                            0.8,
+                          ),
                         ),
                       ),
                     ],
@@ -687,7 +695,8 @@ class _SchedulePageState extends State<SchedulePage> {
           ...List.generate(7, (dayIdx) {
             final weekday = dayIdx + 1;
             final entries = scheduleByDay[weekday] ?? [];
-            final isToday = DateTime.now().weekday == weekday &&
+            final isToday =
+                DateTime.now().weekday == weekday &&
                 selectedWeek == realCurrentWeek;
 
             return Container(
@@ -696,12 +705,14 @@ class _SchedulePageState extends State<SchedulePage> {
               decoration: BoxDecoration(
                 color: isToday
                     ? (isDark
-                        ? theme.colorScheme.primary.withOpacity(0.14)
-                        : theme.colorScheme.primary.withOpacity(0.10))
+                          ? theme.colorScheme.primary.withOpacity(0.14)
+                          : theme.colorScheme.primary.withOpacity(0.10))
                     : null,
                 border: Border(
                   right: BorderSide(
-                    color: theme.colorScheme.outlineVariant.withOpacity(isToday ? 0.65 : 0.45),
+                    color: theme.colorScheme.outlineVariant.withOpacity(
+                      isToday ? 0.65 : 0.45,
+                    ),
                     width: isToday ? 0.8 : 0.6,
                   ),
                 ),
@@ -723,10 +734,14 @@ class _SchedulePageState extends State<SchedulePage> {
                             bottom: BorderSide(
                               color: (slot == 4 || slot == 8)
                                   ? (isToday
-                                      ? theme.colorScheme.primary.withOpacity(0.7)
-                                      : theme.colorScheme.primary.withOpacity(0.5))
+                                        ? theme.colorScheme.primary.withOpacity(
+                                            0.7,
+                                          )
+                                        : theme.colorScheme.primary.withOpacity(
+                                            0.5,
+                                          ))
                                   : theme.colorScheme.outlineVariant
-                                      .withOpacity(isToday ? 0.5 : 0.4),
+                                        .withOpacity(isToday ? 0.5 : 0.4),
                               width: (slot == 4 || slot == 8) ? 1.2 : 0.6,
                             ),
                           ),
@@ -737,25 +752,21 @@ class _SchedulePageState extends State<SchedulePage> {
 
                   // 纵向长条课程卡片
                   ...entries.map((entry) {
-                    final start =
-                        entry.effectiveStartUnit.clamp(1, totalSlots);
+                    final start = entry.effectiveStartUnit.clamp(1, totalSlots);
                     final end = entry.effectiveEndUnit.clamp(start, totalSlots);
                     final span = (end - start + 1).clamp(1, totalSlots);
                     final top = (start - 1) * slotHeight + 1.5;
-                    final cardHeight =
-                        (span * slotHeight - 3.0).clamp(24.0, double.infinity);
+                    final cardHeight = (span * slotHeight - 3.0).clamp(
+                      24.0,
+                      double.infinity,
+                    );
 
                     return Positioned(
                       top: top,
                       left: 1.5,
                       right: 1.5,
                       height: cardHeight,
-                      child: _buildWakeUpCourseCard(
-                        entry,
-                        span,
-                        theme,
-                        isDark,
-                      ),
+                      child: _buildWakeUpCourseCard(entry, span, theme, isDark),
                     );
                   }),
                 ],
@@ -891,9 +902,7 @@ class _SchedulePageState extends State<SchedulePage> {
                         decoration: BoxDecoration(
                           color: bg,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(
-                            color: textColor.withOpacity(0.3),
-                          ),
+                          border: Border.all(color: textColor.withOpacity(0.3)),
                         ),
                         child: Text(
                           '${entry.effectiveStartUnit}-${entry.effectiveEndUnit}节',

@@ -162,7 +162,8 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
       // 如果未曾手动切换学期，默认自动定位到当前教学周所在学期；
       // 若当前教学周未匹配到，则默认定位到列表中的最新学期（first），避免误降级到最旧的 2024 学期
       if (!_isUserManuallySelected || _selectedSemesterId == null) {
-        final targetSemId = matchedCurrentSemId ??
+        final targetSemId =
+            matchedCurrentSemId ??
             (semList.isNotEmpty ? toInt(semList.first['id']) : null) ??
             192; // 默认最新 2026 第一学期
         _selectedSemesterId = targetSemId;
@@ -494,7 +495,9 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
       final code = s['code']?.toString() ?? '';
       final nameZh = s['nameZh']?.toString() ?? '';
       final nameEn = s['nameEn']?.toString() ?? '';
-      if (code == currentName || nameZh == currentName || nameEn == currentName) {
+      if (code == currentName ||
+          nameZh == currentName ||
+          nameEn == currentName) {
         final id = toInt(s['id']);
         if (id != null) return id;
       }
@@ -508,7 +511,8 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
       final semNumZh = semNum == '1' ? '一' : (semNum == '2' ? '二' : '三');
 
       for (final s in semList) {
-        final text = '${s['code']} ${s['nameZh']} ${s['nameEn']} ${s['schoolYear']}';
+        final text =
+            '${s['code']} ${s['nameZh']} ${s['nameEn']} ${s['schoolYear']}';
         if (text.contains(year) &&
             (text.contains(semNum) || text.contains(semNumZh))) {
           final id = toInt(s['id']);
@@ -522,7 +526,8 @@ class _JwSchedulePageState extends State<JwSchedulePage> {
     if (yearMatch != null) {
       final year = yearMatch.group(0)!;
       for (final s in semList) {
-        final text = '${s['code']} ${s['nameZh']} ${s['nameEn']} ${s['schoolYear']}';
+        final text =
+            '${s['code']} ${s['nameZh']} ${s['nameEn']} ${s['schoolYear']}';
         if (text.contains(year)) {
           final id = toInt(s['id']);
           if (id != null) return id;
