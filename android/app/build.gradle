@@ -36,7 +36,7 @@ android {
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
-        versionName = "1.0.7.3"
+        versionName = flutter.versionName
         if (abiFilter != "") {
             ndk {
                 abiFilters abiFilter
@@ -67,7 +67,7 @@ android {
             if (signingConfigs.release.storeFile != null) {
                 signingConfig signingConfigs.release
             } else {
-                signingConfig signingConfigs.debug
+                throw new GradleException("Release keystore 未配置 (KEYSTORE_FILE) — 拒绝用 debug 签名打 release 包。请配置你的 keystore 后再构建。")
             }
         }
     }

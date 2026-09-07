@@ -87,10 +87,16 @@ jobs:
 
       - name: Decode Keystore
         run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > android/app/release-key.jks
-            echo "KEYSTORE_FILE=release-key.jks" >> $GITHUB_ENV
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::KEYSTORE_BASE64 secret 缺失 — release 构建必须使用你的 keystore，拒绝继续。"
+            exit 1
           fi
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/release-key.jks
+          keytool -list -keystore android/app/release-key.jks -storepass "$KEYSTORE_PASSWORD" -alias ahu-aio >/dev/null || {
+            echo "::error::keystore 解码成功但别名 'ahu-aio' 不存在或密码错误。"
+            exit 1
+          }
+          echo "KEYSTORE_FILE=release-key.jks" >> $GITHUB_ENV
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
@@ -104,6 +110,23 @@ jobs:
         env:
           ABI_FILTER: ${{ matrix.abi_filter }}
           KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+
+      - name: Verify APK Signature
+        run: |
+          APK_SIG=$(apksigner verify --print-certs build/app/outputs/flutter-apk/app-release.apk 2>/dev/null | grep -m1 "SHA-256" || echo "")
+          KEYSTORE_SIG=$(keytool -list -keystore android/app/release-key.jks -storepass "$KEYSTORE_PASSWORD" -alias ahu-aio 2>/dev/null | grep -m1 "SHA256" || echo "")
+          echo "APK cert: $APK_SIG"
+          if echo "$APK_SIG" | grep -qi "debug\|androiddebugkey"; then
+            echo "::error::APK 疑似用了 debug 签名，拒绝发布。"
+            exit 1
+          fi
+          if [ -z "$APK_SIG" ]; then
+            echo "::error::无法读取 APK 签名信息。"
+            exit 1
+          fi
+          echo "APK 签名校验通过。"
+        env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
 
       - name: Cleanup Keystore

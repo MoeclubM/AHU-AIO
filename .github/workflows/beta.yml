@@ -70,8 +70,15 @@ jobs:
             COMMITS_SINCE=$(git rev-list --count HEAD)
           fi
           SHORT_HASH=$(git rev-parse --short=7 HEAD)
-          BASE_VERSION=$(grep 'version:' pubspec.yaml | head -1 | sed 's/.*version: *//' | sed 's/+.*//')
-          BUILD_NUMBER=$(grep 'version:' pubspec.yaml | head -1 | sed 's/.*+//')
+          # debug/beta 跟随最新 release tag 版本；无 tag 时回退到 pubspec
+          LATEST_TAG="${LATEST_TAG_REF#v}"
+          if [[ "$LATEST_TAG" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            BASE_VERSION="$LATEST_TAG"
+            BUILD_NUMBER=$((${BASH_REMATCH[1]} * 10000 + ${BASH_REMATCH[2]} * 100 + ${BASH_REMATCH[3]}))
+          else
+            BASE_VERSION=$(grep 'version:' pubspec.yaml | head -1 | sed 's/.*version: *//' | sed 's/+.*//')
+            BUILD_NUMBER=$(grep 'version:' pubspec.yaml | head -1 | sed 's/.*+//')
+          fi
           BETA_VERSION="${BASE_VERSION}-beta.${COMMITS_SINCE}.${SHORT_HASH}"
           echo "version=${BETA_VERSION}" >> $GITHUB_OUTPUT
           echo "build_number=${BUILD_NUMBER}" >> $GITHUB_OUTPUT
@@ -109,10 +116,16 @@ jobs:
 
       - name: Decode Keystore
         run: |
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > android/app/release-key.jks
-            echo "KEYSTORE_FILE=release-key.jks" >> $GITHUB_ENV
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::error::KEYSTORE_BASE64 secret 缺失 — beta 构建必须使用你的 keystore，拒绝继续。"
+            exit 1
           fi
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/release-key.jks
+          keytool -list -keystore android/app/release-key.jks -storepass "$KEYSTORE_PASSWORD" -alias ahu-aio >/dev/null || {
+            echo "::error::keystore 解码成功但别名 'ahu-aio' 不存在或密码错误。"
+            exit 1
+          }
+          echo "KEYSTORE_FILE=release-key.jks" >> $GITHUB_ENV
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
