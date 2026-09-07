@@ -236,6 +236,8 @@ class ScheduleLogic extends GetxController {
     }
   }
 
+  DateTime? get semesterStartDate => _resolveSemesterStartDate();
+
   DateTime? _resolveSemesterStartDate() {
     final semester = selectedSemester.value;
     if (semester != null && semester.startDate.isNotEmpty) {
