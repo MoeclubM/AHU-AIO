@@ -17,6 +17,24 @@ import 'theme_manager.dart';
 class MainLayoutScreen extends StatefulWidget {
   const MainLayoutScreen({super.key});
 
+  /// 计算在给定全局 page 偏移下子标签栏的可见性 (0.0~1.0)
+  /// 在前三个对象（微教务0、安大教务1、一卡通2）之间保持恒为 1.0 连续显示，绝不收起；
+  /// 仅在滑向设置(3)时平滑收起隐藏到底栏后面。
+  static double calculateSubTabVisibility(double page) {
+    if (page <= 2.0) {
+      return 1.0;
+    } else if (page >= 3.0) {
+      return 0.0;
+    } else {
+      final t = page - 2.0;
+      if (t < 0.5) {
+        return 1.0 - 2.0 * t;
+      } else {
+        return 0.0;
+      }
+    }
+  }
+
   @override
   State<MainLayoutScreen> createState() => _MainLayoutScreenState();
 }
@@ -172,7 +190,17 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
 
     if (controller == null) return const SizedBox.shrink();
 
-    return _buildCustomSubTabBar(controller, tabs, activeIndex);
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 200),
+      layoutBuilder: (currentChild, previousChildren) => Stack(
+        fit: StackFit.expand,
+        children: [
+          ...previousChildren,
+          ?currentChild,
+        ],
+      ),
+      child: _buildCustomSubTabBar(controller, tabs, activeIndex),
+    );
   }
 
   Widget _buildCustomSubTabBar(
@@ -333,32 +361,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     );
   }
 
-  double _getSubTabVisibility(double page) {
-    int left = page.floor();
-    int right = page.ceil();
-    double t = page - left;
-
-    bool leftHasSub = left >= 0 && left <= 2;
-    bool rightHasSub = right >= 0 && right <= 2;
-
-    if (leftHasSub && rightHasSub) {
-      return (1.0 - 2.0 * t).abs();
-    } else if (leftHasSub && !rightHasSub) {
-      if (t < 0.5) {
-        return 1.0 - 2.0 * t;
-      } else {
-        return 0.0;
-      }
-    } else if (!leftHasSub && rightHasSub) {
-      if (t > 0.5) {
-        return 2.0 * (t - 0.5);
-      } else {
-        return 0.0;
-      }
-    } else {
-      return 0.0;
-    }
-  }
+  double _getSubTabVisibility(double page) =>
+      MainLayoutScreen.calculateSubTabVisibility(page);
 
   Future<void> _handleTabSwitch(int index) async {
     if (index == _currentBottomIndex) return;

@@ -235,162 +235,21 @@ class _SchedulePageState extends State<SchedulePage> {
                     ),
                   if (errorText.isNotEmpty) _buildErrorNotice(errorText),
                   _buildScheduleTable(),
-                  SizedBox(height: widget.embed ? 116 : 24),
+                  SizedBox(height: widget.embed ? 88 : 20),
                 ],
               ),
             ),
           ),
         );
       }),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: Obx(() {
-        final isLoading = _logic.isLoading.value;
-        return isLoading
-            ? const SizedBox.shrink()
-            : _buildFloatingWeekSelector();
-      }),
     );
-  }
-
-  Widget _buildFloatingWeekSelector() {
-    final selectedWeek = _logic.selectedWeek.value;
-    final highContrast = MediaQuery.highContrastOf(context);
-    final colorScheme = Theme.of(context).colorScheme;
-    final maxWeeks = _logic.availableWeeks.isNotEmpty
-        ? math.max(_logic.availableWeeks.last, 20)
-        : 20;
-
-    return SafeArea(
-      top: false,
-      bottom: true,
-      child: Padding(
-        padding: EdgeInsets.only(bottom: widget.embed ? 116 : 16),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(28),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(
-              sigmaX: highContrast ? 0 : 14,
-              sigmaY: highContrast ? 0 : 14,
-            ),
-            child: Container(
-              height: 52,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              decoration: BoxDecoration(
-                color: highContrast
-                    ? colorScheme.surface.withOpacity(0.96)
-                    : Colors.black.withOpacity(0.22),
-                borderRadius: BorderRadius.circular(28),
-                border: Border.all(
-                  color: highContrast
-                      ? colorScheme.outline
-                      : Colors.white.withOpacity(0.35),
-                  width: 0.8,
-                ),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.chevron_left),
-                    color: highContrast ? colorScheme.onSurface : Colors.white,
-                    onPressed: selectedWeek > 1
-                        ? () => _animateToWeek(selectedWeek - 1)
-                        : null,
-                  ),
-                  GestureDetector(
-                    onTap: _showWeekPicker,
-                    child: Container(
-                      constraints: const BoxConstraints(minWidth: 96),
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '第 $selectedWeek 周',
-                        style:
-                            const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                            ).copyWith(
-                              color: highContrast
-                                  ? colorScheme.onSurface
-                                  : Colors.white,
-                            ),
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.chevron_right),
-                    color: highContrast ? colorScheme.onSurface : Colors.white,
-                    onPressed: selectedWeek < maxWeeks
-                        ? () => _animateToWeek(selectedWeek + 1)
-                        : null,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _showWeekPicker() async {
-    final currentWeek = _logic.selectedWeek.value;
-    final realCurrent = _logic.realCurrentWeek;
-    final maxWeeks = _logic.availableWeeks.isNotEmpty
-        ? math.max(_logic.availableWeeks.last, 20)
-        : 20;
-
-    final selectedWeek = await showModalBottomSheet<int>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) {
-        final bottomPadding = MediaQuery.of(ctx).viewPadding.bottom;
-        return Container(
-          padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomPadding),
-          decoration: BoxDecoration(
-            color: Theme.of(ctx).colorScheme.surface.withOpacity(0.95),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-          ),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: List.generate(maxWeeks, (index) {
-              final week = index + 1;
-              final isSelected = week == currentWeek;
-              final isRealCurrent = week == realCurrent;
-              return ChoiceChip(
-                avatar: isRealCurrent
-                    ? Icon(
-                        Icons.star,
-                        size: 14,
-                        color: isSelected
-                            ? Theme.of(ctx).colorScheme.onPrimary
-                            : Theme.of(ctx).colorScheme.primary,
-                      )
-                    : null,
-                label: Text(
-                  isRealCurrent ? '第 $week 周(本周)' : '第 $week 周',
-                  style: TextStyle(
-                    fontWeight: isRealCurrent
-                        ? FontWeight.bold
-                        : FontWeight.normal,
-                  ),
-                ),
-                selected: isSelected,
-                onSelected: (_) => Navigator.pop(ctx, week),
-              );
-            }),
-          ),
-        );
-      },
-    );
-
-    if (selectedWeek != null && mounted) {
-      _animateToWeek(selectedWeek);
-    }
   }
 
   Widget _buildSelectionArea(bool isLoading) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+
     final semesters = _logic.allSemesters.toList();
     final selectedSemester = _logic.selectedSemester.value;
 
@@ -398,39 +257,151 @@ class _SchedulePageState extends State<SchedulePage> {
       (semester) => semester.id == selectedSemester?.id,
     );
 
+    final currentWeek = _logic.selectedWeek.value;
+    final realCurrent = _logic.realCurrentWeek;
+    final maxWeeks = _logic.availableWeeks.isNotEmpty
+        ? math.max(_logic.availableWeeks.last, 20)
+        : 20;
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: theme.cardColor,
         border: Border(
           bottom: BorderSide(
-            color: Theme.of(
-              context,
-            ).colorScheme.outlineVariant.withOpacity(0.5),
+            color: colorScheme.outlineVariant.withOpacity(0.4),
             width: 0.5,
           ),
         ),
       ),
-      child: DropdownButton<SemesterInfo>(
-        value: semesterValue,
-        isExpanded: true,
-        hint: const Text('请选择学期'),
-        onChanged: isLoading
-            ? null
-            : (value) {
-                if (value != null) {
-                  _logic.selectSemester(value);
-                }
-              },
-        items: semesters
-            .map(
-              (semester) => DropdownMenuItem<SemesterInfo>(
-                value: semester,
-                child: Text(semester.nameZh),
+      child: Row(
+        children: [
+          // 1. 学期选择下拉框 (稍微缩短长度，占左侧约 60%)
+          Expanded(
+            flex: 6,
+            child: Container(
+              height: 38,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? colorScheme.surfaceContainerHighest.withOpacity(0.5)
+                    : colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: colorScheme.outlineVariant.withOpacity(0.35),
+                  width: 0.6,
+                ),
               ),
-            )
-            .toList(),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<SemesterInfo>(
+                  value: semesterValue,
+                  isExpanded: true,
+                  icon: Icon(
+                    Icons.arrow_drop_down_rounded,
+                    color: colorScheme.onSurfaceVariant,
+                    size: 22,
+                  ),
+                  hint: Text(
+                    '请选择学期',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                  onChanged: isLoading
+                      ? null
+                      : (value) {
+                          if (value != null) {
+                            _logic.selectSemester(value);
+                          }
+                        },
+                  items: semesters
+                      .map(
+                        (semester) => DropdownMenuItem<SemesterInfo>(
+                          value: semester,
+                          child: Text(
+                            semester.nameZh,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                              color: colorScheme.onSurface,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          // 2. 周数选择下拉框 (显示当前周并支持快捷切换)
+          Expanded(
+            flex: 4,
+            child: Container(
+              height: 38,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: BoxDecoration(
+                color: isDark
+                    ? colorScheme.surfaceContainerHighest.withOpacity(0.5)
+                    : colorScheme.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: colorScheme.outlineVariant.withOpacity(0.35),
+                  width: 0.6,
+                ),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<int>(
+                  value: (currentWeek >= 1 && currentWeek <= maxWeeks)
+                      ? currentWeek
+                      : 1,
+                  isExpanded: true,
+                  icon: Icon(
+                    Icons.arrow_drop_down_rounded,
+                    color: colorScheme.primary,
+                    size: 22,
+                  ),
+                  onChanged: isLoading
+                      ? null
+                      : (newWeek) {
+                          if (newWeek != null && newWeek != currentWeek) {
+                            _animateToWeek(newWeek);
+                          }
+                        },
+                  items: List.generate(maxWeeks, (index) {
+                    final week = index + 1;
+                    final isReal = week == realCurrent;
+                    return DropdownMenuItem<int>(
+                      value: week,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              isReal ? '第 $week 周(本周)' : '第 $week 周',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: isReal
+                                    ? FontWeight.bold
+                                    : FontWeight.w500,
+                                color: isReal
+                                    ? colorScheme.primary
+                                    : colorScheme.onSurface,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
