@@ -63,7 +63,7 @@ Future<http.Response?> sendRequest(
     if (allowRetry && response.statusCode == 401) {
       final refreshed = await _refreshJwappToken();
       if (refreshed && globals.idToken != null) {
-        return sendRequest(
+        return await sendRequest(
           url,
           globals.idToken!,
           method: method,

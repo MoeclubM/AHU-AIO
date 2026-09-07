@@ -17,6 +17,24 @@ import 'theme_manager.dart';
 class MainLayoutScreen extends StatefulWidget {
   const MainLayoutScreen({super.key});
 
+  /// 计算在给定全局 page 偏移下子标签栏的可见性 (0.0~1.0)
+  /// 在前三个对象（微教务0、安大教务1、一卡通2）之间保持恒为 1.0 连续显示，绝不收起；
+  /// 仅在滑向设置(3)时平滑收起隐藏到底栏后面。
+  static double calculateSubTabVisibility(double page) {
+    if (page <= 2.0) {
+      return 1.0;
+    } else if (page >= 3.0) {
+      return 0.0;
+    } else {
+      final t = page - 2.0;
+      if (t < 0.5) {
+        return 1.0 - 2.0 * t;
+      } else {
+        return 0.0;
+      }
+    }
+  }
+
   @override
   State<MainLayoutScreen> createState() => _MainLayoutScreenState();
 }
@@ -172,7 +190,17 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
 
     if (controller == null) return const SizedBox.shrink();
 
-    return _buildCustomSubTabBar(controller, tabs, activeIndex);
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 200),
+      layoutBuilder: (currentChild, previousChildren) => Stack(
+        fit: StackFit.expand,
+        children: [
+          ...previousChildren,
+          ?currentChild,
+        ],
+      ),
+      child: _buildCustomSubTabBar(controller, tabs, activeIndex),
+    );
   }
 
   Widget _buildCustomSubTabBar(
@@ -333,32 +361,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     );
   }
 
-  double _getSubTabVisibility(double page) {
-    int left = page.floor();
-    int right = page.ceil();
-    double t = page - left;
-
-    bool leftHasSub = left >= 0 && left <= 2;
-    bool rightHasSub = right >= 0 && right <= 2;
-
-    if (leftHasSub && rightHasSub) {
-      return (1.0 - 2.0 * t).abs();
-    } else if (leftHasSub && !rightHasSub) {
-      if (t < 0.5) {
-        return 1.0 - 2.0 * t;
-      } else {
-        return 0.0;
-      }
-    } else if (!leftHasSub && rightHasSub) {
-      if (t > 0.5) {
-        return 2.0 * (t - 0.5);
-      } else {
-        return 0.0;
-      }
-    } else {
-      return 0.0;
-    }
-  }
+  double _getSubTabVisibility(double page) =>
+      MainLayoutScreen.calculateSubTabVisibility(page);
 
   Future<void> _handleTabSwitch(int index) async {
     if (index == _currentBottomIndex) return;
@@ -834,12 +838,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                                       final scale = isMaterial3
                                                           ? 1.0
                                                           : (1.0 +
-                                                                0.39 *
+                                                                0.06 *
                                                                     pressProgress);
-                                                      final darkBg =
-                                                          (1.0 - pressProgress) *
-                                                              0.10 +
-                                                          pressProgress * 0.03;
                                                       return Transform.scale(
                                                         scale: scale,
                                                         child: ClipRRect(
@@ -851,45 +851,32 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                                               ),
                                                           child: Stack(
                                                             children: [
-                                                              if (!isMaterial3)
-                                                                Positioned.fill(
-                                                                  child: ColoredBox(
-                                                                    color: Colors
-                                                                        .black
-                                                                        .withOpacity(
-                                                                          darkBg,
-                                                                        ),
-                                                                  ),
-                                                                ),
                                                               Positioned.fill(
-                                                                child: ColoredBox(
-                                                                  color:
-                                                                      isMaterial3
-                                                                      ? Theme.of(
-                                                                          context,
-                                                                        ).colorScheme.secondaryContainer
-                                                                      : MiuixTheme.of(
-                                                                          context,
-                                                                        ).colors.primary.withOpacity(
-                                                                          0.12,
-                                                                        ),
+                                                                child: Container(
+                                                                  decoration: BoxDecoration(
+                                                                    color: isMaterial3
+                                                                        ? Theme.of(
+                                                                            context,
+                                                                          ).colorScheme.secondaryContainer
+                                                                        : MiuixTheme.of(
+                                                                            context,
+                                                                          ).colors.primary.withOpacity(
+                                                                            0.12 + 0.04 * pressProgress,
+                                                                          ),
+                                                                    borderRadius: BorderRadius.circular(
+                                                                      isMaterial3 ? 18 : 24,
+                                                                    ),
+                                                                    border: isMaterial3
+                                                                        ? null
+                                                                        : Border.all(
+                                                                            color: MiuixTheme.of(context).colors.primary.withOpacity(
+                                                                              0.16 + 0.08 * pressProgress,
+                                                                            ),
+                                                                            width: 0.8,
+                                                                          ),
+                                                                  ),
                                                                 ),
                                                               ),
-                                                              if (!isMaterial3 &&
-                                                                  pressProgress >
-                                                                      0.01)
-                                                                Positioned.fill(
-                                                                  child: CustomPaint(
-                                                                    painter: _BubbleInnerShadowPainter(
-                                                                      radius:
-                                                                          8.0 *
-                                                                          pressProgress,
-                                                                      alpha:
-                                                                          pressProgress *
-                                                                          0.15,
-                                                                    ),
-                                                                  ),
-                                                                ),
                                                               if (!isMaterial3 &&
                                                                   _showHighlight &&
                                                                   pressProgress >
@@ -1051,49 +1038,6 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
       ),
     );
   }
-}
-
-/// SukiSU-style bubble inner shadow: radius scales with press progress,
-/// color Black.copy(0.15 * alpha).
-class _BubbleInnerShadowPainter extends CustomPainter {
-  const _BubbleInnerShadowPainter({required this.radius, required this.alpha});
-
-  final double radius;
-  final double alpha;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-    if (w <= 0 || h <= 0 || alpha <= 0) return;
-
-    final rrect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(0, 0, w, h),
-      Radius.circular(radius.clamp(0.0, w / 2)),
-    );
-    canvas.save();
-    canvas.clipRRect(rrect);
-
-    final shadowColor = Colors.black.withOpacity(alpha);
-    final topPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment(0, 0.15),
-        colors: [shadowColor, shadowColor.withOpacity(0)],
-      ).createShader(Offset.zero & size);
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(0, 0, w, h * 0.12),
-        Radius.circular(radius.clamp(0.0, w / 2)),
-      ),
-      topPaint,
-    );
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant _BubbleInnerShadowPainter oldDelegate) =>
-      radius != oldDelegate.radius || alpha != oldDelegate.alpha;
 }
 
 /// SukiSU InteractiveHighlight: White(0.06*progress) rect (BlendMode.plus) +

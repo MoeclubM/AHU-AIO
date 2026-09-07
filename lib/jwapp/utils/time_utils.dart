@@ -75,39 +75,60 @@ class TimeUtils {
     return timeMinutes >= startMinutes && timeMinutes <= endMinutes;
   }
 
-  /// 安徽大学标准节次对应的开始时间文本 (1..11)
+  /// 安徽大学标准节次对应的开始时间文本 (1..13)
   static const Map<int, String> standardUnitStartTimes = {
     1: '08:00',
     2: '08:50',
     3: '09:50',
     4: '10:40',
-    5: '14:00',
-    6: '14:50',
-    7: '15:50',
-    8: '16:40',
-    9: '19:00',
-    10: '19:55',
-    11: '20:50',
+    5: '11:30',
+    6: '14:00',
+    7: '14:50',
+    8: '15:50',
+    9: '16:40',
+    10: '17:30',
+    11: '19:00',
+    12: '19:50',
+    13: '20:40',
   };
 
-  /// 根据物理时间字符串智能解析起始节次 (1..11)
+  /// 安徽大学标准节次对应的结束时间文本 (1..13)
+  static const Map<int, String> standardUnitEndTimes = {
+    1: '08:45',
+    2: '09:35',
+    3: '10:35',
+    4: '11:25',
+    5: '12:15',
+    6: '14:45',
+    7: '15:35',
+    8: '16:35',
+    9: '17:25',
+    10: '18:15',
+    11: '19:45',
+    12: '20:35',
+    13: '21:25',
+  };
+
+  /// 根据物理时间字符串智能解析起始节次 (1..13)
   static int resolveStartUnit(String startTime) {
     final startMin = timeToMinutes(startTime);
     if (startMin <= 0) return 1;
-    if (startMin <= 515) return 1; // ~08:35 -> 1节 (08:00)
-    if (startMin <= 560) return 2; // ~09:20 -> 2节 (08:50)
-    if (startMin <= 620) return 3; // ~10:20 -> 3节 (09:50)
-    if (startMin <= 750) return 4; // ~12:30 -> 4节 (10:40)
-    if (startMin <= 870) return 5; // ~14:30 -> 5节 (14:00)
-    if (startMin <= 930) return 6; // ~15:30 -> 6节 (14:50)
-    if (startMin <= 980) return 7; // ~16:20 -> 7节 (15:50)
-    if (startMin <= 1080) return 8; // ~18:00 -> 8节 (16:40)
-    if (startMin <= 1170) return 9; // ~19:30 -> 9节 (19:00)
-    if (startMin <= 1220) return 10; // ~20:20 -> 10节 (19:55)
-    return 11; // 20:50 -> 11节
+    if (startMin < 510) return 1; // 08:00
+    if (startMin < 565) return 2; // 08:50
+    if (startMin < 620) return 3; // 09:50
+    if (startMin < 670) return 4; // 10:40
+    if (startMin < 770) return 5; // 11:30
+    if (startMin < 870) return 6; // 14:00
+    if (startMin < 925) return 7; // 14:50
+    if (startMin < 980) return 8; // 15:50
+    if (startMin < 1030) return 9; // 16:40
+    if (startMin < 1100) return 10; // 17:30
+    if (startMin < 1170) return 11; // 19:00
+    if (startMin < 1220) return 12; // 19:50
+    return 13; // 20:40 -> 13节
   }
 
-  /// 根据结束物理时间与起始节次智能解析结束节次 (1..11)
+  /// 根据结束物理时间与起始节次智能解析结束节次 (1..13)
   static int resolveEndUnit(String endTime, int startUnit) {
     final endMin = timeToMinutes(endTime);
     if (endMin <= 0) return startUnit;
@@ -115,15 +136,15 @@ class TimeUtils {
     if (endMin <= 605) return mathMax(2, startUnit); // 09:35 -> 2节
     if (endMin <= 660) return mathMax(3, startUnit); // 10:35 -> 3节
     if (endMin <= 710) return mathMax(4, startUnit); // 11:25 -> 4节
-    if (endMin <= 790) return mathMax(5, startUnit); // 12:15 -> 5节 (上午长课)
-    if (endMin <= 900) return mathMax(5, startUnit); // 14:45 -> 5节
-    if (endMin <= 960) return mathMax(6, startUnit); // 15:35 -> 6节
-    if (endMin <= 1020) return mathMax(7, startUnit); // 16:35 -> 7节
-    if (endMin <= 1070) return mathMax(8, startUnit); // 17:25 -> 8节
-    if (endMin <= 1125) return mathMax(9, startUnit); // 18:15 -> 9节 (下午实验大课)
-    if (endMin <= 1200) return mathMax(9, startUnit); // 19:45 -> 9节
-    if (endMin <= 1260) return mathMax(10, startUnit); // 20:40 -> 10节
-    return mathMax(11, startUnit); // 21:25 / 21:35 -> 11节
+    if (endMin <= 800) return mathMax(5, startUnit); // 12:15 -> 5节 (上午结束)
+    if (endMin <= 910) return mathMax(6, startUnit); // 14:45 -> 6节
+    if (endMin <= 965) return mathMax(7, startUnit); // 15:35 -> 7节
+    if (endMin <= 1020) return mathMax(8, startUnit); // 16:35 -> 8节
+    if (endMin <= 1070) return mathMax(9, startUnit); // 17:25 -> 9节
+    if (endMin <= 1140) return mathMax(10, startUnit); // 18:15 -> 10节 (下午结束)
+    if (endMin <= 1210) return mathMax(11, startUnit); // 19:45 -> 11节
+    if (endMin <= 1260) return mathMax(12, startUnit); // 20:35 -> 12节
+    return mathMax(13, startUnit); // 21:25 -> 13节
   }
 
   static int mathMax(int a, int b) => a > b ? a : b;
