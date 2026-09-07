@@ -183,8 +183,8 @@ class ScheduleLogic extends GetxController {
     return _scheduleService.formatTime(time);
   }
 
-  /// 处理课程数据，根据选择的周数过滤课程
-  Map<int, List<ScheduleEntry>> processClasses() {
+  /// 处理指定周数的课程数据
+  Map<int, List<ScheduleEntry>> processClassesForWeek(int week) {
     int? currentWeekNumber;
     if (currentSemesterInfo.value != null &&
         selectedSemester.value?.id == currentSemesterInfo.value!.id) {
@@ -194,10 +194,15 @@ class ScheduleLogic extends GetxController {
     final semesterStartDate = _resolveSemesterStartDate();
 
     return _scheduleService.buildWeekSchedule(
-      selectedWeek: selectedWeek.value,
+      selectedWeek: week,
       currentWeek: currentWeekNumber,
       semesterStartDate: semesterStartDate,
     );
+  }
+
+  /// 处理课程数据，根据当前选择的周数过滤课程
+  Map<int, List<ScheduleEntry>> processClasses() {
+    return processClassesForWeek(selectedWeek.value);
   }
 
   // 刷新数据

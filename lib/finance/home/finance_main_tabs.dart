@@ -18,9 +18,32 @@ class FinanceMainTabs extends StatefulWidget {
 }
 
 class _FinanceMainTabsState extends State<FinanceMainTabs> {
+  int _currentPage = 0;
+
   @override
   void initState() {
     super.initState();
+    _currentPage = widget.pageController.hasClients
+        ? widget.pageController.page?.round() ?? 0
+        : 0;
+    widget.pageController.addListener(_onPageChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.pageController.removeListener(_onPageChanged);
+    super.dispose();
+  }
+
+  void _onPageChanged() {
+    if (widget.pageController.hasClients) {
+      final newPage = widget.pageController.page?.round() ?? 0;
+      if (newPage != _currentPage) {
+        setState(() {
+          _currentPage = newPage;
+        });
+      }
+    }
   }
 
   @override
@@ -65,7 +88,27 @@ class _FinanceMainTabsState extends State<FinanceMainTabs> {
           '一卡通系统',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
-        actions: const [],
+        actions: [
+          if (_currentPage == 2)
+            Padding(
+              padding: const EdgeInsets.only(right: 24),
+              child: ValueListenableBuilder<bool>(
+                valueListenable: financeRechargeIsListViewNotifier,
+                builder: (context, isListView, _) {
+                  return IconButton(
+                    icon: Icon(
+                      isListView
+                          ? Icons.grid_view_rounded
+                          : Icons.view_list_rounded,
+                      size: 20,
+                    ),
+                    onPressed: FinanceRechargePage.toggleViewMode,
+                    tooltip: isListView ? '切换为网格视图' : '切换为列表视图',
+                  );
+                },
+              ),
+            ),
+        ],
       ),
       body: PageView(
         physics: const NeverScrollableScrollPhysics(

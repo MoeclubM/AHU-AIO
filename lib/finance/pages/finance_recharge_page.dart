@@ -1,13 +1,28 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api/synjones_client.dart';
 import 'finance_recharge_detail_page.dart';
 
+/// 充值缴费页面视图模式通知器（false: 网格大方块, true: 列表左图标右文字）
+final ValueNotifier<bool> financeRechargeIsListViewNotifier =
+    ValueNotifier<bool>(false);
+
 class FinanceRechargePage extends StatefulWidget {
   final bool embed;
   const FinanceRechargePage({super.key, this.embed = false});
+
+  /// 切换列表 / 网格视图模式并持久化存储
+  static Future<void> toggleViewMode() async {
+    final newVal = !financeRechargeIsListViewNotifier.value;
+    financeRechargeIsListViewNotifier.value = newVal;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('finance_recharge_is_list', newVal);
+    } catch (_) {}
+  }
 
   @override
   State<FinanceRechargePage> createState() => _FinanceRechargePageState();
@@ -22,7 +37,16 @@ class _FinanceRechargePageState extends State<FinanceRechargePage> {
   @override
   void initState() {
     super.initState();
+    _loadViewMode();
     _loadEntries();
+  }
+
+  Future<void> _loadViewMode() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final isList = prefs.getBool('finance_recharge_is_list') ?? false;
+      financeRechargeIsListViewNotifier.value = isList;
+    } catch (_) {}
   }
 
   Future<void> _loadEntries() async {
@@ -107,25 +131,60 @@ class _FinanceRechargePageState extends State<FinanceRechargePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: widget.embed ? null : AppBar(title: const Text('充值入口')),
+      appBar: widget.embed
+          ? null
+          : AppBar(
+              title: const Text('充值入口'),
+              actions: [
+                ValueListenableBuilder<bool>(
+                  valueListenable: financeRechargeIsListViewNotifier,
+                  builder: (context, isListView, _) {
+                    return IconButton(
+                      icon: Icon(
+                        isListView
+                            ? Icons.grid_view_rounded
+                            : Icons.view_list_rounded,
+                      ),
+                      onPressed: FinanceRechargePage.toggleViewMode,
+                      tooltip: isListView ? '切换为网格视图' : '切换为列表视图',
+                    );
+                  },
+                ),
+              ],
+            ),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
           ? _buildError()
-          : RefreshIndicator(
-              onRefresh: _loadEntries,
-              child: GridView.builder(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 148),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  childAspectRatio: 1.1,
-                ),
-                itemBuilder: (_, index) => _buildEntry(_entries[index]),
-                itemCount: _entries.length,
-              ),
+          : ValueListenableBuilder<bool>(
+              valueListenable: financeRechargeIsListViewNotifier,
+              builder: (context, isListView, _) {
+                return RefreshIndicator(
+                  onRefresh: _loadEntries,
+                  child: isListView
+                      ? ListView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 148),
+                          itemCount: _entries.length,
+                          itemBuilder: (_, index) =>
+                              _buildListEntry(_entries[index]),
+                        )
+                      : GridView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 148),
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                crossAxisSpacing: 12,
+                                mainAxisSpacing: 12,
+                                childAspectRatio: 1.1,
+                              ),
+                          itemBuilder: (_, index) =>
+                              _buildEntry(_entries[index]),
+                          itemCount: _entries.length,
+                        ),
+                );
+              },
             ),
     );
   }
@@ -203,6 +262,81 @@ class _FinanceRechargePageState extends State<FinanceRechargePage> {
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildListEntry(Map<String, dynamic> entry) {
+    final isCardRecharge = entry['isCardRecharge'] == true;
+    final title = _title(entry);
+
+    IconData iconData = Icons.payment;
+    if (isCardRecharge) {
+      iconData = Icons.credit_card;
+    } else if (title.contains('水')) {
+      iconData = Icons.water_drop;
+    } else if (title.contains('电')) {
+      iconData = Icons.bolt;
+    } else if (title.contains('网') ||
+        title.contains('网络') ||
+        title.contains('宽带')) {
+      iconData = Icons.wifi;
+    }
+
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Card(
+      elevation: 0.5,
+      margin: const EdgeInsets.only(bottom: 10),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: colorScheme.outlineVariant.withOpacity(0.35),
+          width: 0.6,
+        ),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => FinanceRechargeDetailPage(
+                entry: entry,
+                feeitemId: entry['feeitemId'] as int,
+                isCardRecharge: isCardRecharge,
+              ),
+            ),
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              CircleAvatar(
+                radius: 22,
+                backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
+                child: Icon(iconData, color: colorScheme.primary, size: 24),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: colorScheme.onSurfaceVariant.withOpacity(0.4),
+                size: 22,
               ),
             ],
           ),

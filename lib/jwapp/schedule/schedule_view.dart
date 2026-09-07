@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -18,16 +19,27 @@ class SchedulePage extends StatefulWidget {
 
 class _SchedulePageState extends State<SchedulePage> {
   late final ScheduleLogic _logic;
-  double _slotHeight = 50.0;
-  double _baseScaleSlotHeight = 50.0;
+  late final PageController _weekPageController;
+  bool _isPageAnimating = false;
+  double _slotHeight = 58.0;
   bool _isManualScaled = false;
   static const _weekdays = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
 
   @override
   void initState() {
     super.initState();
-    _logic = Get.put(ScheduleLogic());
+    _logic = Get.isRegistered<ScheduleLogic>()
+        ? Get.find<ScheduleLogic>()
+        : Get.put(ScheduleLogic());
+    final initialWeek = (_logic.selectedWeek.value - 1).clamp(0, 24);
+    _weekPageController = PageController(initialPage: initialWeek);
     _loadSavedHeight();
+  }
+
+  @override
+  void dispose() {
+    _weekPageController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadSavedHeight() async {
@@ -37,26 +49,55 @@ class _SchedulePageState extends State<SchedulePage> {
       if (savedHeight != null) {
         setState(() {
           _slotHeight = savedHeight;
-          _baseScaleSlotHeight = savedHeight;
           _isManualScaled = true;
         });
       }
     } catch (_) {}
   }
 
-  /// 自动计算契合屏幕视口高度的节次高度（避免纵向过度拉长）
+  /// 带平滑滚动动画的周数切换
+  Future<void> _animateToWeek(int targetWeek) async {
+    final targetPage = targetWeek - 1;
+    if (!_weekPageController.hasClients) {
+      _logic.selectWeek(targetWeek);
+      return;
+    }
+    final currentPage = _weekPageController.page?.round() ?? targetPage;
+    if (currentPage == targetPage) {
+      _logic.selectWeek(targetWeek);
+      return;
+    }
+
+    _isPageAnimating = true;
+    final distance = (targetPage - currentPage).abs();
+    final duration = Duration(milliseconds: distance > 2 ? 360 : 260);
+    try {
+      await _weekPageController.animateToPage(
+        targetPage,
+        duration: duration,
+        curve: Curves.easeInOutCubic,
+      );
+    } finally {
+      _isPageAnimating = false;
+      _logic.selectWeek(targetWeek);
+    }
+  }
+
+  /// 自动计算契合屏幕视口高度的节次高度（保持自适应前提下拉长约 25%，确保两格长课程信息完整）
   double _getEffectiveSlotHeight(BuildContext context) {
     if (_isManualScaled) return _slotHeight;
     final screenH = MediaQuery.sizeOf(context).height;
     final topPadding = MediaQuery.paddingOf(context).top;
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
-    // 自动适配屏幕：扣除状态栏、顶栏/AppBar、学期选择下拉框、表头以及底部两排导航栏 (约 225px)
-    final available = screenH - topPadding - bottomPadding - 225;
+    // 自动适配屏幕：扣除状态栏、顶栏/AppBar、学期选择下拉框、表头以及底部两排导航栏 (嵌入模式约 225px，非嵌入模式约 120px)
+    final available =
+        screenH - topPadding - bottomPadding - (widget.embed ? 225 : 120);
     if (available > 0) {
-      final calculated = available / 11;
-      return calculated.clamp(44.0, 68.0);
+      // 保持自适应前提下，基准高度拉长约 25% (1.25)，保证 2 格长课程完整展示
+      final calculated = (available / 13) * 1.25;
+      return calculated.clamp(48.0, 78.0);
     }
-    return 48.0;
+    return 58.0;
   }
 
   @override
@@ -113,30 +154,27 @@ class _SchedulePageState extends State<SchedulePage> {
               ),
             ),
       body: Obx(() {
-        final scheduleByDay = _logic.processClasses();
         final isLoading = _logic.isLoading.value;
         final errorText = _logic.errorMessage.value;
-        final hasData = scheduleByDay.values.any(
-          (entries) => entries.isNotEmpty,
-        );
+
+        // 同步 PageController 与 selectedWeek（例如切换学期外部重置周数时）
+        final currentWeek = _logic.selectedWeek.value;
+        if (_weekPageController.hasClients && !_isPageAnimating) {
+          final curPage = _weekPageController.page?.round();
+          if (curPage != null && curPage != currentWeek - 1) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (_weekPageController.hasClients &&
+                  !_isPageAnimating &&
+                  _weekPageController.page?.round() != currentWeek - 1) {
+                _weekPageController.jumpToPage(currentWeek - 1);
+              }
+            });
+          }
+        }
 
         return RefreshIndicator(
           onRefresh: _logic.refreshData,
           child: GestureDetector(
-            onScaleStart: (details) {
-              _baseScaleSlotHeight = _getEffectiveSlotHeight(context);
-            },
-            onScaleUpdate: (details) {
-              final newHeight = (_baseScaleSlotHeight * details.verticalScale)
-                  .clamp(40.0, 160.0);
-              setState(() {
-                _slotHeight = newHeight;
-                _isManualScaled = true;
-              });
-              SharedPreferences.getInstance().then((prefs) {
-                prefs.setDouble('jwapp_schedule_slot_height_v2', newHeight);
-              });
-            },
             onDoubleTap: () {
               // 双击快速恢复为自适应全览高度
               setState(() {
@@ -196,10 +234,8 @@ class _SchedulePageState extends State<SchedulePage> {
                       child: LinearProgressIndicator(),
                     ),
                   if (errorText.isNotEmpty) _buildErrorNotice(errorText),
-                  if (!isLoading && errorText.isEmpty && !hasData)
-                    _buildEmptyNotice(),
-                  if (hasData) _buildScheduleTable(scheduleByDay),
-                  const SizedBox(height: 148),
+                  _buildScheduleTable(),
+                  SizedBox(height: widget.embed ? 116 : 24),
                 ],
               ),
             ),
@@ -209,10 +245,7 @@ class _SchedulePageState extends State<SchedulePage> {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: Obx(() {
         final isLoading = _logic.isLoading.value;
-        final hasData = _logic.processClasses().values.any(
-          (entries) => entries.isNotEmpty,
-        );
-        return isLoading || !hasData
+        return isLoading
             ? const SizedBox.shrink()
             : _buildFloatingWeekSelector();
       }),
@@ -223,11 +256,15 @@ class _SchedulePageState extends State<SchedulePage> {
     final selectedWeek = _logic.selectedWeek.value;
     final highContrast = MediaQuery.highContrastOf(context);
     final colorScheme = Theme.of(context).colorScheme;
+    final maxWeeks = _logic.availableWeeks.isNotEmpty
+        ? math.max(_logic.availableWeeks.last, 20)
+        : 20;
+
     return SafeArea(
       top: false,
       bottom: true,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 148),
+        padding: EdgeInsets.only(bottom: widget.embed ? 116 : 16),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(28),
           child: BackdropFilter(
@@ -257,7 +294,7 @@ class _SchedulePageState extends State<SchedulePage> {
                     icon: const Icon(Icons.chevron_left),
                     color: highContrast ? colorScheme.onSurface : Colors.white,
                     onPressed: selectedWeek > 1
-                        ? () => _logic.selectWeek(selectedWeek - 1)
+                        ? () => _animateToWeek(selectedWeek - 1)
                         : null,
                   ),
                   GestureDetector(
@@ -283,8 +320,8 @@ class _SchedulePageState extends State<SchedulePage> {
                   IconButton(
                     icon: const Icon(Icons.chevron_right),
                     color: highContrast ? colorScheme.onSurface : Colors.white,
-                    onPressed: selectedWeek < 20
-                        ? () => _logic.selectWeek(selectedWeek + 1)
+                    onPressed: selectedWeek < maxWeeks
+                        ? () => _animateToWeek(selectedWeek + 1)
                         : null,
                   ),
                 ],
@@ -299,6 +336,10 @@ class _SchedulePageState extends State<SchedulePage> {
   Future<void> _showWeekPicker() async {
     final currentWeek = _logic.selectedWeek.value;
     final realCurrent = _logic.realCurrentWeek;
+    final maxWeeks = _logic.availableWeeks.isNotEmpty
+        ? math.max(_logic.availableWeeks.last, 20)
+        : 20;
+
     final selectedWeek = await showModalBottomSheet<int>(
       context: context,
       backgroundColor: Colors.transparent,
@@ -313,7 +354,7 @@ class _SchedulePageState extends State<SchedulePage> {
           child: Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: List.generate(20, (index) {
+            children: List.generate(maxWeeks, (index) {
               final week = index + 1;
               final isSelected = week == currentWeek;
               final isRealCurrent = week == realCurrent;
@@ -345,7 +386,7 @@ class _SchedulePageState extends State<SchedulePage> {
     );
 
     if (selectedWeek != null && mounted) {
-      _logic.selectWeek(selectedWeek);
+      _animateToWeek(selectedWeek);
     }
   }
 
@@ -426,58 +467,76 @@ class _SchedulePageState extends State<SchedulePage> {
     );
   }
 
-  Widget _buildEmptyNotice() {
-    final theme = Theme.of(context);
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('本周暂无课程', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Text('请选择其他周次或稍后再试。', style: theme.textTheme.bodyMedium),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// 构建 WakeUp 风格的连续时间轴与纵向长条课程表
-  Widget _buildScheduleTable(Map<int, List<ScheduleEntry>> scheduleByDay) {
+  /// 构建 WakeUp 风格的连续时间轴与纵向长条课程表 (支持横向滑动与平滑滚动动画切换周数)
+  Widget _buildScheduleTable() {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final slotHeight = _getEffectiveSlotHeight(context);
+    const totalSlots = 13;
+    final totalGridHeight = totalSlots * slotHeight;
+    const headerHeight = 48.0;
+    final totalTableHeight = totalGridHeight + headerHeight + 2.0;
+    final maxWeeks = _logic.availableWeeks.isNotEmpty
+        ? math.max(_logic.availableWeeks.last, 20)
+        : 20;
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final totalWidth = constraints.maxWidth;
-        const timeColWidth = 38.0;
+        const timeColWidth = 34.0;
         final dayWidth = (totalWidth - timeColWidth) / 7;
 
-        return Column(
-          children: [
-            // 1. 顶部表头：月份 + 周一至周日及日期 (当天高亮加深)
-            _buildHeader(theme, dayWidth, timeColWidth),
-            // 2. 连续 1..11 节次时间轴 + 7 列纵向长条卡片网格 (自适应视口高度)
-            _buildTimelineGrid(
-              scheduleByDay,
-              dayWidth,
-              timeColWidth,
-              slotHeight,
-              theme,
-              isDark,
-            ),
-          ],
+        return SizedBox(
+          height: totalTableHeight,
+          child: PageView.builder(
+            controller: _weekPageController,
+            itemCount: maxWeeks,
+            physics: const BouncingScrollPhysics(),
+            onPageChanged: (pageIndex) {
+              final newWeek = pageIndex + 1;
+              if (_logic.selectedWeek.value != newWeek) {
+                _logic.selectWeek(newWeek);
+              }
+            },
+            itemBuilder: (context, pageIndex) {
+              final week = pageIndex + 1;
+              final weekSchedule = _logic.processClassesForWeek(week);
+
+              return SingleChildScrollView(
+                physics: const NeverScrollableScrollPhysics(),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 1. 顶部表头：月份 + 周一至周日及日期 (指定周次)
+                    _buildHeader(theme, dayWidth, timeColWidth, week),
+                    // 2. 连续 1..13 节次时间轴 + 7 列纵向长条卡片网格
+                    _buildTimelineGrid(
+                      weekSchedule,
+                      dayWidth,
+                      timeColWidth,
+                      slotHeight,
+                      theme,
+                      isDark,
+                      week,
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         );
       },
     );
   }
 
   /// 构建顶部星期与日期行 (WakeUp 经典表头)
-  Widget _buildHeader(ThemeData theme, double dayWidth, double timeColWidth) {
-    final selectedWeek = _logic.selectedWeek.value;
+  Widget _buildHeader(
+    ThemeData theme,
+    double dayWidth,
+    double timeColWidth, [
+    int? week,
+  ]) {
+    final selectedWeek = week ?? _logic.selectedWeek.value;
     final startDate = _logic.semesterStartDate;
     final realCurrentWeek = _logic.realCurrentWeek;
     final isDark = theme.brightness == Brightness.dark;
@@ -491,6 +550,7 @@ class _SchedulePageState extends State<SchedulePage> {
     final int month = mondayDate?.month ?? DateTime.now().month;
 
     return Container(
+      height: 48.0,
       decoration: BoxDecoration(
         color: theme.cardColor,
         border: Border(
@@ -505,7 +565,7 @@ class _SchedulePageState extends State<SchedulePage> {
           // 左上角月份指示
           Container(
             width: timeColWidth,
-            height: 48,
+            height: 47.2,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               border: Border(
@@ -535,7 +595,7 @@ class _SchedulePageState extends State<SchedulePage> {
 
             return Container(
               width: dayWidth,
-              height: 48,
+              height: 47.2,
               decoration: BoxDecoration(
                 color: isToday
                     ? (isDark
@@ -612,11 +672,12 @@ class _SchedulePageState extends State<SchedulePage> {
     double timeColWidth,
     double slotHeight,
     ThemeData theme,
-    bool isDark,
-  ) {
-    const totalSlots = 11;
+    bool isDark, [
+    int? week,
+  ]) {
+    const totalSlots = 13;
     final totalHeight = totalSlots * slotHeight;
-    final selectedWeek = _logic.selectedWeek.value;
+    final selectedWeek = week ?? _logic.selectedWeek.value;
     final realCurrentWeek = _logic.realCurrentWeek;
 
     return SizedBox(
@@ -624,7 +685,7 @@ class _SchedulePageState extends State<SchedulePage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 左侧连续时间轴 (1..11 节)
+          // 左侧连续时间轴 (1..13 节)
           Container(
             width: timeColWidth,
             height: totalHeight,
@@ -649,10 +710,10 @@ class _SchedulePageState extends State<SchedulePage> {
                   decoration: BoxDecoration(
                     border: Border(
                       bottom: BorderSide(
-                        color: (slot == 4 || slot == 8)
+                        color: (slot == 5 || slot == 10)
                             ? theme.colorScheme.primary.withOpacity(0.55)
                             : theme.colorScheme.outlineVariant.withOpacity(0.45),
-                        width: (slot == 4 || slot == 8) ? 1.2 : 0.6,
+                        width: (slot == 5 || slot == 10) ? 1.2 : 0.6,
                       ),
                     ),
                   ),
@@ -721,13 +782,13 @@ class _SchedulePageState extends State<SchedulePage> {
                         decoration: BoxDecoration(
                           border: Border(
                             bottom: BorderSide(
-                              color: (slot == 4 || slot == 8)
+                              color: (slot == 5 || slot == 10)
                                   ? (isToday
                                       ? theme.colorScheme.primary.withOpacity(0.7)
                                       : theme.colorScheme.primary.withOpacity(0.5))
                                   : theme.colorScheme.outlineVariant
                                       .withOpacity(isToday ? 0.5 : 0.4),
-                              width: (slot == 4 || slot == 8) ? 1.2 : 0.6,
+                              width: (slot == 5 || slot == 10) ? 1.2 : 0.6,
                             ),
                           ),
                         ),
@@ -783,7 +844,7 @@ class _SchedulePageState extends State<SchedulePage> {
         onTap: () => _showCourseDetailsModal(entry, context),
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 3.5, vertical: 4.0),
+          padding: const EdgeInsets.symmetric(horizontal: 2.5, vertical: 3.5),
           decoration: BoxDecoration(
             color: bg,
             borderRadius: BorderRadius.circular(8),
@@ -806,23 +867,23 @@ class _SchedulePageState extends State<SchedulePage> {
               Text(
                 entry.courseName,
                 style: TextStyle(
-                  fontSize: 10.5,
+                  fontSize: 10.0,
                   fontWeight: FontWeight.bold,
                   color: textColor,
-                  height: 1.15,
+                  height: 1.12,
                 ),
                 maxLines: span >= 3 ? 5 : (span >= 2 ? 3 : 2),
                 overflow: TextOverflow.ellipsis,
               ),
               if (entry.roomName.isNotEmpty) ...[
-                const SizedBox(height: 2),
+                const SizedBox(height: 1.5),
                 Text(
                   '@ ${entry.roomName}',
                   style: TextStyle(
-                    fontSize: 9.0,
+                    fontSize: 8.5,
                     fontWeight: FontWeight.w500,
                     color: textColor.withOpacity(0.85),
-                    height: 1.1,
+                    height: 1.08,
                   ),
                   maxLines: span >= 3 ? 3 : (span >= 2 ? 2 : 1),
                   overflow: TextOverflow.ellipsis,
@@ -835,7 +896,7 @@ class _SchedulePageState extends State<SchedulePage> {
                   style: TextStyle(
                     fontSize: 8.5,
                     color: textColor.withOpacity(0.7),
-                    height: 1.1,
+                    height: 1.08,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,

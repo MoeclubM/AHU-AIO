@@ -4,7 +4,7 @@ import '../api/jw_api.dart';
 import '../login/jw_login_service.dart';
 import '../../auth/unified_login_page.dart';
 import '../pages/jw_grades_page.dart';
-import '../pages/jw_schedule_page.dart';
+import '../../jwapp/schedule/schedule_view.dart';
 import '../pages/jw_exam_page.dart';
 import '../pages/jw_program_page.dart';
 import '../pages/jw_student_info_page.dart';
@@ -199,7 +199,7 @@ class _JwHomePageState extends State<JwHomePage> {
       _Feature('我的课表', Icons.schedule, () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const JwSchedulePage()),
+          MaterialPageRoute(builder: (context) => const SchedulePage()),
         );
       }),
       _Feature('考试安排', Icons.quiz, () {

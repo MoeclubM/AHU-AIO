@@ -1,7 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'jw_home_view.dart';
-import '../pages/jw_schedule_page.dart';
+import '../../jwapp/schedule/schedule_view.dart';
 import '../pages/jw_grades_page.dart';
 import '../pages/jw_notice_page.dart';
 import '../pages/jw_program_page.dart';
@@ -90,7 +90,7 @@ class _JwMainTabsState extends State<JwMainTabs> {
         controller: widget.pageController,
         children: const [
           JwHomePage(embed: true),
-          JwSchedulePage(embed: true),
+          SchedulePage(embed: true),
           JwGradesPage(embed: true),
           JwProgramPage(embed: true),
         ],
