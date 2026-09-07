@@ -16,7 +16,8 @@ class FinanceHomePage extends StatefulWidget {
   State<FinanceHomePage> createState() => _FinanceHomePageState();
 }
 
-class _FinanceHomePageState extends State<FinanceHomePage> {
+class _FinanceHomePageState extends State<FinanceHomePage>
+    with AutomaticKeepAliveClientMixin {
   final _client = SynjonesClient();
   bool _isLoading = true;
   String? _error;
@@ -26,12 +27,16 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
   Map<String, dynamic>? _paymentInfo;
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   void initState() {
     super.initState();
     _loadData();
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -45,6 +50,7 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
         _client.getPaymentInfo(),
       ]);
 
+      if (!mounted) return;
       _userInfo = results[0]['data'] as Map<String, dynamic>?;
       _cards = (results[1]['data']?['card'] as List?) ?? [];
       _payments = (results[2]['data'] as List?) ?? [];
@@ -60,6 +66,7 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
       if (unauthorized) {
         _client.accessToken = null;
       }
+      if (!mounted) return;
       setState(() {
         _error = unauthorized ? '登录已过期，请重新登录' : msg;
         _isLoading = false;
@@ -86,6 +93,7 @@ class _FinanceHomePageState extends State<FinanceHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       appBar: widget.embed
           ? null

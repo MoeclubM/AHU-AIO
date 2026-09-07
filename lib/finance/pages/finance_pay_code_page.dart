@@ -16,7 +16,8 @@ class FinancePayCodePage extends StatefulWidget {
   State<FinancePayCodePage> createState() => _FinancePayCodePageState();
 }
 
-class _FinancePayCodePageState extends State<FinancePayCodePage> {
+class _FinancePayCodePageState extends State<FinancePayCodePage>
+    with AutomaticKeepAliveClientMixin {
   final _client = SynjonesClient();
 
   bool _loading = true;
@@ -31,12 +32,16 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
   List<Map<String, dynamic>> _payments = [];
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   void initState() {
     super.initState();
     _load();
   }
 
   Future<void> _load() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -65,6 +70,7 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
         orElse: () => _payments.first,
       );
       final code = await _fetchOneCode(_payment!);
+      if (!mounted) return;
       setState(() {
         _oneCode = code.code;
         _barcode = code.barcode;
@@ -74,6 +80,7 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
         _error = null;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _loading = false;
@@ -157,6 +164,7 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
         throw StateError('当前付款方式已变化，请重新选择付款方式');
       }
       final code = await _fetchOneCode(payment);
+      if (!mounted) return;
       setState(() {
         _payments = payments;
         _payment = payment;
@@ -168,6 +176,7 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
         _error = null;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _refreshing = false;
@@ -194,6 +203,7 @@ class _FinancePayCodePageState extends State<FinancePayCodePage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       appBar: widget.embed ? null : AppBar(title: const Text('一码通')),
       body: _loading

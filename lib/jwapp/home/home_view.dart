@@ -11,14 +11,20 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
+class _HomePageState extends State<HomePage>
+    with WidgetsBindingObserver, AutomaticKeepAliveClientMixin {
+  late final HomePageLogic _logic;
   DateTime? _selectedDate;
   DateTime _lastRefreshDate = DateTime.now();
   bool _isUserSelectedDate = false; // 标记用户是否手动选择了日期
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   void initState() {
     super.initState();
+    _logic = HomePageLogic();
     WidgetsBinding.instance.addObserver(this);
     _lastRefreshDate = DateTime.now();
   }
@@ -26,6 +32,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _logic.dispose();
     super.dispose();
   }
 
@@ -42,8 +49,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void _refreshUpcomingDisplay() {
     if (!mounted) return;
     try {
-      final logic = Provider.of<HomePageLogic>(context, listen: false);
-      logic.refreshDisplay();
+      _logic.refreshDisplay();
     } catch (e) {
       debugPrint('Refresh display skipped: $e');
     }
@@ -82,10 +88,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
       // 触发数据刷新
       try {
-        final logic = Provider.of<HomePageLogic>(context, listen: false);
-        logic.refreshData();
+        _logic.refreshData();
       } catch (e) {
-        // Provider 可能在初始化阶段不可用，忽略错误
         debugPrint('Auto refresh skipped: $e');
       }
     }
@@ -93,8 +97,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => HomePageLogic(),
+    super.build(context);
+    return ChangeNotifierProvider.value(
+      value: _logic,
       child: DefaultTabController(
         length: 2,
         child: Scaffold(

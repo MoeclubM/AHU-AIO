@@ -12,7 +12,8 @@ class GradesPage extends StatefulWidget {
   State<GradesPage> createState() => _GradesPageState();
 }
 
-class _GradesPageState extends State<GradesPage> {
+class _GradesPageState extends State<GradesPage>
+    with AutomaticKeepAliveClientMixin {
   List<GradeModel> _allGrades = [];
   List<GradeModel> _filteredGrades = [];
   Map<String, List<GradeModel>> _groupedGrades = {};
@@ -22,12 +23,16 @@ class _GradesPageState extends State<GradesPage> {
   String? _selectedSemester;
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   void initState() {
     super.initState();
     _loadGrades();
   }
 
   Future<void> _loadGrades() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -35,6 +40,7 @@ class _GradesPageState extends State<GradesPage> {
 
     try {
       final gradesData = await GradeApi.getStudentGrades(globals.idToken!);
+      if (!mounted) return;
       final grades = gradesData
           .map((data) => GradeModel.fromJson(data))
           .where((grade) => grade.courseName.isNotEmpty)
@@ -62,6 +68,7 @@ class _GradesPageState extends State<GradesPage> {
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -84,6 +91,7 @@ class _GradesPageState extends State<GradesPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 

@@ -21,9 +21,13 @@ class MainPage extends StatefulWidget {
   State<MainPage> createState() => _MainPageState();
 }
 
-class _MainPageState extends State<MainPage> {
+class _MainPageState extends State<MainPage>
+    with AutomaticKeepAliveClientMixin {
   int _currentPage = 0;
   final _themeManager = ThemeManager();
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -60,6 +64,7 @@ class _MainPageState extends State<MainPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final showTitle = _themeManager.showAppBarTitle;
     return Scaffold(
       appBar: showTitle

@@ -18,9 +18,13 @@ class FinanceMainTabs extends StatefulWidget {
   State<FinanceMainTabs> createState() => _FinanceMainTabsState();
 }
 
-class _FinanceMainTabsState extends State<FinanceMainTabs> {
+class _FinanceMainTabsState extends State<FinanceMainTabs>
+    with AutomaticKeepAliveClientMixin {
   int _currentPage = 0;
   final _themeManager = ThemeManager();
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -56,6 +60,7 @@ class _FinanceMainTabsState extends State<FinanceMainTabs> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final showTitle = _themeManager.showAppBarTitle;
     return Scaffold(
       appBar: showTitle

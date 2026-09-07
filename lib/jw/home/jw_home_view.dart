@@ -25,7 +25,8 @@ class JwHomePage extends StatefulWidget {
   State<JwHomePage> createState() => _JwHomePageState();
 }
 
-class _JwHomePageState extends State<JwHomePage> {
+class _JwHomePageState extends State<JwHomePage>
+    with AutomaticKeepAliveClientMixin {
   final _api = JwApi();
   Map<String, dynamic>? _teachWeek;
   Map<String, dynamic>? _notices;
@@ -35,6 +36,9 @@ class _JwHomePageState extends State<JwHomePage> {
 
   static const _cacheTeachWeekKey = 'jw_home_teach_week_cache';
   static const _cacheNoticesKey = 'jw_home_notices_cache';
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -61,6 +65,7 @@ class _JwHomePageState extends State<JwHomePage> {
       if (n != null) cachedNotices = jsonDecode(n) as Map<String, dynamic>;
     } catch (_) {}
 
+    if (!mounted) return;
     final hasCache = cachedWeek != null || cachedNotices != null;
     if (hasCache && _teachWeek == null && _notices == null) {
       setState(() {
@@ -135,6 +140,7 @@ class _JwHomePageState extends State<JwHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     // 有缓存时即使 _error != null 也展示缓存 + 顶栏横幅，而非全屏错误
     final hasData = _teachWeek != null || _notices != null;
     final showCachedBanner = _isCached && _error != null && hasData;

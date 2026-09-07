@@ -10,11 +10,15 @@ class JwProgramPage extends StatefulWidget {
   State<JwProgramPage> createState() => _JwProgramPageState();
 }
 
-class _JwProgramPageState extends State<JwProgramPage> {
+class _JwProgramPageState extends State<JwProgramPage>
+    with AutomaticKeepAliveClientMixin {
   final _api = JwApi();
   ProgramModule? _root;
   bool _isLoading = true;
   String? _error;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -23,6 +27,7 @@ class _JwProgramPageState extends State<JwProgramPage> {
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -31,11 +36,13 @@ class _JwProgramPageState extends State<JwProgramPage> {
       // 动态获取 programId，降级使用默认值
       final programId = await _api.fetchProgramId() ?? 3007;
       final raw = await _api.getProgramModules(programId);
+      if (!mounted) return;
       setState(() {
         _root = ProgramModule.fromJson(raw);
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = '加载失败: $e';
         _isLoading = false;
@@ -45,6 +52,7 @@ class _JwProgramPageState extends State<JwProgramPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       appBar: widget.embed ? null : AppBar(title: const Text('培养方案')),
       body: _isLoading
