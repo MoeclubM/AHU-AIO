@@ -41,12 +41,8 @@ class ScheduleEntry {
       startUnit ?? TimeUtils.resolveStartUnit(startTime);
   int get effectiveEndUnit =>
       endUnit ?? TimeUtils.resolveEndUnit(endTime, effectiveStartUnit);
-<<<<<<< HEAD
   int get unitSpan =>
       (effectiveEndUnit - effectiveStartUnit + 1).clamp(1, 13);
-=======
-  int get unitSpan => (effectiveEndUnit - effectiveStartUnit + 1).clamp(1, 11);
->>>>>>> upstream/main
 }
 
 class ScheduleService extends ChangeNotifier {

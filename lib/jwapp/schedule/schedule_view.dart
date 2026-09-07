@@ -717,15 +717,8 @@ class _SchedulePageState extends State<SchedulePage> {
                       bottom: BorderSide(
                         color: (slot == 5 || slot == 10)
                             ? theme.colorScheme.primary.withOpacity(0.55)
-<<<<<<< HEAD
                             : theme.colorScheme.outlineVariant.withOpacity(0.45),
                         width: (slot == 5 || slot == 10) ? 1.2 : 0.6,
-=======
-                            : theme.colorScheme.outlineVariant.withOpacity(
-                                0.45,
-                              ),
-                        width: (slot == 4 || slot == 8) ? 1.2 : 0.6,
->>>>>>> upstream/main
                       ),
                     ),
                   ),
@@ -807,13 +800,8 @@ class _SchedulePageState extends State<SchedulePage> {
                                             0.5,
                                           ))
                                   : theme.colorScheme.outlineVariant
-<<<<<<< HEAD
                                       .withOpacity(isToday ? 0.5 : 0.4),
                               width: (slot == 5 || slot == 10) ? 1.2 : 0.6,
-=======
-                                        .withOpacity(isToday ? 0.5 : 0.4),
-                              width: (slot == 4 || slot == 8) ? 1.2 : 0.6,
->>>>>>> upstream/main
                             ),
                           ),
                         ),
