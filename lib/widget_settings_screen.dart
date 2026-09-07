@@ -223,8 +223,9 @@ class _WidgetSettingsScreenState extends State<WidgetSettingsScreen> {
                     title,
                     style: TextStyle(
                       fontSize: 15,
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.w600,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.w600,
                       color: isSelected ? mc.primary : mc.onSurface,
                     ),
                   ),

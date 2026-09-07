@@ -50,8 +50,10 @@ class _JwMainTabsState extends State<JwMainTabs> {
                 Padding(
                   padding: const EdgeInsets.only(right: 24),
                   child: IconButton(
-                    icon:
-                        const Icon(Icons.notifications_none_outlined, size: 20),
+                    icon: const Icon(
+                      Icons.notifications_none_outlined,
+                      size: 20,
+                    ),
                     onPressed: () {
                       Navigator.push(
                         context,

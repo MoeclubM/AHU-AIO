@@ -69,8 +69,10 @@ class _MainPageState extends State<MainPage> {
                 Padding(
                   padding: const EdgeInsets.only(right: 24),
                   child: IconButton(
-                    icon:
-                        const Icon(Icons.notifications_none_outlined, size: 20),
+                    icon: const Icon(
+                      Icons.notifications_none_outlined,
+                      size: 20,
+                    ),
                     onPressed: () {
                       Navigator.push(
                         context,

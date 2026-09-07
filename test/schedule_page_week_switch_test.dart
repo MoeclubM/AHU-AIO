@@ -38,24 +38,27 @@ void main() {
       ]);
     });
 
-    test('processClassesForWeek filters courses correctly for different weeks', () {
-      final scheduleServiceField = logic.runtimeType;
-      expect(scheduleServiceField, isNotNull);
+    test(
+      'processClassesForWeek filters courses correctly for different weeks',
+      () {
+        final scheduleServiceField = logic.runtimeType;
+        expect(scheduleServiceField, isNotNull);
 
-      // Verify that service buildWeekSchedule works across different weeks
-      final week1 = service.buildWeekSchedule(selectedWeek: 1);
-      expect(week1[1]!.length, 1);
-      expect(week1[1]!.first.courseName, '操作系统');
-      expect(week1[2]!, isEmpty);
+        // Verify that service buildWeekSchedule works across different weeks
+        final week1 = service.buildWeekSchedule(selectedWeek: 1);
+        expect(week1[1]!.length, 1);
+        expect(week1[1]!.first.courseName, '操作系统');
+        expect(week1[2]!, isEmpty);
 
-      final week2 = service.buildWeekSchedule(selectedWeek: 2);
-      expect(week2[1]!.length, 1);
-      expect(week2[2]!.length, 1);
-      expect(week2[2]!.first.courseName, '编译原理');
+        final week2 = service.buildWeekSchedule(selectedWeek: 2);
+        expect(week2[1]!.length, 1);
+        expect(week2[2]!.length, 1);
+        expect(week2[2]!.first.courseName, '编译原理');
 
-      final week4 = service.buildWeekSchedule(selectedWeek: 4);
-      expect(week4[1]!, isEmpty);
-      expect(week4[2]!.length, 1);
-    });
+        final week4 = service.buildWeekSchedule(selectedWeek: 4);
+        expect(week4[1]!, isEmpty);
+        expect(week4[2]!.length, 1);
+      },
+    );
   });
 }

@@ -15,18 +15,21 @@ void main() {
       expect(financeRechargeIsListViewNotifier.value, isFalse);
     });
 
-    test('toggleViewMode toggles state and persists to SharedPreferences', () async {
-      final prefs = await SharedPreferences.getInstance();
+    test(
+      'toggleViewMode toggles state and persists to SharedPreferences',
+      () async {
+        final prefs = await SharedPreferences.getInstance();
 
-      // 切换为列表模式
-      await FinanceRechargePage.toggleViewMode();
-      expect(financeRechargeIsListViewNotifier.value, isTrue);
-      expect(prefs.getBool('finance_recharge_is_list'), isTrue);
+        // 切换为列表模式
+        await FinanceRechargePage.toggleViewMode();
+        expect(financeRechargeIsListViewNotifier.value, isTrue);
+        expect(prefs.getBool('finance_recharge_is_list'), isTrue);
 
-      // 切换回网格模式
-      await FinanceRechargePage.toggleViewMode();
-      expect(financeRechargeIsListViewNotifier.value, isFalse);
-      expect(prefs.getBool('finance_recharge_is_list'), isFalse);
-    });
+        // 切换回网格模式
+        await FinanceRechargePage.toggleViewMode();
+        expect(financeRechargeIsListViewNotifier.value, isFalse);
+        expect(prefs.getBool('finance_recharge_is_list'), isFalse);
+      },
+    );
   });
 }

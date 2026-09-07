@@ -67,8 +67,10 @@ class _FinanceMainTabsState extends State<FinanceMainTabs> {
               centerTitle: true,
               flexibleSpace: SafeArea(
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(99),
                     child: BackdropFilter(
@@ -78,17 +80,15 @@ class _FinanceMainTabsState extends State<FinanceMainTabs> {
                       ),
                       child: Container(
                         decoration: BoxDecoration(
-                          color:
-                              Theme.of(context).colorScheme.surface.withOpacity(
-                                    MediaQuery.highContrastOf(context)
-                                        ? 0.96
-                                        : 0.68,
-                                  ),
+                          color: Theme.of(context).colorScheme.surface
+                              .withOpacity(
+                                MediaQuery.highContrastOf(context)
+                                    ? 0.96
+                                    : 0.68,
+                              ),
                           borderRadius: BorderRadius.circular(99),
                           border: Border.all(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .outlineVariant
+                            color: Theme.of(context).colorScheme.outlineVariant
                                 .withOpacity(
                                   MediaQuery.highContrastOf(context)
                                       ? 0.9

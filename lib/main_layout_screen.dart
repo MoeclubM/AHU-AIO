@@ -194,10 +194,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
       duration: const Duration(milliseconds: 200),
       layoutBuilder: (currentChild, previousChildren) => Stack(
         fit: StackFit.expand,
-        children: [
-          ...previousChildren,
-          ?currentChild,
-        ],
+        children: [...previousChildren, ?currentChild],
       ),
       child: _buildCustomSubTabBar(controller, tabs, activeIndex),
     );
@@ -854,25 +851,37 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                                               Positioned.fill(
                                                                 child: Container(
                                                                   decoration: BoxDecoration(
-                                                                    color: isMaterial3
+                                                                    color:
+                                                                        isMaterial3
                                                                         ? Theme.of(
                                                                             context,
                                                                           ).colorScheme.secondaryContainer
                                                                         : MiuixTheme.of(
                                                                             context,
                                                                           ).colors.primary.withOpacity(
-                                                                            0.12 + 0.04 * pressProgress,
+                                                                            0.12 +
+                                                                                0.04 *
+                                                                                    pressProgress,
                                                                           ),
                                                                     borderRadius: BorderRadius.circular(
-                                                                      isMaterial3 ? 18 : 24,
+                                                                      isMaterial3
+                                                                          ? 18
+                                                                          : 24,
                                                                     ),
-                                                                    border: isMaterial3
+                                                                    border:
+                                                                        isMaterial3
                                                                         ? null
                                                                         : Border.all(
-                                                                            color: MiuixTheme.of(context).colors.primary.withOpacity(
-                                                                              0.16 + 0.08 * pressProgress,
-                                                                            ),
-                                                                            width: 0.8,
+                                                                            color:
+                                                                                MiuixTheme.of(
+                                                                                  context,
+                                                                                ).colors.primary.withOpacity(
+                                                                                  0.16 +
+                                                                                      0.08 *
+                                                                                          pressProgress,
+                                                                                ),
+                                                                            width:
+                                                                                0.8,
                                                                           ),
                                                                   ),
                                                                 ),
