@@ -16,11 +16,24 @@ class FinanceRechargePage extends StatefulWidget {
 
   /// 切换列表 / 网格视图模式并持久化存储
   static Future<void> toggleViewMode() async {
-    final newVal = !financeRechargeIsListViewNotifier.value;
-    financeRechargeIsListViewNotifier.value = newVal;
+    await setViewMode(!financeRechargeIsListViewNotifier.value);
+  }
+
+  /// 设置指定的列表 / 网格视图模式并持久化存储
+  static Future<void> setViewMode(bool isList) async {
+    financeRechargeIsListViewNotifier.value = isList;
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('finance_recharge_is_list', newVal);
+      await prefs.setBool('finance_recharge_is_list', isList);
+    } catch (_) {}
+  }
+
+  /// 读取已保存的视图模式配置
+  static Future<void> loadSavedViewMode() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final isList = prefs.getBool('finance_recharge_is_list') ?? false;
+      financeRechargeIsListViewNotifier.value = isList;
     } catch (_) {}
   }
 
@@ -42,11 +55,7 @@ class _FinanceRechargePageState extends State<FinanceRechargePage> {
   }
 
   Future<void> _loadViewMode() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final isList = prefs.getBool('finance_recharge_is_list') ?? false;
-      financeRechargeIsListViewNotifier.value = isList;
-    } catch (_) {}
+    await FinanceRechargePage.loadSavedViewMode();
   }
 
   Future<void> _loadEntries() async {

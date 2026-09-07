@@ -5,6 +5,7 @@ import 'miuix/miuix_components.dart';
 import 'miuix/liquid_glass_card.dart';
 import 'theme_manager.dart';
 import 'theme_settings_screen.dart';
+import 'widget_settings_screen.dart';
 import 'jw/login/jw_login_service.dart';
 import 'finance/api/synjones_client.dart';
 import 'auth/cas_auth_cache.dart';
@@ -93,6 +94,35 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => const ThemeSettingsScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          const MiuixSmallTitle('控件'),
+          LiquidGlassCard(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Column(
+              children: [
+                MiuixComponent(
+                  title: '控件',
+                  summary: _themeManager.showAppBarTitle
+                      ? '显示Title · 已开启'
+                      : '显示Title · 已关闭',
+                  leading: Icon(Icons.widgets_outlined, color: mc.primary),
+                  trailing: Icon(
+                    Icons.chevron_right,
+                    color: mc.onSurfaceVariantActions,
+                  ),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const WidgetSettingsScreen(),
                       ),
                     );
                   },

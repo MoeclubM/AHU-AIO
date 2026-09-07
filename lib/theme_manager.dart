@@ -74,6 +74,7 @@ class ThemeManager extends ChangeNotifier {
   bool _enableBlur = true;
   bool _enableLiquidGlass = true;
   bool _enableBottomBarTransparent = true;
+  bool _showAppBarTitle = false; // 默认关闭
 
   ColorMode get colorMode => _colorMode;
   Color get keyColor => _keyColor;
@@ -81,6 +82,7 @@ class ThemeManager extends ChangeNotifier {
   bool get enableBlur => _enableBlur;
   bool get enableLiquidGlass => _enableLiquidGlass;
   bool get enableBottomBarTransparent => _enableBottomBarTransparent;
+  bool get showAppBarTitle => _showAppBarTitle;
 
   bool get isMiuix => _uiMode == UiMode.miuix;
   bool get isMaterial3 => _uiMode == UiMode.material3;
@@ -185,6 +187,14 @@ class ThemeManager extends ChangeNotifier {
     await prefs.setBool('enableBottomBarTransparent', value);
   }
 
+  /// 设置主界面是否显示顶部标题栏与通知图标（默认关闭）
+  Future<void> setShowAppBarTitle(bool value) async {
+    _showAppBarTitle = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('showAppBarTitle', value);
+  }
+
   // 兼容旧的 setThemeMode 字符串接口
   Future<void> setThemeMode(String mode) async {
     final cm = switch (mode) {
@@ -220,6 +230,7 @@ class ThemeManager extends ChangeNotifier {
     _enableLiquidGlass = prefs.getBool('enableLiquidGlass') ?? true;
     _enableBottomBarTransparent =
         prefs.getBool('enableBottomBarTransparent') ?? true;
+    _showAppBarTitle = prefs.getBool('showAppBarTitle') ?? false;
     notifyListeners();
   }
 }

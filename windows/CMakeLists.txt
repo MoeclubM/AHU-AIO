@@ -1,5 +1,11 @@
 # Project-level configuration.
 cmake_minimum_required(VERSION 3.14)
+
+# Suppress CMake dev warnings from third-party plugins (equivalent to -Wno-dev)
+# and default CMP0175 to OLD for legacy add_custom_command(TARGET ... DEPENDS).
+set(CMAKE_SUPPRESS_DEVELOPER_WARNINGS 1 CACHE INTERNAL "")
+set(CMAKE_POLICY_DEFAULT_CMP0175 OLD)
+
 project(ahu_aio LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
@@ -9,6 +15,9 @@ set(BINARY_NAME "ahu_aio")
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.
 cmake_policy(VERSION 3.14...3.25)
+if(POLICY CMP0175)
+  cmake_policy(SET CMP0175 OLD)
+endif()
 
 # Define build configuration option.
 get_property(IS_MULTICONFIG GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
