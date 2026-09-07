@@ -900,3 +900,5 @@ CLAUDE.md
 .flutter-plugins-dependencies
 AGENTS.md
 !pubspec.lock
+
+.zcode/

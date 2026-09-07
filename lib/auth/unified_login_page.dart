@@ -5,6 +5,7 @@ import '../jwapp/login/login_service.dart';
 import '../jw/api/jw_api.dart';
 import '../finance/api/synjones_client.dart';
 import 'cas_auth_cache.dart';
+import '../miuix/miuix_components.dart';
 
 class UnifiedLoginPage extends StatefulWidget {
   final VoidCallback? onLoginSuccess;
@@ -348,14 +349,8 @@ class _UnifiedLoginPageState extends State<UnifiedLoginPage> {
                     const SizedBox(height: 24),
                     SizedBox(
                       width: double.infinity,
-                      height: 52,
-                      child: FilledButton.icon(
+                      child: MiuixPrimaryButton(
                         onPressed: _isLoading ? null : _handleLogin,
-                        style: FilledButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
                         icon: _isLoading
                             ? const SizedBox(
                                 height: 20,
@@ -366,7 +361,8 @@ class _UnifiedLoginPageState extends State<UnifiedLoginPage> {
                                 ),
                               )
                             : const Icon(Icons.login_rounded),
-                        label: Text(
+                        minimumSize: const Size.fromHeight(52),
+                        child: Text(
                           _isLoading ? '正在建立连接...' : '一键登录所有系统',
                           style: const TextStyle(
                             fontSize: 16,

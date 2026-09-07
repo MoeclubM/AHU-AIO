@@ -9,6 +9,10 @@ import 'finance/home/finance_main_tabs.dart';
 import 'app_settings_screen.dart';
 import 'auth/unified_login_page.dart';
 import 'auth/cas_auth_cache.dart';
+import 'miuix/miuix_theme.dart';
+import 'miuix/bloom_stroke_painter.dart';
+import 'miuix/liquid_glass_filter.dart';
+import 'theme_manager.dart';
 
 class MainLayoutScreen extends StatefulWidget {
   const MainLayoutScreen({super.key});
@@ -25,6 +29,13 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
   late PageController _pageController;
   final ValueNotifier<double> _pagePercentNotifier = ValueNotifier(0.0);
   bool _isDraggingBubble = false;
+  // SukiSU-style bubble press spring: pressProgress spring(1, 1000).
+  late AnimationController _bubblePressController;
+  // InteractiveHighlight touch position relative to the bubble bar.
+  final ValueNotifier<Offset> _highlightPosNotifier = ValueNotifier(
+    Offset.zero,
+  );
+  bool _showHighlight = false;
   late PageController _microPageController;
   late PageController _jwPageController;
   late PageController _financePageController;
@@ -46,6 +57,11 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     _subTabAnimController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 250),
+    );
+
+    _bubblePressController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
     );
 
     if (_currentBottomIndex >= 0 && _currentBottomIndex <= 2) {
@@ -70,6 +86,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     _jwPageController.dispose();
     _financePageController.dispose();
     _subTabAnimController.dispose();
+    _bubblePressController.dispose();
+    _highlightPosNotifier.dispose();
     super.dispose();
   }
 
@@ -247,7 +265,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                     height: bubbleHeight,
                     child: Container(
                       decoration: BoxDecoration(
-                        color: colorScheme.primary.withOpacity(0.12),
+                        color: MiuixTheme.of(
+                          context,
+                        ).colors.primary.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(20),
                       ),
                     ),
@@ -344,6 +364,14 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     if (index == _currentBottomIndex) return;
 
     if (mounted) {
+      _bubblePressController.forward().orCancel.then((_) {
+        if (mounted) {
+          _bubblePressController.reverse();
+        }
+      });
+    }
+
+    if (mounted) {
       final reduceMotion =
           MediaQuery.disableAnimationsOf(context) ||
           View.of(
@@ -379,6 +407,13 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
         MediaQuery.disableAnimationsOf(context) ||
         View.of(context).platformDispatcher.accessibilityFeatures.reduceMotion;
     final reduceTransparency = MediaQuery.highContrastOf(context);
+    final tm = ThemeManager();
+    final isMaterial3 = tm.isMaterial3;
+    final isTransparentBottomBar =
+        !isMaterial3 && tm.enableBottomBarTransparent && !reduceTransparency;
+    final blurEnabled = !isMaterial3 && tm.enableBlur && isTransparentBottomBar;
+    final glassEnabled =
+        !isMaterial3 && tm.enableLiquidGlass && isTransparentBottomBar;
 
     if (!isLoggedIn) {
       return UnifiedLoginPage(
@@ -457,263 +492,472 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                       Transform.translate(
                         offset: Offset(0, yOffset),
                         child: Padding(
-                          padding: const EdgeInsets.fromLTRB(64, 0, 64, 76),
+                          padding: isMaterial3
+                              ? const EdgeInsets.fromLTRB(16, 0, 16, 68)
+                              : const EdgeInsets.fromLTRB(64, 0, 64, 76),
                           child: ClipRRect(
-                            borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(20),
+                            borderRadius: BorderRadius.circular(
+                              isMaterial3 ? 16 : 28,
                             ),
                             child: BackdropFilter(
-                              filter: ImageFilter.blur(
-                                sigmaX: reduceTransparency ? 0 : 16,
-                                sigmaY: reduceTransparency ? 0 : 16,
-                              ),
+                              filter: blurEnabled
+                                  ? liquidGlassImageFilter(blurSigma: 4)
+                                  : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
                               child: Container(
-                                height: 56,
+                                height: isMaterial3 ? 48 : 56,
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.surface
-                                      .withOpacity(
-                                        reduceTransparency ? 0.96 : 0.08,
-                                      ),
-                                  borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(20),
+                                  color: isMaterial3
+                                      ? Theme.of(
+                                          context,
+                                        ).colorScheme.surfaceContainerHigh
+                                      : (isTransparentBottomBar
+                                            ? (blurEnabled
+                                                  ? MiuixTheme.of(context)
+                                                        .colors
+                                                        .surfaceContainer
+                                                        .withOpacity(0.40)
+                                                  : MiuixTheme.of(context)
+                                                        .colors
+                                                        .surfaceContainer
+                                                        .withOpacity(0.92))
+                                            : MiuixTheme.of(
+                                                context,
+                                              ).colors.surfaceContainer),
+                                  borderRadius: BorderRadius.circular(
+                                    isMaterial3 ? 16 : 28,
                                   ),
-                                  border: Border(
-                                    top: BorderSide(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .outlineVariant
-                                          .withOpacity(
-                                            reduceTransparency ? 0.9 : 0.35,
+                                  border: Border.all(
+                                    color: isMaterial3
+                                        ? Theme.of(context)
+                                              .colorScheme
+                                              .outlineVariant
+                                              .withOpacity(0.5)
+                                        : MiuixTheme.of(
+                                            context,
+                                          ).colors.outline.withOpacity(
+                                            isTransparentBottomBar
+                                                ? (reduceTransparency
+                                                      ? 0.9
+                                                      : 0.5)
+                                                : 0.8,
                                           ),
-                                      width: 0.8,
-                                    ),
-                                    left: BorderSide(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .outlineVariant
-                                          .withOpacity(
-                                            reduceTransparency ? 0.9 : 0.35,
-                                          ),
-                                      width: 0.8,
-                                    ),
-                                    right: BorderSide(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .outlineVariant
-                                          .withOpacity(
-                                            reduceTransparency ? 0.9 : 0.35,
-                                          ),
-                                      width: 0.8,
-                                    ),
-                                    bottom: BorderSide.none,
+                                    width: 0.5,
                                   ),
                                 ),
-                                child: _buildSubTabBarChild(currentPage),
+                                child: Stack(
+                                  children: [
+                                    Positioned.fill(
+                                      child: _buildSubTabBarChild(currentPage),
+                                    ),
+                                    if (glassEnabled)
+                                      Positioned.fill(
+                                        child: BloomStrokeLayer(
+                                          radius: 28,
+                                          isDark:
+                                              Theme.of(context).brightness ==
+                                              Brightness.dark,
+                                          enabled: glassEnabled,
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+                        padding: isMaterial3
+                            ? EdgeInsets.zero
+                            : const EdgeInsets.fromLTRB(24, 0, 24, 12),
                         child: Container(
                           decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(32),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.06),
-                                blurRadius: 16,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
+                            borderRadius: isMaterial3
+                                ? BorderRadius.zero
+                                : BorderRadius.circular(32),
+                            boxShadow: isMaterial3
+                                ? [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, -2),
+                                    ),
+                                  ]
+                                : [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(
+                                        isTransparentBottomBar ? 0.06 : 0.12,
+                                      ),
+                                      blurRadius: isTransparentBottomBar
+                                          ? 16
+                                          : 20,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
                           ),
                           child: ClipRRect(
-                            borderRadius: BorderRadius.circular(32),
+                            borderRadius: isMaterial3
+                                ? BorderRadius.zero
+                                : BorderRadius.circular(32),
                             child: BackdropFilter(
-                              filter: ImageFilter.blur(
-                                sigmaX: reduceTransparency ? 0 : 16,
-                                sigmaY: reduceTransparency ? 0 : 16,
-                              ),
+                              filter: blurEnabled
+                                  ? liquidGlassImageFilter(blurSigma: 4)
+                                  : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
                               child: Container(
                                 height: 64,
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.surface
-                                      .withOpacity(
-                                        reduceTransparency ? 0.96 : 0.08,
-                                      ),
-                                  borderRadius: BorderRadius.circular(32),
-                                  border: Border.all(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .outlineVariant
-                                        .withOpacity(
-                                          reduceTransparency ? 0.9 : 0.35,
+                                  color: isMaterial3
+                                      ? Theme.of(
+                                          context,
+                                        ).colorScheme.surfaceContainer
+                                      : (isTransparentBottomBar
+                                            ? (blurEnabled
+                                                  ? MiuixTheme.of(context)
+                                                        .colors
+                                                        .surfaceContainer
+                                                        .withOpacity(0.40)
+                                                  : MiuixTheme.of(context)
+                                                        .colors
+                                                        .surfaceContainer
+                                                        .withOpacity(0.92))
+                                            : MiuixTheme.of(
+                                                context,
+                                              ).colors.surfaceContainer),
+                                  borderRadius: isMaterial3
+                                      ? BorderRadius.zero
+                                      : BorderRadius.circular(32),
+                                  border: isMaterial3
+                                      ? Border(
+                                          top: BorderSide(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .outlineVariant
+                                                .withOpacity(0.4),
+                                            width: 0.5,
+                                          ),
+                                        )
+                                      : Border.all(
+                                          color: MiuixTheme.of(context)
+                                              .colors
+                                              .outline
+                                              .withOpacity(
+                                                isTransparentBottomBar
+                                                    ? (reduceTransparency
+                                                          ? 0.9
+                                                          : 0.5)
+                                                    : 0.8,
+                                              ),
+                                          width: 0.5,
                                         ),
-                                    width: 0.8,
-                                  ),
                                 ),
-                                child: LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    final double totalWidth =
-                                        constraints.maxWidth;
-                                    final double tabWidth = totalWidth / 4;
-                                    final double bubbleWidth = tabWidth - 8;
-                                    final double bubbleHeight = 48;
+                                child: Stack(
+                                  children: [
+                                    Positioned.fill(
+                                      child: LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          final double totalWidth =
+                                              constraints.maxWidth;
+                                          final double tabWidth =
+                                              totalWidth / 4;
+                                          final double bubbleWidth = isMaterial3
+                                              ? (tabWidth - 16)
+                                              : (tabWidth - 8);
+                                          final double bubbleHeight =
+                                              isMaterial3 ? 36 : 48;
 
-                                    return GestureDetector(
-                                      behavior: HitTestBehavior.translucent,
-                                      onHorizontalDragStart: (details) {
-                                        final double bubbleLeft =
-                                            currentPage * tabWidth +
-                                            (tabWidth - bubbleWidth) / 2;
-                                        final double bubbleRight =
-                                            bubbleLeft + bubbleWidth;
-                                        final double touchX =
-                                            details.localPosition.dx;
-                                        _isDraggingBubble =
-                                            touchX >= bubbleLeft &&
-                                            touchX <= bubbleRight;
-                                        if (_isDraggingBubble &&
-                                            _pageController.hasClients) {
-                                          (_pageController.position
-                                                  as ScrollPositionWithSingleContext)
-                                              .goIdle();
-                                        }
-                                      },
-                                      onHorizontalDragUpdate: (details) {
-                                        if (!_isDraggingBubble) return;
-                                        if (!_pageController.hasClients) return;
-                                        final position =
-                                            _pageController.position;
-                                        final double pageViewWidth =
-                                            position.viewportDimension;
-                                        final double dragDelta =
-                                            details.delta.dx;
-                                        double targetOffset =
-                                            _pageController.offset +
-                                            dragDelta *
-                                                (pageViewWidth / tabWidth);
-                                        if (targetOffset <
-                                            position.minScrollExtent) {
-                                          final overshoot =
-                                              targetOffset -
-                                              position.minScrollExtent;
-                                          targetOffset =
-                                              position.minScrollExtent +
-                                              (overshoot *
-                                                      pageViewWidth *
-                                                      0.55) /
-                                                  (pageViewWidth +
-                                                      0.55 * overshoot.abs());
-                                        } else if (targetOffset >
-                                            position.maxScrollExtent) {
-                                          final overshoot =
-                                              targetOffset -
-                                              position.maxScrollExtent;
-                                          targetOffset =
-                                              position.maxScrollExtent +
-                                              (overshoot *
-                                                      pageViewWidth *
-                                                      0.55) /
-                                                  (pageViewWidth +
-                                                      0.55 * overshoot.abs());
-                                        }
-                                        _pageController.jumpTo(targetOffset);
-                                      },
-                                      onHorizontalDragEnd: (details) {
-                                        if (!_isDraggingBubble) return;
-                                        if (!_pageController.hasClients) return;
-                                        if (reduceMotion) {
-                                          _pageController.jumpToPage(
-                                            (_pageController.page ?? 0.0)
-                                                .round()
-                                                .clamp(0, 3),
-                                          );
-                                        } else {
-                                          final position =
-                                              _pageController.position
-                                                  as ScrollPositionWithSingleContext;
-                                          position.goBallistic(
-                                            details
-                                                    .velocity
-                                                    .pixelsPerSecond
-                                                    .dx *
-                                                (position.viewportDimension /
-                                                    tabWidth),
-                                          );
-                                        }
-                                        _isDraggingBubble = false;
-                                      },
-                                      onHorizontalDragCancel: () {
-                                        if (!_isDraggingBubble ||
-                                            !_pageController.hasClients) {
-                                          return;
-                                        }
-                                        if (reduceMotion) {
-                                          _pageController.jumpToPage(
-                                            (_pageController.page ?? 0.0)
-                                                .round()
-                                                .clamp(0, 3),
-                                          );
-                                        } else {
-                                          (_pageController.position
-                                                  as ScrollPositionWithSingleContext)
-                                              .goBallistic(0);
-                                        }
-                                        _isDraggingBubble = false;
-                                      },
-                                      child: Stack(
-                                        children: [
-                                          Positioned(
-                                            left:
-                                                currentPage * tabWidth +
-                                                (tabWidth - bubbleWidth) / 2,
-                                            top: (64 - bubbleHeight) / 2,
-                                            width: bubbleWidth,
-                                            height: bubbleHeight,
-                                            child: Container(
-                                              decoration: BoxDecoration(
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .primary
-                                                    .withOpacity(0.12),
-                                                borderRadius:
-                                                    BorderRadius.circular(24),
-                                              ),
+                                          return GestureDetector(
+                                            behavior:
+                                                HitTestBehavior.translucent,
+                                            onHorizontalDragStart: isMaterial3
+                                                ? null
+                                                : (details) {
+                                                    final double bubbleLeft =
+                                                        currentPage * tabWidth +
+                                                        (tabWidth -
+                                                                bubbleWidth) /
+                                                            2;
+                                                    final double bubbleRight =
+                                                        bubbleLeft +
+                                                        bubbleWidth;
+                                                    final double touchX =
+                                                        details
+                                                            .localPosition
+                                                            .dx;
+                                                    _isDraggingBubble =
+                                                        touchX >= bubbleLeft &&
+                                                        touchX <= bubbleRight;
+                                                    if (_isDraggingBubble &&
+                                                        _pageController
+                                                            .hasClients) {
+                                                      (_pageController.position
+                                                              as ScrollPositionWithSingleContext)
+                                                          .goIdle();
+                                                    }
+                                                    _showHighlight = true;
+                                                    _highlightPosNotifier
+                                                            .value =
+                                                        details.localPosition;
+                                                    _bubblePressController
+                                                        .forward();
+                                                  },
+                                            onHorizontalDragUpdate: (details) {
+                                              if (!_isDraggingBubble) return;
+                                              _highlightPosNotifier.value =
+                                                  details.localPosition;
+                                              if (!_pageController.hasClients) {
+                                                return;
+                                              }
+                                              final position =
+                                                  _pageController.position;
+                                              final double pageViewWidth =
+                                                  position.viewportDimension;
+                                              final double dragDelta =
+                                                  details.delta.dx;
+                                              double targetOffset =
+                                                  _pageController.offset +
+                                                  dragDelta *
+                                                      (pageViewWidth /
+                                                          tabWidth);
+                                              if (targetOffset <
+                                                  position.minScrollExtent) {
+                                                final overshoot =
+                                                    targetOffset -
+                                                    position.minScrollExtent;
+                                                targetOffset =
+                                                    position.minScrollExtent +
+                                                    (overshoot *
+                                                            pageViewWidth *
+                                                            0.55) /
+                                                        (pageViewWidth +
+                                                            0.55 *
+                                                                overshoot
+                                                                    .abs());
+                                              } else if (targetOffset >
+                                                  position.maxScrollExtent) {
+                                                final overshoot =
+                                                    targetOffset -
+                                                    position.maxScrollExtent;
+                                                targetOffset =
+                                                    position.maxScrollExtent +
+                                                    (overshoot *
+                                                            pageViewWidth *
+                                                            0.55) /
+                                                        (pageViewWidth +
+                                                            0.55 *
+                                                                overshoot
+                                                                    .abs());
+                                              }
+                                              _pageController.jumpTo(
+                                                targetOffset,
+                                              );
+                                            },
+                                            onHorizontalDragEnd: (details) {
+                                              if (!_isDraggingBubble) return;
+                                              if (!_pageController.hasClients) {
+                                                return;
+                                              }
+                                              if (reduceMotion) {
+                                                _pageController.jumpToPage(
+                                                  (_pageController.page ?? 0.0)
+                                                      .round()
+                                                      .clamp(0, 3),
+                                                );
+                                              } else {
+                                                final position =
+                                                    _pageController.position
+                                                        as ScrollPositionWithSingleContext;
+                                                position.goBallistic(
+                                                  details
+                                                          .velocity
+                                                          .pixelsPerSecond
+                                                          .dx *
+                                                      (position
+                                                              .viewportDimension /
+                                                          tabWidth),
+                                                );
+                                              }
+                                              _isDraggingBubble = false;
+                                              _showHighlight = false;
+                                              _highlightPosNotifier.value =
+                                                  Offset.zero;
+                                              if (mounted) {
+                                                _bubblePressController
+                                                    .reverse();
+                                              }
+                                            },
+                                            onHorizontalDragCancel: () {
+                                              if (!_isDraggingBubble ||
+                                                  !_pageController.hasClients) {
+                                                return;
+                                              }
+                                              if (reduceMotion) {
+                                                _pageController.jumpToPage(
+                                                  (_pageController.page ?? 0.0)
+                                                      .round()
+                                                      .clamp(0, 3),
+                                                );
+                                              } else {
+                                                (_pageController.position
+                                                        as ScrollPositionWithSingleContext)
+                                                    .goBallistic(0);
+                                              }
+                                              _isDraggingBubble = false;
+                                              _showHighlight = false;
+                                              _highlightPosNotifier.value =
+                                                  Offset.zero;
+                                              if (mounted) {
+                                                _bubblePressController
+                                                    .reverse();
+                                              }
+                                            },
+                                            child: Stack(
+                                              children: [
+                                                Positioned(
+                                                  left:
+                                                      currentPage * tabWidth +
+                                                      (tabWidth - bubbleWidth) /
+                                                          2,
+                                                  top: (64 - bubbleHeight) / 2,
+                                                  width: bubbleWidth,
+                                                  height: bubbleHeight,
+                                                  child: AnimatedBuilder(
+                                                    animation: Listenable.merge(
+                                                      [
+                                                        _bubblePressController,
+                                                        _highlightPosNotifier,
+                                                      ],
+                                                    ),
+                                                    builder: (context, _) {
+                                                      final pressProgress =
+                                                          _bubblePressController
+                                                              .value;
+                                                      final scale = isMaterial3
+                                                          ? 1.0
+                                                          : (1.0 +
+                                                                0.39 *
+                                                                    pressProgress);
+                                                      final darkBg =
+                                                          (1.0 - pressProgress) *
+                                                              0.10 +
+                                                          pressProgress * 0.03;
+                                                      return Transform.scale(
+                                                        scale: scale,
+                                                        child: ClipRRect(
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                                isMaterial3
+                                                                    ? 18
+                                                                    : 24,
+                                                              ),
+                                                          child: Stack(
+                                                            children: [
+                                                              if (!isMaterial3)
+                                                                Positioned.fill(
+                                                                  child: ColoredBox(
+                                                                    color: Colors
+                                                                        .black
+                                                                        .withOpacity(
+                                                                          darkBg,
+                                                                        ),
+                                                                  ),
+                                                                ),
+                                                              Positioned.fill(
+                                                                child: ColoredBox(
+                                                                  color:
+                                                                      isMaterial3
+                                                                      ? Theme.of(
+                                                                          context,
+                                                                        ).colorScheme.secondaryContainer
+                                                                      : MiuixTheme.of(
+                                                                          context,
+                                                                        ).colors.primary.withOpacity(
+                                                                          0.12,
+                                                                        ),
+                                                                ),
+                                                              ),
+                                                              if (!isMaterial3 &&
+                                                                  pressProgress >
+                                                                      0.01)
+                                                                Positioned.fill(
+                                                                  child: CustomPaint(
+                                                                    painter: _BubbleInnerShadowPainter(
+                                                                      radius:
+                                                                          8.0 *
+                                                                          pressProgress,
+                                                                      alpha:
+                                                                          pressProgress *
+                                                                          0.15,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              if (!isMaterial3 &&
+                                                                  _showHighlight &&
+                                                                  pressProgress >
+                                                                      0.01)
+                                                                Positioned.fill(
+                                                                  child: CustomPaint(
+                                                                    painter: _InteractiveHighlightPainter(
+                                                                      position:
+                                                                          _highlightPosNotifier
+                                                                              .value,
+                                                                      progress:
+                                                                          pressProgress,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      );
+                                                    },
+                                                  ),
+                                                ),
+                                                Row(
+                                                  children: [
+                                                    _buildTabItem(
+                                                      0,
+                                                      Icons.bolt_outlined,
+                                                      Icons.bolt,
+                                                      '微教务',
+                                                    ),
+                                                    _buildTabItem(
+                                                      1,
+                                                      Icons.school_outlined,
+                                                      Icons.school,
+                                                      '安大教务',
+                                                    ),
+                                                    _buildTabItem(
+                                                      2,
+                                                      Icons
+                                                          .credit_card_outlined,
+                                                      Icons.credit_card,
+                                                      '一卡通',
+                                                    ),
+                                                    _buildTabItem(
+                                                      3,
+                                                      Icons.settings_outlined,
+                                                      Icons.settings,
+                                                      '设置',
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
                                             ),
-                                          ),
-                                          Row(
-                                            children: [
-                                              _buildTabItem(
-                                                0,
-                                                Icons.bolt_outlined,
-                                                Icons.bolt,
-                                                '微教务',
-                                              ),
-                                              _buildTabItem(
-                                                1,
-                                                Icons.school_outlined,
-                                                Icons.school,
-                                                '安大教务',
-                                              ),
-                                              _buildTabItem(
-                                                2,
-                                                Icons.credit_card_outlined,
-                                                Icons.credit_card,
-                                                '一卡通',
-                                              ),
-                                              _buildTabItem(
-                                                3,
-                                                Icons.settings_outlined,
-                                                Icons.settings,
-                                                '设置',
-                                              ),
-                                            ],
-                                          ),
-                                        ],
+                                          );
+                                        },
                                       ),
-                                    );
-                                  },
+                                    ),
+                                    if (glassEnabled)
+                                      Positioned.fill(
+                                        child: BloomStrokeLayer(
+                                          radius: 32,
+                                          isDark:
+                                              Theme.of(context).brightness ==
+                                              Brightness.dark,
+                                          enabled: glassEnabled,
+                                        ),
+                                      ),
+                                  ],
                                 ),
                               ),
                             ),
@@ -739,36 +983,161 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
   ) {
     final bool isSelected = _currentBottomIndex == index;
     final colorScheme = Theme.of(context).colorScheme;
+    final isMaterial3 = ThemeManager().isMaterial3;
     return Expanded(
       child: InkWell(
         onTap: () => _handleTabSwitch(index),
         borderRadius: BorderRadius.circular(32),
         highlightColor: Colors.transparent,
         splashColor: colorScheme.primary.withOpacity(0.1),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              isSelected ? activeIcon : icon,
-              color: isSelected
-                  ? colorScheme.primary
-                  : colorScheme.onSurfaceVariant.withOpacity(0.7),
-              size: 20,
-            ),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 10.5,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected
-                    ? colorScheme.primary
-                    : colorScheme.onSurfaceVariant.withOpacity(0.7),
+        child: isMaterial3
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    isSelected ? activeIcon : icon,
+                    color: isSelected
+                        ? colorScheme.primary
+                        : colorScheme.onSurfaceVariant,
+                    size: 22,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
+                      color: isSelected
+                          ? colorScheme.primary
+                          : colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              )
+            : AnimatedBuilder(
+                animation: _bubblePressController,
+                builder: (context, child) {
+                  final scale = 1.0 + 0.2 * _bubblePressController.value;
+                  return Transform.scale(scale: scale, child: child);
+                },
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      isSelected ? activeIcon : icon,
+                      color: isSelected
+                          ? colorScheme.primary
+                          : colorScheme.onSurfaceVariant.withOpacity(0.7),
+                      size: 20,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: isSelected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                        color: isSelected
+                            ? colorScheme.primary
+                            : colorScheme.onSurfaceVariant.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
+}
+
+/// SukiSU-style bubble inner shadow: radius scales with press progress,
+/// color Black.copy(0.15 * alpha).
+class _BubbleInnerShadowPainter extends CustomPainter {
+  const _BubbleInnerShadowPainter({required this.radius, required this.alpha});
+
+  final double radius;
+  final double alpha;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    if (w <= 0 || h <= 0 || alpha <= 0) return;
+
+    final rrect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, w, h),
+      Radius.circular(radius.clamp(0.0, w / 2)),
+    );
+    canvas.save();
+    canvas.clipRRect(rrect);
+
+    final shadowColor = Colors.black.withOpacity(alpha);
+    final topPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment(0, 0.15),
+        colors: [shadowColor, shadowColor.withOpacity(0)],
+      ).createShader(Offset.zero & size);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(0, 0, w, h * 0.12),
+        Radius.circular(radius.clamp(0.0, w / 2)),
+      ),
+      topPaint,
+    );
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _BubbleInnerShadowPainter oldDelegate) =>
+      radius != oldDelegate.radius || alpha != oldDelegate.alpha;
+}
+
+/// SukiSU InteractiveHighlight: White(0.06*progress) rect (BlendMode.plus) +
+/// radial White(0.12*progress) glow at touch position, radius = minDim*1.2.
+class _InteractiveHighlightPainter extends CustomPainter {
+  const _InteractiveHighlightPainter({
+    required this.position,
+    required this.progress,
+  });
+
+  final Offset position;
+  final double progress;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.width <= 0 || size.height <= 0 || progress <= 0) return;
+
+    // Base white wash: White.copy(0.06 * progress)
+    final baseWash = Paint()
+      ..color = Colors.white.withOpacity(0.06 * progress)
+      ..blendMode = BlendMode.plus;
+    canvas.drawRect(Offset.zero & size, baseWash);
+
+    // Radial glow: White.copy(0.12 * progress), radius = minDim * 1.2
+    final clampedX = position.dx.clamp(0.0, size.width);
+    final clampedY = position.dy.clamp(0.0, size.height);
+    final glowPaint = Paint()
+      ..shader = RadialGradient(
+        center: FractionalOffset.fromOffsetAndRect(
+          Offset(clampedX, clampedY),
+          Offset.zero & size,
+        ),
+        radius: 1.0,
+        colors: [
+          Colors.white.withOpacity(0.12 * progress),
+          Colors.white.withOpacity(0.0),
+        ],
+        stops: const [0.0, 1.0],
+      ).createShader(Offset.zero & size)
+      ..blendMode = BlendMode.plus;
+    canvas.drawRect(Offset.zero & size, glowPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _InteractiveHighlightPainter oldDelegate) =>
+      position != oldDelegate.position || progress != oldDelegate.progress;
 }

@@ -6,6 +6,7 @@ import '../api/getuserinfo_extended.dart';
 import '../api/unauthorized_exception.dart';
 import '../../globals.dart' as globals;
 import '../../theme_manager.dart';
+import '../../miuix/miuix_components.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -37,13 +38,11 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
-  Future<void> _toggleThemeMode(String mode) async {
-    await _themeManager.setThemeMode(mode);
+  Future<void> _setColorMode(ColorMode mode) async {
+    await _themeManager.setColorMode(mode);
   }
 
-  String get _currentThemeMode {
-    return _themeManager.themeMode;
-  }
+  ColorMode get _currentColorMode => _themeManager.colorMode;
 
   Future<Map<String, dynamic>?> _loadUserInfo() async {
     final prefs = await SharedPreferences.getInstance();
@@ -176,23 +175,29 @@ class _SettingsPageState extends State<SettingsPage> {
           children: [
             Text('主题模式', style: theme.textTheme.titleMedium),
             const SizedBox(height: 12),
-            RadioListTile<String>(
+            RadioListTile<ColorMode>(
               title: const Text('跟随系统'),
-              value: 'system',
-              groupValue: _currentThemeMode,
-              onChanged: (value) => _toggleThemeMode(value!),
+              value: ColorMode.system,
+              groupValue: _currentColorMode,
+              onChanged: (value) => _setColorMode(value!),
             ),
-            RadioListTile<String>(
+            RadioListTile<ColorMode>(
               title: const Text('浅色模式'),
-              value: 'light',
-              groupValue: _currentThemeMode,
-              onChanged: (value) => _toggleThemeMode(value!),
+              value: ColorMode.light,
+              groupValue: _currentColorMode,
+              onChanged: (value) => _setColorMode(value!),
             ),
-            RadioListTile<String>(
+            RadioListTile<ColorMode>(
               title: const Text('深色模式'),
-              value: 'dark',
-              groupValue: _currentThemeMode,
-              onChanged: (value) => _toggleThemeMode(value!),
+              value: ColorMode.dark,
+              groupValue: _currentColorMode,
+              onChanged: (value) => _setColorMode(value!),
+            ),
+            RadioListTile<ColorMode>(
+              title: const Text('AMOLED 纯黑'),
+              value: ColorMode.amoled,
+              groupValue: _currentColorMode,
+              onChanged: (value) => _setColorMode(value!),
             ),
           ],
         ),
@@ -241,15 +246,11 @@ class _SettingsPageState extends State<SettingsPage> {
           title: const Text('登录已过期'),
           content: const Text('重新登录失败，请手动登录。'),
           actions: [
-            ElevatedButton(
+            MiuixDangerButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 _logout(this.context);
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-              ),
               child: const Text('退出登录'),
             ),
           ],
@@ -261,15 +262,10 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildLogoutButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      child: ElevatedButton.icon(
+      child: MiuixDangerButton(
         onPressed: () => _showLogoutDialog(context),
         icon: const Icon(Icons.logout),
-        label: const Text('退出登录'),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.red,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-        ),
+        child: const Text('退出登录'),
       ),
     );
   }
@@ -282,19 +278,15 @@ class _SettingsPageState extends State<SettingsPage> {
           title: const Text('确认退出'),
           content: const Text('您确定要退出登录吗？'),
           actions: [
-            TextButton(
+            MiuixTextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('取消'),
             ),
-            ElevatedButton(
+            MiuixDangerButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 _logout(context);
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-              ),
               child: const Text('确认退出'),
             ),
           ],
