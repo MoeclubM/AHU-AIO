@@ -47,30 +47,37 @@ void main() {
       await manager.setBehavior(AuthBehavior.unified);
     });
 
-    test('platform passwords fallback to unified password in unified mode', () async {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('password', 'unifiedPass123');
-      await prefs.setString('jwapp_password', 'jwappPass456');
+    test(
+      'platform passwords fallback to unified password in unified mode',
+      () async {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('password', 'unifiedPass123');
+        await prefs.setString('jwapp_password', 'jwappPass456');
 
-      final manager = AuthManager();
-      await manager.setBehavior(AuthBehavior.unified);
+        final manager = AuthManager();
+        await manager.setBehavior(AuthBehavior.unified);
 
-      // In unified mode, all should return unified password
-      expect(await manager.getJwappPassword(), 'unifiedPass123');
-      expect(await manager.getJwPassword(), 'unifiedPass123');
-      expect(await manager.getFinancePassword(), 'unifiedPass123');
+        // In unified mode, all should return unified password
+        expect(await manager.getJwappPassword(), 'unifiedPass123');
+        expect(await manager.getJwPassword(), 'unifiedPass123');
+        expect(await manager.getFinancePassword(), 'unifiedPass123');
 
-      // In independent mode, platform specific password should be preferred
-      await manager.setBehavior(AuthBehavior.independent);
-      expect(await manager.getJwappPassword(), 'jwappPass456');
-      expect(await manager.getJwPassword(), 'unifiedPass123', reason: 'falls back if not set');
+        // In independent mode, platform specific password should be preferred
+        await manager.setBehavior(AuthBehavior.independent);
+        expect(await manager.getJwappPassword(), 'jwappPass456');
+        expect(
+          await manager.getJwPassword(),
+          'unifiedPass123',
+          reason: 'falls back if not set',
+        );
 
-      await manager.savePlatformPassword('jw', 'jwPass789');
-      expect(await manager.getJwPassword(), 'jwPass789');
+        await manager.savePlatformPassword('jw', 'jwPass789');
+        expect(await manager.getJwPassword(), 'jwPass789');
 
-      // Clean up
-      await manager.setBehavior(AuthBehavior.unified);
-    });
+        // Clean up
+        await manager.setBehavior(AuthBehavior.unified);
+      },
+    );
   });
 
   group('AdvancedSettingsScreen widget tests', () {
@@ -78,15 +85,14 @@ void main() {
       SharedPreferences.setMockInitialValues({});
     });
 
-    testWidgets('displays 密码认证行为 and switches between options via bottom sheet',
-        (tester) async {
+    testWidgets('displays 密码认证行为 and switches between options via bottom sheet', (
+      tester,
+    ) async {
       final manager = AuthManager();
       await manager.setBehavior(AuthBehavior.unified);
 
       await tester.pumpWidget(
-        const MaterialApp(
-          home: AdvancedSettingsScreen(),
-        ),
+        const MaterialApp(home: AdvancedSettingsScreen()),
       );
       await tester.pump();
 
@@ -130,28 +136,28 @@ void main() {
       await manager.setBehavior(AuthBehavior.unified);
     });
 
-    testWidgets('shows warning when tapping 验证 with empty fields in independent mode',
-        (tester) async {
-      final manager = AuthManager();
-      await manager.setBehavior(AuthBehavior.independent);
+    testWidgets(
+      'shows warning when tapping 验证 with empty fields in independent mode',
+      (tester) async {
+        final manager = AuthManager();
+        await manager.setBehavior(AuthBehavior.independent);
 
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: AdvancedSettingsScreen(),
-        ),
-      );
-      await tester.pump();
+        await tester.pumpWidget(
+          const MaterialApp(home: AdvancedSettingsScreen()),
+        );
+        await tester.pump();
 
-      // Tap first 验证 button with empty username
-      await tester.tap(find.text('验证').first);
-      await tester.pump();
+        // Tap first 验证 button with empty username
+        await tester.tap(find.text('验证').first);
+        await tester.pump();
 
-      // Shows SnackBar for empty username
-      expect(find.text('请先输入认证学号/账号'), findsOneWidget);
+        // Shows SnackBar for empty username
+        expect(find.text('请先输入认证学号/账号'), findsOneWidget);
 
-      // Clean up
-      await manager.setBehavior(AuthBehavior.unified);
-    });
+        // Clean up
+        await manager.setBehavior(AuthBehavior.unified);
+      },
+    );
   });
 
   group('AppSettingsScreen navigation to AdvancedSettingsScreen', () {
@@ -159,15 +165,14 @@ void main() {
       SharedPreferences.setMockInitialValues({});
     });
 
-    testWidgets('displays 高级 card and navigates to AdvancedSettingsScreen',
-        (tester) async {
+    testWidgets('displays 高级 card and navigates to AdvancedSettingsScreen', (
+      tester,
+    ) async {
       final manager = AuthManager();
       await manager.setBehavior(AuthBehavior.unified);
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: AppSettingsScreen(onSwitchTab: (_) {}),
-        ),
+        MaterialApp(home: AppSettingsScreen(onSwitchTab: (_) {})),
       );
       await tester.pump();
 

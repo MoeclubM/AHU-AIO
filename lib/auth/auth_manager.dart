@@ -14,8 +14,7 @@ enum AuthBehavior {
   /// 独立密码认证：各业务平台使用各自独立的账号密码分别认证与维护。
   independent;
 
-  String get displayName =>
-      this == AuthBehavior.unified ? '统一密码认证' : '独立密码认证';
+  String get displayName => this == AuthBehavior.unified ? '统一密码认证' : '独立密码认证';
 
   String get description => this == AuthBehavior.unified
       ? '使用一套账号密码同时登录微教务、安大教务与一卡通'
