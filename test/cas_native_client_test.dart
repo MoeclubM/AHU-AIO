@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cookie_jar/cookie_jar.dart';
-import 'package:universal_io/io.dart';
 import 'package:ahu_aio/auth/cas_native_client.dart';
 
 class MockHttpClientAdapter implements HttpClientAdapter {
