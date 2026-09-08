@@ -104,18 +104,21 @@ void main() {
       expect(result.finance.message, contains('未配置认证学号/账号'));
     });
 
-    test('loginAllPlatforms reports missing password when credentials incomplete', () async {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('username', 'E02114001');
+    test(
+      'loginAllPlatforms reports missing password when credentials incomplete',
+      () async {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('username', 'E02114001');
 
-      final manager = AuthManager();
-      await manager.setBehavior(AuthBehavior.unified);
-      final result = await manager.loginAllPlatforms();
-      expect(result.allSuccess, isFalse);
-      expect(result.jwapp.message, '未配置密码');
-      expect(result.jw.message, '未配置密码');
-      expect(result.finance.message, '未配置密码');
-    });
+        final manager = AuthManager();
+        await manager.setBehavior(AuthBehavior.unified);
+        final result = await manager.loginAllPlatforms();
+        expect(result.allSuccess, isFalse);
+        expect(result.jwapp.message, '未配置密码');
+        expect(result.jw.message, '未配置密码');
+        expect(result.finance.message, '未配置密码');
+      },
+    );
   });
 
   group('AdvancedSettingsScreen widget tests', () {

@@ -206,7 +206,8 @@ class AuthManager extends ChangeNotifier {
     String? usernameOverride,
   }) async {
     final prefs = await SharedPreferences.getInstance();
-    final username = usernameOverride ??
+    final username =
+        usernameOverride ??
         prefs.getString('username') ??
         globals.username ??
         '';
@@ -233,10 +234,7 @@ class AuthManager extends ChangeNotifier {
 
     // 1. 微教务
     if (jwappPass == null || jwappPass.isEmpty) {
-      jwappResult = const PlatformLoginResult(
-        success: false,
-        message: '未配置密码',
-      );
+      jwappResult = const PlatformLoginResult(success: false, message: '未配置密码');
     } else {
       try {
         final token = await LoginService.login(
@@ -265,10 +263,7 @@ class AuthManager extends ChangeNotifier {
 
     // 2. 安大教务 (CAS)
     if (jwPass == null || jwPass.isEmpty) {
-      jwResult = const PlatformLoginResult(
-        success: false,
-        message: '未配置密码',
-      );
+      jwResult = const PlatformLoginResult(success: false, message: '未配置密码');
     } else {
       try {
         final jwApi = JwApi();
@@ -375,7 +370,9 @@ class AllPlatformsLoginResult {
   String toSummaryString() {
     final jwappText = jwapp.success ? '成功' : '失败(${jwapp.message ?? "未知错误"})';
     final jwText = jw.success ? '成功' : '失败(${jw.message ?? "未知错误"})';
-    final financeText = finance.success ? '成功' : '失败(${finance.message ?? "未知错误"})';
+    final financeText = finance.success
+        ? '成功'
+        : '失败(${finance.message ?? "未知错误"})';
     return '微教务: $jwappText | 教务: $jwText | 一卡通: $financeText';
   }
 }

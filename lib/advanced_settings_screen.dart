@@ -221,7 +221,10 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
         );
       }
       if (_jwPasswordController.text.isNotEmpty) {
-        await _authManager.savePlatformPassword('jw', _jwPasswordController.text);
+        await _authManager.savePlatformPassword(
+          'jw',
+          _jwPasswordController.text,
+        );
       }
       if (_financePasswordController.text.isNotEmpty) {
         await _authManager.savePlatformPassword(
