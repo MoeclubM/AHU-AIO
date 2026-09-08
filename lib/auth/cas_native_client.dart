@@ -25,8 +25,9 @@ class CasNativeClient {
   late final Dio _dio;
 
   CasNativeClient({CookieJar? cookieJar, Dio? dio})
-      : cookieJar = cookieJar ?? CookieJar() {
-    _dio = dio ??
+    : cookieJar = cookieJar ?? CookieJar() {
+    _dio =
+        dio ??
         Dio(
           BaseOptions(
             baseUrl: _casBase,
