@@ -41,11 +41,15 @@ class FinanceRechargePage extends StatefulWidget {
   State<FinanceRechargePage> createState() => _FinanceRechargePageState();
 }
 
-class _FinanceRechargePageState extends State<FinanceRechargePage> {
+class _FinanceRechargePageState extends State<FinanceRechargePage>
+    with AutomaticKeepAliveClientMixin {
   final _client = SynjonesClient();
   List<Map<String, dynamic>> _entries = [];
   bool _loading = true;
   String? _error;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -59,6 +63,7 @@ class _FinanceRechargePageState extends State<FinanceRechargePage> {
   }
 
   Future<void> _loadEntries() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -110,11 +115,13 @@ class _FinanceRechargePageState extends State<FinanceRechargePage> {
         if (b['isCardRecharge'] == true) return 1;
         return _title(a).compareTo(_title(b));
       });
+      if (!mounted) return;
       setState(() {
         _entries = entries;
         _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _loading = false;
@@ -139,6 +146,7 @@ class _FinanceRechargePageState extends State<FinanceRechargePage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       appBar: widget.embed
           ? null

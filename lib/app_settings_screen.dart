@@ -6,6 +6,8 @@ import 'miuix/liquid_glass_card.dart';
 import 'theme_manager.dart';
 import 'theme_settings_screen.dart';
 import 'widget_settings_screen.dart';
+import 'advanced_settings_screen.dart';
+import 'auth/auth_manager.dart';
 import 'jw/login/jw_login_service.dart';
 import 'finance/api/synjones_client.dart';
 import 'auth/cas_auth_cache.dart';
@@ -20,17 +22,20 @@ class AppSettingsScreen extends StatefulWidget {
 
 class _AppSettingsScreenState extends State<AppSettingsScreen> {
   final _themeManager = ThemeManager();
+  final _authManager = AuthManager();
   final _synjonesClient = SynjonesClient();
 
   @override
   void initState() {
     super.initState();
     _themeManager.addListener(_onThemeChanged);
+    _authManager.addListener(_onThemeChanged);
   }
 
   @override
   void dispose() {
     _themeManager.removeListener(_onThemeChanged);
+    _authManager.removeListener(_onThemeChanged);
     super.dispose();
   }
 
@@ -42,10 +47,17 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('username');
     await prefs.remove('password');
+    await prefs.remove('jwapp_password');
+    await prefs.remove('jw_password');
+    await prefs.remove('finance_password');
     await prefs.setBool('savePassword', false);
     await prefs.remove('idToken');
     await prefs.remove('jwStudentNo');
 
+    await _authManager.clearAllPasswords();
+    await _authManager.setBehavior(AuthBehavior.unified);
+
+    globals.username = null;
     globals.idToken = null;
     globals.jwLoggedIn = false;
     globals.jwStudentNo = null;
@@ -123,6 +135,33 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => const WidgetSettingsScreen(),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          const MiuixSmallTitle('高级'),
+          LiquidGlassCard(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Column(
+              children: [
+                MiuixComponent(
+                  title: '高级',
+                  summary: '密码认证行为 · ${_authManager.behavior.displayName}',
+                  leading: Icon(Icons.tune_outlined, color: mc.primary),
+                  trailing: Icon(
+                    Icons.chevron_right,
+                    color: mc.onSurfaceVariantActions,
+                  ),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const AdvancedSettingsScreen(),
                       ),
                     );
                   },

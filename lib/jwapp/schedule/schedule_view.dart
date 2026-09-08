@@ -17,13 +17,17 @@ class SchedulePage extends StatefulWidget {
   State<SchedulePage> createState() => _SchedulePageState();
 }
 
-class _SchedulePageState extends State<SchedulePage> {
+class _SchedulePageState extends State<SchedulePage>
+    with AutomaticKeepAliveClientMixin {
   late final ScheduleLogic _logic;
   late final PageController _weekPageController;
   bool _isPageAnimating = false;
   double _slotHeight = 58.0;
   bool _isManualScaled = false;
   static const _weekdays = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -102,6 +106,7 @@ class _SchedulePageState extends State<SchedulePage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       appBar: widget.embed
           ? null

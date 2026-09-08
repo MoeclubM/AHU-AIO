@@ -7,6 +7,7 @@ import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'dart:io';
 import 'theme_manager.dart';
+import 'auth/auth_manager.dart';
 import 'miuix/miuix_theme.dart';
 import 'main_layout_screen.dart';
 
@@ -21,6 +22,7 @@ void main() async {
 
   final themeManager = ThemeManager();
   await themeManager.loadThemeMode();
+  await AuthManager().loadConfig();
 
   runApp(MyApp(themeManager: themeManager));
 }

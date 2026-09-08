@@ -3,6 +3,7 @@ library;
 import 'package:flutter/foundation.dart';
 
 String? idToken;
+String? username;
 
 // 新教务系统状态
 bool jwLoggedIn = false;

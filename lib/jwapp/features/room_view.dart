@@ -11,7 +11,8 @@ class RoomPage extends StatefulWidget {
   State<RoomPage> createState() => _RoomPageState();
 }
 
-class _RoomPageState extends State<RoomPage> {
+class _RoomPageState extends State<RoomPage>
+    with AutomaticKeepAliveClientMixin {
   List<CampusModel> _campuses = [];
   List<BuildingModel> _buildings = [];
   List<RoomModel> _rooms = [];
@@ -19,6 +20,9 @@ class _RoomPageState extends State<RoomPage> {
   BuildingModel? _selectedBuilding;
   bool _isLoading = false;
   String? _error;
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -33,6 +37,7 @@ class _RoomPageState extends State<RoomPage> {
   Future<void> _loadCampuses() async {
     try {
       final campusesData = await RoomApi.getCampuses(globals.idToken!);
+      if (!mounted) return;
       final campuses = campusesData
           .map((data) => CampusModel.fromJson(data))
           .toList();
@@ -45,6 +50,7 @@ class _RoomPageState extends State<RoomPage> {
         }
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
       });
@@ -57,6 +63,7 @@ class _RoomPageState extends State<RoomPage> {
         globals.idToken!,
         campusAssoc: campusId,
       );
+      if (!mounted) return;
       final buildings = buildingsData
           .map((data) => BuildingModel.fromJson(data))
           .toList();
@@ -66,6 +73,7 @@ class _RoomPageState extends State<RoomPage> {
         _selectedBuilding = buildings.isNotEmpty ? buildings.first : null;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
       });
@@ -75,6 +83,7 @@ class _RoomPageState extends State<RoomPage> {
   Future<void> _searchRooms() async {
     if (_selectedCampus == null || _selectedBuilding == null) return;
 
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -93,6 +102,7 @@ class _RoomPageState extends State<RoomPage> {
         globals.idToken!,
         filter.toJson(),
       );
+      if (!mounted) return;
       final dataObj = roomsData['data'];
       final List<dynamic> rawList = (dataObj is Map)
           ? (dataObj['data'] as List? ?? [])
@@ -104,6 +114,7 @@ class _RoomPageState extends State<RoomPage> {
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -113,6 +124,7 @@ class _RoomPageState extends State<RoomPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       appBar: widget.embed ? null : AppBar(title: const Text('空闲教室查询')),
       body: Column(

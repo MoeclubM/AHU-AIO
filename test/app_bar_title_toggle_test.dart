@@ -13,29 +13,30 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   group('ThemeManager showAppBarTitle preference', () {
-    setUp(() {
+    setUp(() async {
       SharedPreferences.setMockInitialValues({});
+      await ThemeManager().setShowAppBarTitle(true);
     });
 
-    test('default showAppBarTitle is false (disabled)', () {
+    test('default showAppBarTitle is true (enabled)', () {
       final tm = ThemeManager();
-      expect(tm.showAppBarTitle, isFalse);
+      expect(tm.showAppBarTitle, isTrue);
     });
 
     test(
       'setShowAppBarTitle toggles value and persists to SharedPreferences',
       () async {
         final tm = ThemeManager();
-        await tm.setShowAppBarTitle(true);
-        expect(tm.showAppBarTitle, isTrue);
-
-        final prefs = await SharedPreferences.getInstance();
-        expect(prefs.getBool('showAppBarTitle'), isTrue);
-
-        // Reset to false
         await tm.setShowAppBarTitle(false);
         expect(tm.showAppBarTitle, isFalse);
+
+        final prefs = await SharedPreferences.getInstance();
         expect(prefs.getBool('showAppBarTitle'), isFalse);
+
+        // Reset to true
+        await tm.setShowAppBarTitle(true);
+        expect(tm.showAppBarTitle, isTrue);
+        expect(prefs.getBool('showAppBarTitle'), isTrue);
       },
     );
   });

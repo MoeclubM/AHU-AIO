@@ -10,7 +10,8 @@ class JwGradesPage extends StatefulWidget {
   State<JwGradesPage> createState() => _JwGradesPageState();
 }
 
-class _JwGradesPageState extends State<JwGradesPage> {
+class _JwGradesPageState extends State<JwGradesPage>
+    with AutomaticKeepAliveClientMixin {
   final _api = JwApi();
   List<JwSemester> _semesters = [];
   Map<int, List<GradeInfo>> _gradesMap = {};
@@ -19,12 +20,16 @@ class _JwGradesPageState extends State<JwGradesPage> {
   String? _error;
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   void initState() {
     super.initState();
     _loadAllGrades();
   }
 
   Future<void> _loadAllGrades() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
@@ -33,6 +38,7 @@ class _JwGradesPageState extends State<JwGradesPage> {
       if (_api.studentId == null) {
         await _api.fetchStudentIdDirect();
       }
+      if (!mounted) return;
       if (_api.studentId == null) {
         setState(() {
           _error = '无法获取学生信息，请重新登录';
@@ -43,6 +49,7 @@ class _JwGradesPageState extends State<JwGradesPage> {
 
       // 先获取学期列表（内部会调用 getGrades 有效学期 ID）
       final semList = await _api.getSemesters();
+      if (!mounted) return;
       final semesters = semList.map((s) => JwSemester.fromJson(s)).toList();
 
       if (semesters.isEmpty) {
@@ -56,6 +63,7 @@ class _JwGradesPageState extends State<JwGradesPage> {
       // 加载最新学期的成绩
       final firstSemId = semesters.first.id ?? 0;
       final raw = await _api.getGrades(firstSemId);
+      if (!mounted) return;
       final gradesMap = <int, List<GradeInfo>>{};
       final semGrades =
           raw['semesterId2studentGrades'] as Map<String, dynamic>?;
@@ -78,6 +86,7 @@ class _JwGradesPageState extends State<JwGradesPage> {
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = '加载失败: $e';
         _isLoading = false;
@@ -87,11 +96,13 @@ class _JwGradesPageState extends State<JwGradesPage> {
 
   Future<void> _loadSemesterGrades(int semesterId) async {
     if (_gradesMap.containsKey(semesterId)) {
+      if (!mounted) return;
       setState(() => _selectedSemesterId = semesterId);
       return;
     }
     try {
       final raw = await _api.getGrades(semesterId);
+      if (!mounted) return;
       final semGrades =
           raw['semesterId2studentGrades'] as Map<String, dynamic>?;
       if (semGrades != null && semGrades.containsKey(semesterId.toString())) {
@@ -102,6 +113,7 @@ class _JwGradesPageState extends State<JwGradesPage> {
       }
       setState(() => _selectedSemesterId = semesterId);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _selectedSemesterId = semesterId);
     }
   }
@@ -110,6 +122,7 @@ class _JwGradesPageState extends State<JwGradesPage> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       appBar: widget.embed ? null : AppBar(title: const Text('成绩查询')),
       body: _isLoading

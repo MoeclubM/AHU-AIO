@@ -20,8 +20,12 @@ class JwMainTabs extends StatefulWidget {
   State<JwMainTabs> createState() => _JwMainTabsState();
 }
 
-class _JwMainTabsState extends State<JwMainTabs> {
+class _JwMainTabsState extends State<JwMainTabs>
+    with AutomaticKeepAliveClientMixin {
   final _themeManager = ThemeManager();
+
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   void initState() {
@@ -41,6 +45,7 @@ class _JwMainTabsState extends State<JwMainTabs> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     final showTitle = _themeManager.showAppBarTitle;
     return Scaffold(
       appBar: showTitle
