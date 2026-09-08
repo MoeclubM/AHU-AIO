@@ -94,6 +94,28 @@ void main() {
       expect(prefs.containsKey('jw_password'), isFalse);
       expect(prefs.containsKey('finance_password'), isFalse);
     });
+
+    test('loginAllPlatforms returns failure when username is empty', () async {
+      final manager = AuthManager();
+      final result = await manager.loginAllPlatforms();
+      expect(result.allSuccess, isFalse);
+      expect(result.jwapp.message, contains('未配置认证学号/账号'));
+      expect(result.jw.message, contains('未配置认证学号/账号'));
+      expect(result.finance.message, contains('未配置认证学号/账号'));
+    });
+
+    test('loginAllPlatforms reports missing password when credentials incomplete', () async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('username', 'E02114001');
+
+      final manager = AuthManager();
+      await manager.setBehavior(AuthBehavior.unified);
+      final result = await manager.loginAllPlatforms();
+      expect(result.allSuccess, isFalse);
+      expect(result.jwapp.message, '未配置密码');
+      expect(result.jw.message, '未配置密码');
+      expect(result.finance.message, '未配置密码');
+    });
   });
 
   group('AdvancedSettingsScreen widget tests', () {
@@ -147,6 +169,9 @@ void main() {
       expect(find.text('安大教务系统 (CAS)'), findsOneWidget);
       expect(find.text('一卡通系统 (CAS)'), findsOneWidget);
       expect(find.text('验证'), findsNWidgets(3));
+
+      // Verify all platforms login triggered
+      expect(find.textContaining('全平台登录'), findsOneWidget);
 
       // Clean up
       await manager.setBehavior(AuthBehavior.unified);

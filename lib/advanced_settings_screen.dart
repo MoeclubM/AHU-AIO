@@ -199,6 +199,75 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
     }
   }
 
+  Future<void> _onSwitchAuthBehavior(AuthBehavior behavior) async {
+    await _authManager.setBehavior(behavior);
+    if (!mounted) return;
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('已切换登录方式，正在执行全平台登录...'),
+        duration: Duration(seconds: 4),
+      ),
+    );
+
+    // 如果处于独立密码认证且输入框填写了密码，先同步保存到本地
+    if (behavior == AuthBehavior.independent) {
+      if (_jwappPasswordController.text.isNotEmpty) {
+        await _authManager.savePlatformPassword(
+          'jwapp',
+          _jwappPasswordController.text,
+        );
+      }
+      if (_jwPasswordController.text.isNotEmpty) {
+        await _authManager.savePlatformPassword('jw', _jwPasswordController.text);
+      }
+      if (_financePasswordController.text.isNotEmpty) {
+        await _authManager.savePlatformPassword(
+          'finance',
+          _financePasswordController.text,
+        );
+      }
+    }
+
+    final username = _usernameController.text.trim();
+    final result = await _authManager.loginAllPlatforms(
+      usernameOverride: username.isNotEmpty ? username : null,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _jwappSuccess = result.jwapp.success;
+      _jwappMessage = result.jwapp.success
+          ? '验证成功，后续将使用此独立密码'
+          : (result.jwapp.message ?? '登录失败');
+
+      _jwSuccess = result.jw.success;
+      _jwMessage = result.jw.success
+          ? '验证成功，后续将使用此独立密码'
+          : (result.jw.message ?? '登录失败');
+
+      _financeSuccess = result.finance.success;
+      _financeMessage = result.finance.success
+          ? '验证成功，后续将使用此独立密码'
+          : (result.finance.message ?? '登录失败');
+    });
+
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          result.allSuccess
+              ? '全平台登录成功！'
+              : '全平台登录结果: ${result.toSummaryString()}',
+        ),
+        duration: const Duration(seconds: 4),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final mc = MiuixTheme.of(context).colors;
@@ -565,8 +634,8 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
                     icon: Icons.link_rounded,
                     isSelected: currentBehavior == AuthBehavior.unified,
                     onTap: () {
-                      _authManager.setBehavior(AuthBehavior.unified);
                       Navigator.pop(ctx);
+                      _onSwitchAuthBehavior(AuthBehavior.unified);
                     },
                   ),
                   const SizedBox(height: 8),
@@ -577,8 +646,8 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
                     icon: Icons.link_off_rounded,
                     isSelected: currentBehavior == AuthBehavior.independent,
                     onTap: () {
-                      _authManager.setBehavior(AuthBehavior.independent);
                       Navigator.pop(ctx);
+                      _onSwitchAuthBehavior(AuthBehavior.independent);
                     },
                   ),
                 ],

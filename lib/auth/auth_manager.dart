@@ -199,6 +199,145 @@ class AuthManager extends ChangeNotifier {
     }
   }
 
+  /// 执行全平台登录（微教务、安大教务、一卡通）。
+  /// 自动从本地读取当前学号与当前认证模式下各平台对应的密码进行登录。
+  /// [usernameOverride] 可选，若传入则优先使用该账号。
+  Future<AllPlatformsLoginResult> loginAllPlatforms({
+    String? usernameOverride,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final username = usernameOverride ??
+        prefs.getString('username') ??
+        globals.username ??
+        '';
+
+    if (username.isEmpty) {
+      const emptyUserRes = PlatformLoginResult(
+        success: false,
+        message: '未配置认证学号/账号',
+      );
+      return const AllPlatformsLoginResult(
+        jwapp: emptyUserRes,
+        jw: emptyUserRes,
+        finance: emptyUserRes,
+      );
+    }
+
+    final jwappPass = await getJwappPassword();
+    final jwPass = await getJwPassword();
+    final financePass = await getFinancePassword();
+
+    PlatformLoginResult jwappResult;
+    PlatformLoginResult jwResult;
+    PlatformLoginResult financeResult;
+
+    // 1. 微教务
+    if (jwappPass == null || jwappPass.isEmpty) {
+      jwappResult = const PlatformLoginResult(
+        success: false,
+        message: '未配置密码',
+      );
+    } else {
+      try {
+        final token = await LoginService.login(
+          username: username,
+          password: jwappPass,
+        );
+        if (token != null && token.isNotEmpty) {
+          globals.idToken = token;
+          globals.username = username;
+          await prefs.setString('idToken', token);
+          await prefs.setString('username', username);
+          jwappResult = const PlatformLoginResult(success: true);
+        } else {
+          jwappResult = const PlatformLoginResult(
+            success: false,
+            message: '微教务 Token 返回为空',
+          );
+        }
+      } catch (e) {
+        jwappResult = PlatformLoginResult(
+          success: false,
+          message: _cleanErrorMessage(e.toString()),
+        );
+      }
+    }
+
+    // 2. 安大教务 (CAS)
+    if (jwPass == null || jwPass.isEmpty) {
+      jwResult = const PlatformLoginResult(
+        success: false,
+        message: '未配置密码',
+      );
+    } else {
+      try {
+        final jwApi = JwApi();
+        await jwApi.loginWithCas(
+          username: username,
+          password: jwPass,
+          trustDevice: true,
+        );
+        await CasAuthCache.markLoggedIn('jw');
+        globals.jwLoggedIn = true;
+        globals.username = username;
+        globals.jwStudentNo = jwApi.studentId;
+        await prefs.setString('username', username);
+        if (jwApi.studentId != null) {
+          await prefs.setString('jwStudentNo', jwApi.studentId!);
+        }
+        jwResult = const PlatformLoginResult(success: true);
+      } catch (e) {
+        jwResult = PlatformLoginResult(
+          success: false,
+          message: _cleanErrorMessage(e.toString()),
+        );
+      }
+    }
+
+    // 3. 一卡通 (CAS / 新中新)
+    if (financePass == null || financePass.isEmpty) {
+      financeResult = const PlatformLoginResult(
+        success: false,
+        message: '未配置密码',
+      );
+    } else {
+      try {
+        final client = SynjonesClient();
+        final result = await client.casLoginNative(
+          username: username,
+          password: financePass,
+          trustDevice: true,
+        );
+        if (result.success) {
+          await CasAuthCache.markLoggedIn('ycard');
+          globals.username = username;
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('username', username);
+          financeResult = const PlatformLoginResult(success: true);
+        } else {
+          financeResult = PlatformLoginResult(
+            success: false,
+            message: result.message ?? '一卡通登录失败',
+          );
+        }
+      } catch (e) {
+        financeResult = PlatformLoginResult(
+          success: false,
+          message: _cleanErrorMessage(e.toString()),
+        );
+      }
+    }
+
+    globals.onLoginStateChanged?.call();
+    notifyListeners();
+
+    return AllPlatformsLoginResult(
+      jwapp: jwappResult,
+      jw: jwResult,
+      finance: financeResult,
+    );
+  }
+
   String _cleanErrorMessage(String message) {
     if (message.startsWith('Exception: ')) {
       return message.substring(11);
@@ -207,5 +346,36 @@ class AuthManager extends ChangeNotifier {
       return message.substring(12);
     }
     return message;
+  }
+}
+
+/// 单个平台的登录验证结果。
+class PlatformLoginResult {
+  final bool success;
+  final String? message;
+
+  const PlatformLoginResult({required this.success, this.message});
+}
+
+/// 全平台登录结果汇总。
+class AllPlatformsLoginResult {
+  final PlatformLoginResult jwapp;
+  final PlatformLoginResult jw;
+  final PlatformLoginResult finance;
+
+  const AllPlatformsLoginResult({
+    required this.jwapp,
+    required this.jw,
+    required this.finance,
+  });
+
+  bool get anySuccess => jwapp.success || jw.success || finance.success;
+  bool get allSuccess => jwapp.success && jw.success && finance.success;
+
+  String toSummaryString() {
+    final jwappText = jwapp.success ? '成功' : '失败(${jwapp.message ?? "未知错误"})';
+    final jwText = jw.success ? '成功' : '失败(${jw.message ?? "未知错误"})';
+    final financeText = finance.success ? '成功' : '失败(${finance.message ?? "未知错误"})';
+    return '微教务: $jwappText | 教务: $jwText | 一卡通: $financeText';
   }
 }
