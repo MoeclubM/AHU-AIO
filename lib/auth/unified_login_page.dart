@@ -5,6 +5,7 @@ import '../jwapp/login/login_service.dart';
 import '../jw/api/jw_api.dart';
 import '../finance/api/synjones_client.dart';
 import 'cas_auth_cache.dart';
+import 'auth_manager.dart';
 import '../miuix/miuix_components.dart';
 
 class UnifiedLoginPage extends StatefulWidget {
@@ -63,6 +64,9 @@ class _UnifiedLoginPageState extends State<UnifiedLoginPage> {
       if (mounted) {
         setState(() {
           _isSilentLoading = false;
+          if (savedUsername.isNotEmpty && _usernameController.text.isEmpty) {
+            _usernameController.text = savedUsername;
+          }
         });
       }
     }
@@ -131,12 +135,12 @@ class _UnifiedLoginPageState extends State<UnifiedLoginPage> {
     // 只要有任意一个登录成功，我们就视账号密码为正确，允许进入，后续如果失效可使用保存的密码静默自动登录
     if (jwappOk || jwOk || financeOk) {
       final prefs = await SharedPreferences.getInstance();
+      globals.username = username;
+      await prefs.setString('username', username);
       if (savePassword) {
-        await prefs.setString('username', username);
         await prefs.setString('password', password);
         await prefs.setBool('savePassword', true);
       } else {
-        await prefs.remove('username');
         await prefs.remove('password');
         await prefs.setBool('savePassword', false);
       }
@@ -148,6 +152,8 @@ class _UnifiedLoginPageState extends State<UnifiedLoginPage> {
       if (globals.jwStudentNo != null) {
         await prefs.setString('jwStudentNo', globals.jwStudentNo!);
       }
+
+      await AuthManager().setBehavior(AuthBehavior.unified);
 
       globals.onLoginStateChanged?.call();
 

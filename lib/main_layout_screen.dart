@@ -151,6 +151,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     if (cachedIdToken != null) {
       globals.idToken = cachedIdToken;
     }
+    globals.username = prefs.getString('username');
     globals.jwLoggedIn = await CasAuthCache.isLoggedIn();
     globals.jwStudentNo = prefs.getString('jwStudentNo');
     if (mounted) {

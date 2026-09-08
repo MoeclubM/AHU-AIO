@@ -74,7 +74,7 @@ class ThemeManager extends ChangeNotifier {
   bool _enableBlur = true;
   bool _enableLiquidGlass = true;
   bool _enableBottomBarTransparent = true;
-  bool _showAppBarTitle = false; // 默认关闭
+  bool _showAppBarTitle = true; // 默认开启
 
   ColorMode get colorMode => _colorMode;
   Color get keyColor => _keyColor;
@@ -230,7 +230,7 @@ class ThemeManager extends ChangeNotifier {
     _enableLiquidGlass = prefs.getBool('enableLiquidGlass') ?? true;
     _enableBottomBarTransparent =
         prefs.getBool('enableBottomBarTransparent') ?? true;
-    _showAppBarTitle = prefs.getBool('showAppBarTitle') ?? false;
+    _showAppBarTitle = prefs.getBool('showAppBarTitle') ?? true;
     notifyListeners();
   }
 }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'auth/auth_manager.dart';
+import 'finance/api/synjones_client.dart';
 import 'globals.dart' as globals;
+import 'jwapp/api/getuserinfo_extended.dart';
 import 'miuix/miuix_components.dart';
 import 'miuix/liquid_glass_card.dart';
 
@@ -62,7 +64,25 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
 
   Future<void> _loadSavedCredentials() async {
     final prefs = await SharedPreferences.getInstance();
-    final u = prefs.getString('username') ?? globals.jwStudentNo ?? '';
+    var u = prefs.getString('username') ?? globals.username ?? '';
+
+    // 如果 u 恰好是历史误存的教务内部 studentId，重置为空避免错误填充
+    final jwInternalId = prefs.getString('jwStudentNo') ?? globals.jwStudentNo;
+    if (u.isNotEmpty && jwInternalId != null && u == jwInternalId) {
+      u = '';
+    }
+
+    // 若本地暂无 username，优先从一卡通已获取的用户信息中提取真实学号 (account)
+    if (u.isEmpty) {
+      final synjonesUser = SynjonesClient().userInfo;
+      final synAccount = synjonesUser?['account']?.toString();
+      if (synAccount != null && synAccount.isNotEmpty) {
+        u = synAccount;
+        globals.username = u;
+        await prefs.setString('username', u);
+      }
+    }
+
     final pUnified = prefs.getString('password') ?? '';
     final pJwapp = prefs.getString('jwapp_password') ?? pUnified;
     final pJw = prefs.getString('jw_password') ?? pUnified;
@@ -75,6 +95,23 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
         _jwPasswordController.text = pJw;
         _financePasswordController.text = pFinance;
       });
+    }
+
+    // 若仍为空且已登录微教务，异步拉取真实学号并回填
+    if (u.isEmpty && globals.idToken != null && globals.idToken!.isNotEmpty) {
+      try {
+        final info = await UserInfoExtendedApi.getUserInfo(globals.idToken!);
+        final account = info['account']?.toString();
+        if (account != null && account.isNotEmpty) {
+          globals.username = account;
+          await prefs.setString('username', account);
+          if (mounted && _usernameController.text.isEmpty) {
+            setState(() {
+              _usernameController.text = account;
+            });
+          }
+        }
+      } catch (_) {}
     }
   }
 

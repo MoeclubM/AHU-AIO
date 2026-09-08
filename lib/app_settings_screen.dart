@@ -47,10 +47,17 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('username');
     await prefs.remove('password');
+    await prefs.remove('jwapp_password');
+    await prefs.remove('jw_password');
+    await prefs.remove('finance_password');
     await prefs.setBool('savePassword', false);
     await prefs.remove('idToken');
     await prefs.remove('jwStudentNo');
 
+    await _authManager.clearAllPasswords();
+    await _authManager.setBehavior(AuthBehavior.unified);
+
+    globals.username = null;
     globals.idToken = null;
     globals.jwLoggedIn = false;
     globals.jwStudentNo = null;

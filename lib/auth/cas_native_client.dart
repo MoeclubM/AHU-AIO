@@ -24,23 +24,26 @@ class CasNativeClient {
   final CookieJar cookieJar;
   late final Dio _dio;
 
-  CasNativeClient({CookieJar? cookieJar})
-    : cookieJar = cookieJar ?? CookieJar() {
-    _dio = Dio(
-      BaseOptions(
-        baseUrl: _casBase,
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 15),
-        headers: {
-          'Accept':
-              'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-          'User-Agent':
-              'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
-              '(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
-        },
-      ),
-    );
-    _dio.interceptors.add(CookieManager(this.cookieJar));
+  CasNativeClient({CookieJar? cookieJar, Dio? dio})
+      : cookieJar = cookieJar ?? CookieJar() {
+    _dio = dio ??
+        Dio(
+          BaseOptions(
+            baseUrl: _casBase,
+            connectTimeout: const Duration(seconds: 15),
+            receiveTimeout: const Duration(seconds: 15),
+            headers: {
+              'Accept':
+                  'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+              'User-Agent':
+                  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+                  '(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+            },
+          ),
+        );
+    if (dio == null) {
+      _dio.interceptors.add(CookieManager(this.cookieJar));
+    }
   }
 
   static Uri loginUriForService(String serviceUrl) {
@@ -55,8 +58,8 @@ class CasNativeClient {
     required String password,
     required bool trustDevice,
   }) async {
-    final cached = await loginWithCachedSession(loginUri: loginUri);
-    if (cached != null) return cached;
+    // 强制使用提供的凭据重新进行 CAS 认证，清除可能残留的旧 CAS 会话 Cookie，确保 CAS 显示登录页面并验证传入的账号密码
+    await cookieJar.delete(Uri.parse(_casBase), true);
 
     final initialRedirects = <Uri>[];
     var currentLoginUri = loginUri;

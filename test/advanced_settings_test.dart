@@ -71,6 +71,22 @@ void main() {
       // Clean up
       await manager.setBehavior(AuthBehavior.unified);
     });
+
+    test('clearAllPasswords removes all saved passwords', () async {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('password', 'unifiedPass123');
+      await prefs.setString('jwapp_password', 'jwappPass456');
+      await prefs.setString('jw_password', 'jwPass789');
+      await prefs.setString('finance_password', 'finPass000');
+
+      final manager = AuthManager();
+      await manager.clearAllPasswords();
+
+      expect(prefs.containsKey('password'), isFalse);
+      expect(prefs.containsKey('jwapp_password'), isFalse);
+      expect(prefs.containsKey('jw_password'), isFalse);
+      expect(prefs.containsKey('finance_password'), isFalse);
+    });
   });
 
   group('AdvancedSettingsScreen widget tests', () {
@@ -152,9 +168,49 @@ void main() {
       // Clean up
       await manager.setBehavior(AuthBehavior.unified);
     });
+
+    testWidgets('populates username with saved username, but does NOT fill internal jwStudentNo',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'auth_behavior': 'independent',
+        'jwStudentNo': '28475', // Internal DB id from grade sheet
+      });
+
+      final manager = AuthManager();
+      await manager.setBehavior(AuthBehavior.independent);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: AdvancedSettingsScreen(key: UniqueKey()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Should NOT contain the internal studentId '28475'
+      expect(find.text('28475'), findsNothing);
+
+      // Now test with actual username
+      SharedPreferences.setMockInitialValues({
+        'auth_behavior': 'independent',
+        'username': 'E02114001',
+        'jwStudentNo': '28475',
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: AdvancedSettingsScreen(key: UniqueKey()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('E02114001'), findsOneWidget);
+
+      // Clean up
+      await manager.setBehavior(AuthBehavior.unified);
+    });
   });
 
-  group('AppSettingsScreen navigation to AdvancedSettingsScreen', () {
+  group('AppSettingsScreen tests', () {
     setUp(() {
       SharedPreferences.setMockInitialValues({});
     });
@@ -181,6 +237,45 @@ void main() {
       // Verify AdvancedSettingsScreen is pushed
       expect(find.byType(AdvancedSettingsScreen), findsOneWidget);
       expect(find.text('密码认证行为'), findsOneWidget);
+    });
+
+    testWidgets('global logout synchronously removes all saved passwords',
+        (tester) async {
+      SharedPreferences.setMockInitialValues({
+        'auth_behavior': 'independent',
+        'username': 'E02114001',
+        'password': 'unifiedPass123',
+        'jwapp_password': 'jwappPass456',
+        'jw_password': 'jwPass789',
+        'finance_password': 'finPass000',
+        'savePassword': true,
+        'idToken': 'token123',
+        'jwStudentNo': '28475',
+      });
+      await AuthManager().setBehavior(AuthBehavior.independent);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: AppSettingsScreen(onSwitchTab: (_) {}),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Tap 退出登录 button
+      await tester.tap(find.textContaining('退出登录'));
+      await tester.pumpAndSettle();
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.containsKey('password'), isFalse);
+      expect(prefs.containsKey('jwapp_password'), isFalse);
+      expect(prefs.containsKey('jw_password'), isFalse);
+      expect(prefs.containsKey('finance_password'), isFalse);
+      expect(prefs.containsKey('username'), isFalse);
+      expect(prefs.containsKey('idToken'), isFalse);
+      expect(prefs.containsKey('jwStudentNo'), isFalse);
+      expect(prefs.getBool('savePassword'), isFalse);
+      expect(AuthManager().isUnified, isTrue);
+      expect(prefs.getString('auth_behavior'), 'unified');
     });
   });
 }

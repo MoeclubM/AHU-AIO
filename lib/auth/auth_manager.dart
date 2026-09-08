@@ -36,7 +36,6 @@ class AuthManager extends ChangeNotifier {
 
   /// 设置认证行为模式并持久化存储。
   Future<void> setBehavior(AuthBehavior value) async {
-    if (_behavior == value) return;
     _behavior = value;
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
@@ -103,6 +102,16 @@ class AuthManager extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// 清除保存的所有密码（包括统一密码与各平台独立密码）。
+  Future<void> clearAllPasswords() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('password');
+    await prefs.remove('jwapp_password');
+    await prefs.remove('jw_password');
+    await prefs.remove('finance_password');
+    notifyListeners();
+  }
+
   /// 单独验证微教务密码并保存生效
   /// 返回 null 表示验证成功，返回字符串表示失败原因
   Future<String?> verifyJwapp({
@@ -116,6 +125,7 @@ class AuthManager extends ChangeNotifier {
       );
       if (token != null && token.isNotEmpty) {
         globals.idToken = token;
+        globals.username = username;
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('idToken', token);
         await prefs.setString('username', username);
@@ -145,6 +155,7 @@ class AuthManager extends ChangeNotifier {
       );
       await CasAuthCache.markLoggedIn('jw');
       globals.jwLoggedIn = true;
+      globals.username = username;
       globals.jwStudentNo = jwApi.studentId;
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('username', username);
@@ -174,6 +185,7 @@ class AuthManager extends ChangeNotifier {
       );
       if (result.success) {
         await CasAuthCache.markLoggedIn('ycard');
+        globals.username = username;
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('username', username);
         await prefs.setString('finance_password', password);
