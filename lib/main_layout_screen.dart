@@ -394,9 +394,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
 
     final reduceMotion =
         MediaQuery.disableAnimationsOf(context) ||
-        View.of(
-          context,
-        ).platformDispatcher.accessibilityFeatures.reduceMotion;
+        View.of(context).platformDispatcher.accessibilityFeatures.reduceMotion;
 
     setState(() {
       _currentBottomIndex = index;

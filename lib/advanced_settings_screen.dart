@@ -118,9 +118,9 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
   Future<void> _verifyPlatform(String platform) async {
     final username = _usernameController.text.trim();
     if (username.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('请先输入认证学号/账号')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请先输入认证学号/账号')));
       return;
     }
 
@@ -466,8 +466,9 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
-              color: (success == true ? Colors.green : Colors.red)
-                  .withOpacity(0.1),
+              color: (success == true ? Colors.green : Colors.red).withOpacity(
+                0.1,
+              ),
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: (success == true ? Colors.green : Colors.red)
@@ -492,11 +493,11 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
                       fontSize: 12,
                       color: success == true
                           ? (Theme.of(context).brightness == Brightness.dark
-                              ? Colors.green.shade300
-                              : Colors.green.shade800)
+                                ? Colors.green.shade300
+                                : Colors.green.shade800)
                           : (Theme.of(context).brightness == Brightness.dark
-                              ? Colors.red.shade300
-                              : Colors.red.shade800),
+                                ? Colors.red.shade300
+                                : Colors.red.shade800),
                     ),
                   ),
                 ),
@@ -636,8 +637,9 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
                     title,
                     style: TextStyle(
                       fontSize: 15,
-                      fontWeight:
-                          isSelected ? FontWeight.bold : FontWeight.w600,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.w600,
                       color: isSelected ? mc.primary : mc.onSurface,
                     ),
                   ),
