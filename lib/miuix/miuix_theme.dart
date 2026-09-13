@@ -86,6 +86,11 @@ ThemeData _buildMiuixTheme(MiuixColors c, Brightness brightness) {
       foregroundColor: c.onBackground,
       elevation: 0,
       scrolledUnderElevation: 0,
+      titleTextStyle: TextStyle(
+        fontSize: 17,
+        fontWeight: FontWeight.w600,
+        color: c.onBackground,
+      ),
     ),
     cardTheme: CardThemeData(
       color: c.surfaceContainer,
@@ -100,6 +105,25 @@ ThemeData _buildMiuixTheme(MiuixColors c, Brightness brightness) {
       color: c.dividerLine,
       thickness: 0.5,
       space: 0.5,
+    ),
+    tabBarTheme: TabBarThemeData(
+      labelColor: c.primary,
+      unselectedLabelColor: c.onSurfaceVariantActions,
+      indicatorSize: TabBarIndicatorSize.tab,
+      dividerColor: Colors.transparent,
+      overlayColor: WidgetStateProperty.all(c.primary.withOpacity(0.08)),
+    ),
+    dialogTheme: DialogThemeData(
+      backgroundColor: c.surfaceContainer,
+      elevation: 0,
+      shape: const MiuixSquircleBorder(
+        cornerRadius: 24,
+      ),
+      titleTextStyle: TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.bold,
+        color: c.onSurface,
+      ),
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: Colors.transparent,

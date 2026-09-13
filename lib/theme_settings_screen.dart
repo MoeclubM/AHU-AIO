@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'theme_manager.dart';
 import 'miuix/miuix_components.dart';
+import 'miuix/liquid_glass_app_bar.dart';
 
 class ThemeSettingsScreen extends StatefulWidget {
   const ThemeSettingsScreen({super.key});
@@ -33,7 +34,9 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
     final mc = MiuixTheme.of(context).colors;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('个性化与主题')),
+      appBar: const LiquidGlassAppBar(
+        title: '个性化与主题',
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 48),
         children: [

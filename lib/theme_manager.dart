@@ -34,32 +34,36 @@ enum UiMode {
   String get displayName => this == UiMode.material3 ? 'Material 3' : 'Miuix';
 }
 
-/// 预设主色列表，参考 SukiSU Ultra 的 keyColor 选择。
+/// 预设主色列表，参考 MIUI / HyperOS 官方经典配色与 SukiSU 的 keyColor。
 class PresetColors {
   static const List<Color> presets = [
-    Color(0xFF3482FF), // miuix 蓝（默认）
-    Color(0xFF277AF7), // 深色蓝
-    Color(0xFF00BFA5), // 青绿
-    Color(0xFFE91E63), // 粉红
-    Color(0xFF7B68EE), // 紫罗兰
-    Color(0xFFFF6D00), // 橙
-    Color(0xFF2E7D32), // 森林绿
-    Color(0xFFD32F2F), // 红
-    Color(0xFF455A64), // 蓝灰
-    Color(0xFF8D6E63), // 棕
+    Color(0xFF3482FF), // 极客蓝（MIUI / HyperOS 经典蓝）
+    Color(0xFF1E88E5), // 海洋蓝
+    Color(0xFF00BFA5), // 青碧绿
+    Color(0xFF2E7D32), // 翡翠绿
+    Color(0xFF00ACC1), // 极光青
+    Color(0xFFFF6D00), // 活力橙
+    Color(0xFFFFA000), // 琥珀金
+    Color(0xFFE91E63), // 樱花粉
+    Color(0xFF7B68EE), // 鸢尾紫
+    Color(0xFFD32F2F), // 烈焰红
+    Color(0xFF455A64), // 玄武灰
+    Color(0xFF8D6E63), // 摩卡棕
   ];
 
   static const List<String> names = [
     '极客蓝',
     '海洋蓝',
-    '青碧',
+    '青碧绿',
+    '翡翠绿',
+    '极光青',
+    '活力橙',
+    '琥珀金',
     '樱花粉',
-    '紫罗兰',
-    '夕阳橙',
-    '森林绿',
-    '中国红',
-    '岩石灰',
-    '大地棕',
+    '鸢尾紫',
+    '烈焰红',
+    '玄武灰',
+    '摩卡棕',
   ];
 }
 
