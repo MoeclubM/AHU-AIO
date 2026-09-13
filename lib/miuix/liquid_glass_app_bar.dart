@@ -27,9 +27,8 @@ class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   final double toolbarHeight;
 
   @override
-  Size get preferredSize => Size.fromHeight(
-        toolbarHeight + (bottom?.preferredSize.height ?? 0.0),
-      );
+  Size get preferredSize =>
+      Size.fromHeight(toolbarHeight + (bottom?.preferredSize.height ?? 0.0));
 
   @override
   Widget build(BuildContext context) {
@@ -194,9 +193,7 @@ class SliverMiuixLargeTitleAppBar extends StatelessWidget {
                       baseColor.withOpacity(
                         reduceTransparency ? 0.92 : (isCollapsed ? 0.50 : 0.0),
                       ),
-                      baseColor.withOpacity(
-                        reduceTransparency ? 0.85 : 0.0,
-                      ),
+                      baseColor.withOpacity(reduceTransparency ? 0.85 : 0.0),
                     ],
                     stops: const [0.0, 0.65, 1.0],
                   ),

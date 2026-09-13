@@ -539,43 +539,63 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                   filter: blurEnabled
                                       ? liquidGlassImageFilter(blurSigma: 4)
                                       : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
-                                    child: Container(
-                                      height: isMaterial3 ? 48 : 56,
-                                      decoration: BoxDecoration(
-                                        color: isMaterial3
-                                            ? Theme.of(
-                                                context,
-                                              ).colorScheme.surfaceContainerHigh
-                                            : (isTransparentBottomBar
-                                                  ? (blurEnabled
-                                                        ? (Theme.of(context).brightness == Brightness.dark
-                                                              ? MiuixTheme.of(context).colors.surfaceContainer.withOpacity(0.55)
-                                                              : MiuixTheme.of(context).colors.surfaceContainer.withOpacity(0.65))
-                                                        : MiuixTheme.of(context).colors.surfaceContainer.withOpacity(0.92))
-                                                  : MiuixTheme.of(
-                                                      context,
-                                                    ).colors.surfaceContainer),
-                                        borderRadius: BorderRadius.circular(
-                                          isMaterial3 ? 16 : 28,
-                                        ),
-                                        border: Border.all(
-                                          color: isMaterial3
-                                              ? Theme.of(context)
-                                                    .colorScheme
-                                                    .outlineVariant
-                                                    .withOpacity(0.5)
-                                              : MiuixTheme.of(
-                                                  context,
-                                                ).colors.outline.withOpacity(
-                                                  isTransparentBottomBar
-                                                      ? (reduceTransparency
-                                                            ? 0.9
-                                                            : 0.35)
-                                                      : 0.8,
-                                                ),
-                                          width: 0.5,
-                                        ),
+                                  child: Container(
+                                    height: isMaterial3 ? 48 : 56,
+                                    decoration: BoxDecoration(
+                                      color: isMaterial3
+                                          ? Theme.of(
+                                              context,
+                                            ).colorScheme.surfaceContainerHigh
+                                          : (isTransparentBottomBar
+                                                ? (blurEnabled
+                                                      ? (Theme.of(
+                                                                  context,
+                                                                ).brightness ==
+                                                                Brightness.dark
+                                                            ? MiuixTheme.of(
+                                                                    context,
+                                                                  )
+                                                                  .colors
+                                                                  .surfaceContainer
+                                                                  .withOpacity(
+                                                                    0.55,
+                                                                  )
+                                                            : MiuixTheme.of(
+                                                                    context,
+                                                                  )
+                                                                  .colors
+                                                                  .surfaceContainer
+                                                                  .withOpacity(
+                                                                    0.65,
+                                                                  ))
+                                                      : MiuixTheme.of(context)
+                                                            .colors
+                                                            .surfaceContainer
+                                                            .withOpacity(0.92))
+                                                : MiuixTheme.of(
+                                                    context,
+                                                  ).colors.surfaceContainer),
+                                      borderRadius: BorderRadius.circular(
+                                        isMaterial3 ? 16 : 28,
                                       ),
+                                      border: Border.all(
+                                        color: isMaterial3
+                                            ? Theme.of(context)
+                                                  .colorScheme
+                                                  .outlineVariant
+                                                  .withOpacity(0.5)
+                                            : MiuixTheme.of(
+                                                context,
+                                              ).colors.outline.withOpacity(
+                                                isTransparentBottomBar
+                                                    ? (reduceTransparency
+                                                          ? 0.9
+                                                          : 0.35)
+                                                    : 0.8,
+                                              ),
+                                        width: 0.5,
+                                      ),
+                                    ),
                                     child: Stack(
                                       children: [
                                         Positioned.fill(
@@ -650,9 +670,20 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                                         ).colorScheme.surfaceContainer
                                       : (isTransparentBottomBar
                                             ? (blurEnabled
-                                                  ? (Theme.of(context).brightness == Brightness.dark
-                                                        ? MiuixTheme.of(context).colors.surfaceContainer.withOpacity(0.58)
-                                                        : MiuixTheme.of(context).colors.surfaceContainer.withOpacity(0.68))
+                                                  ? (Theme.of(
+                                                              context,
+                                                            ).brightness ==
+                                                            Brightness.dark
+                                                        ? MiuixTheme.of(context)
+                                                              .colors
+                                                              .surfaceContainer
+                                                              .withOpacity(0.58)
+                                                        : MiuixTheme.of(context)
+                                                              .colors
+                                                              .surfaceContainer
+                                                              .withOpacity(
+                                                                0.68,
+                                                              ))
                                                   : MiuixTheme.of(context)
                                                         .colors
                                                         .surfaceContainer

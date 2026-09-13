@@ -34,9 +34,7 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
     final mc = MiuixTheme.of(context).colors;
 
     return Scaffold(
-      appBar: const LiquidGlassAppBar(
-        title: '个性化与主题',
-      ),
+      appBar: const LiquidGlassAppBar(title: '个性化与主题'),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 48),
         children: [

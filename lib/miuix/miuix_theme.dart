@@ -116,9 +116,7 @@ ThemeData _buildMiuixTheme(MiuixColors c, Brightness brightness) {
     dialogTheme: DialogThemeData(
       backgroundColor: c.surfaceContainer,
       elevation: 0,
-      shape: const MiuixSquircleBorder(
-        cornerRadius: 24,
-      ),
+      shape: const MiuixSquircleBorder(cornerRadius: 24),
       titleTextStyle: TextStyle(
         fontSize: 18,
         fontWeight: FontWeight.bold,
