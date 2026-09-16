@@ -249,6 +249,9 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           path: artifacts
+          # Windows/macOS 产物本身就是 .zip，默认解压会把压缩包拆成目录树，
+          # 导致后面的 find -name "*.zip" 什么都找不到、release 静默缺包。
+          skip-decompress: true
 
       - name: Prepare & Upload to Release
         env:
@@ -261,6 +264,15 @@ jobs:
           mkdir -p release
 
           find artifacts -type f \( -name "*.apk" -o -name "*.tar.gz" -o -name "*.zip" \) -exec cp {} release/ \;
+
+          echo "待发布产物："
+          ls -la release/
+          for ext in apk tar.gz zip; do
+            if ! ls release/*.$ext >/dev/null 2>&1; then
+              echo "::error::缺少 .$ext 产物 — 请检查 download-artifact 的解压行为。"
+              exit 1
+            fi
+          done
 
           # Changelog
           printf '%s\n\n' "$CHANGELOG" > release-body.md
