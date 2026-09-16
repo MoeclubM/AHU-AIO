@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import '../theme_manager.dart';
-import 'miuix_theme.dart';
 import 'bloom_stroke_painter.dart';
 import 'liquid_glass_filter.dart';
+import 'miuix_drop_shadow.dart';
+import 'miuix_theme.dart';
 
 /// 液态玻璃质感的卡片容器。
 ///
-/// 参考 SukiSU Ultra / compose-miuix-ui miuix 的 Liquid Glass 实现：
-/// 背景模糊 (BackdropFilter) + BloomStroke 边缘高光 + 内阴影 +
-/// 半透明覆盖层。高对比度模式下退化为不透明实色卡片。
+/// 半透明填充 + 背景高斯模糊 + BloomStroke 边缘高光，高对比度模式下退化为
+/// 不透明实色卡片。
+///
+/// 注意投影的实现方式：阴影走 [MiuixDropShadow]（只画在形状外侧）。直接给
+/// 半透明表面加 [BoxShadow] 会让阴影内部的黑色透出来，整张卡片发暗。
 class LiquidGlassCard extends StatelessWidget {
   const LiquidGlassCard({
     super.key,
@@ -44,117 +47,46 @@ class LiquidGlassCard extends StatelessWidget {
     final mc = MiuixTheme.of(context).colors;
     final baseColor = color ?? mc.surfaceContainer;
     final fillAlpha = blurEnabled ? 0.40 : (reduceTransparency ? 0.96 : 0.85);
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(borderRadius),
+    );
 
-    return Container(
-      margin: margin,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(borderRadius),
-        boxShadow: [
-          if (elevation != null && elevation! > 0)
-            BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.4 : 0.08),
-              blurRadius: elevation!,
-              offset: Offset(0, elevation! * 0.4),
+    Widget content = ClipRRect(
+      borderRadius: BorderRadius.circular(borderRadius),
+      child: Stack(
+        children: [
+          if (blurEnabled)
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: liquidGlassImageFilter(blurSigma: blurSigma),
+                child: Container(color: Colors.transparent),
+              ),
             ),
+          Positioned.fill(
+            child: ColoredBox(color: baseColor.withValues(alpha: fillAlpha)),
+          ),
+          if (glassEnabled)
+            Positioned.fill(
+              child: BloomStrokeLayer(
+                radius: borderRadius,
+                isDark: isDark,
+                enabled: glassEnabled,
+              ),
+            ),
+          Padding(padding: padding ?? EdgeInsets.zero, child: child),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(borderRadius),
-        child: Stack(
-          children: [
-            if (blurEnabled)
-              Positioned.fill(
-                child: BackdropFilter(
-                  filter: liquidGlassImageFilter(blurSigma: blurSigma),
-                  child: Container(color: Colors.transparent),
-                ),
-              ),
-            Positioned.fill(
-              child: ColoredBox(color: baseColor.withOpacity(fillAlpha)),
-            ),
-            if (glassEnabled)
-              Positioned.fill(
-                child: BloomStrokeLayer(
-                  radius: borderRadius,
-                  isDark: isDark,
-                  enabled: glassEnabled,
-                ),
-              ),
-            if (glassEnabled)
-              Positioned.fill(
-                child: CustomPaint(
-                  painter: _InnerShadowPainter(
-                    radius: borderRadius,
-                    isDark: isDark,
-                  ),
-                ),
-              ),
-            Padding(padding: padding ?? EdgeInsets.zero, child: child),
-          ],
-        ),
-      ),
     );
+
+    if (elevation != null && elevation! > 0) {
+      content = MiuixDropShadow(
+        shape: shape,
+        color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.08),
+        sigma: elevation! * 0.5,
+        child: content,
+      );
+    }
+
+    return Container(margin: margin, child: content);
   }
-}
-
-/// 内阴影绘制器，模拟玻璃边缘的凹陷感。
-///
-/// 在卡片内侧绘制一道柔和的深色阴影，增强玻璃的深度感。
-class _InnerShadowPainter extends CustomPainter {
-  const _InnerShadowPainter({required this.radius, required this.isDark});
-
-  final double radius;
-  final bool isDark;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-    if (w <= 0 || h <= 0) return;
-
-    final rrect = RRect.fromRectAndRadius(
-      Rect.fromLTWH(0, 0, w, h),
-      Radius.circular(radius),
-    );
-
-    // 内阴影：在卡片内侧边缘绘制深色渐变
-    final shadowColor = Colors.black.withOpacity(isDark ? 0.20 : 0.06);
-    final shadowPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment(0, 0.15),
-        colors: [shadowColor, shadowColor.withOpacity(0)],
-      ).createShader(Offset.zero & size);
-
-    // 只在内侧绘制：用 clipPath 限制在 rrect 内
-    canvas.save();
-    canvas.clipRRect(rrect);
-
-    // 顶部内阴影
-    final topInner = RRect.fromRectAndRadius(
-      Rect.fromLTWH(0, 0, w, h * 0.12),
-      Radius.circular(radius),
-    );
-    canvas.drawRRect(topInner, shadowPaint);
-
-    // 底部内阴影（更弱）
-    final bottomShadowColor = Colors.black.withOpacity(isDark ? 0.12 : 0.03);
-    final bottomPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.bottomCenter,
-        end: Alignment(0, 0.85),
-        colors: [bottomShadowColor, bottomShadowColor.withOpacity(0)],
-      ).createShader(Offset.zero & size);
-    final bottomInner = RRect.fromRectAndRadius(
-      Rect.fromLTWH(0, h * 0.88, w, h * 0.12),
-      Radius.circular(radius),
-    );
-    canvas.drawRRect(bottomInner, bottomPaint);
-
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant _InnerShadowPainter oldDelegate) =>
-      isDark != oldDelegate.isDark || radius != oldDelegate.radius;
 }

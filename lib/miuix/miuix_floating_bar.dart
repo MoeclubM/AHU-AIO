@@ -2,18 +2,22 @@ import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart';
 
 import '../theme_manager.dart';
 import 'liquid_glass_filter.dart';
+import 'miuix_drop_shadow.dart';
 import 'miuix_theme.dart';
 
-/// 悬浮胶囊底栏的官方几何与配色常量。
+/// 悬浮胶囊底栏的官方几何、配色与动效常量。
 ///
 /// 数值取自 Compose 版 miuix：
-/// - 常规悬浮栏 `MiuixFloatingNavigationBarDefaults`（胶囊 50、图标 28、间距 12）；
-/// - 液态玻璃栏示例 `example/.../liquid/LiquidGlassNavigationBar.kt`
-///   （高度 64、内边距 4、外边距 24、图标 22、标签 11sp、填充 0.4、
-///   胶囊高光 alpha 0.75、阴影 radius 10 黑 10%/20%、选中胶囊 accent@0.15）。
+/// - 液态玻璃栏 `example/.../liquid/LiquidGlassNavigationBar.kt`：高度 64（内层 56）、
+///   内边距 4、外边距 24、图标 22、标签 11sp、条目等宽、填充 `surfaceContainer@0.4`、
+///   高光 alpha 0.75、阴影 radius 10 黑 10%/20%、指示器 `accent@0.15`；
+/// - 阻尼拖拽 `component/animation/DampedDragAnimation.kt`：指示器位移弹簧
+///   `spring(1.0, 1000)`、按压弹簧 `spring(1.0, 1000)`、缩放 `spring(0.6/0.7, 250)`、
+///   速度驱动的拉伸/压缩、外侧橡皮筋 4dp。
 class MiuixFloatingBarDefaults {
   MiuixFloatingBarDefaults._();
 
@@ -41,14 +45,47 @@ class MiuixFloatingBarDefaults {
   /// 二级底栏标签字号。
   static const double subLabelFontSize = 10;
 
-  /// 选中胶囊底色不透明度（官方 accentColor @ 0.15）。
+  /// 选中胶囊底色不透明度（官方 `accentColor @ 0.15`）。
   static const double pillAlpha = 0.15;
 
-  /// 玻璃填充不透明度（官方 surfaceContainer @ 0.4）。
+  /// 玻璃填充不透明度（官方 `surfaceContainer @ 0.4`）。
   static const double fillAlpha = 0.4;
 
   /// 边缘高光不透明度（官方 `baseHighlight.copy(alpha = 0.75f)`）。
   static const double highlightAlpha = 0.75;
+
+  /// 阴影模糊 sigma：官方 shadow radius 10dp，高斯 sigma ≈ radius / 2。
+  static const double shadowSigma = 5;
+
+  /// 浅色/深色下的阴影不透明度（官方 10% / 20%）。
+  static const double shadowAlphaLight = 0.1;
+  static const double shadowAlphaDark = 0.2;
+
+  /// 拖到两端时内容可位移的最大距离（官方 4dp 橡皮筋）。
+  static const double panelRubberBand = 4;
+
+  /// 按压时指示器缩放增量（官方 16dp / 栏宽）。
+  static const double pressScaleDelta = 16;
+
+  /// 指示器位移弹簧：临界阻尼，快速无过冲（官方 `spring(1f, 1000f)`）。
+  static SpringDescription get valueSpring =>
+      SpringDescription.withDampingRatio(mass: 1, stiffness: 1000, ratio: 1);
+
+  /// 按压进度弹簧（官方 `spring(1f, 1000f)`）。
+  static SpringDescription get pressSpring =>
+      SpringDescription.withDampingRatio(mass: 1, stiffness: 1000, ratio: 1);
+
+  /// 横向缩放弹簧（官方 `spring(0.6f, 250f)`）。
+  static SpringDescription get scaleXSpring =>
+      SpringDescription.withDampingRatio(mass: 1, stiffness: 250, ratio: 0.6);
+
+  /// 纵向缩放弹簧（官方 `spring(0.7f, 250f)`）。
+  static SpringDescription get scaleYSpring =>
+      SpringDescription.withDampingRatio(mass: 1, stiffness: 250, ratio: 0.7);
+
+  /// 橡皮筋回位弹簧（官方 `spring(1f, 300f)`）。
+  static SpringDescription get panelSpring =>
+      SpringDescription.withDampingRatio(mass: 1, stiffness: 300, ratio: 1);
 
   /// 底栏距屏幕底部距离。
   ///
@@ -77,12 +114,14 @@ class MiuixFloatingBarItemData {
 
 /// 液态玻璃悬浮胶囊底栏。
 ///
-/// 结构与动效对齐 Compose 版液态玻璃底栏：
-/// - 容器：高度 64（二级 56）、内边距 4、胶囊圆角、左右外边距 24；
-/// - 材质：`surfaceContainer @ 0.4` 填充 + 高斯模糊 + BloomStroke 边缘高光（alpha 0.75）；
-/// - 阴影：radius 10，黑色 10%（浅色）/ 20%（深色），零偏移；
-/// - 选中：跟随页面位移的 accent@0.15 胶囊指示器，图标与标签同步着色；
-/// - 按压：指示器随压力缩放、内容白色高光扫过，无涟漪。
+/// 动效对齐官方 `DampedDragAnimation`：
+/// - 指示器位移由弹簧驱动，拖动时**阻尼跟随**手指而非 1:1 硬跟；
+/// - 按压进度、缩放均为弹簧；松手后等指示器到位再收起按压反馈；
+/// - 带速度时指示器横向拉伸、纵向压缩（`velocity / 10`）；
+/// - 拖到两端时内容按 4dp 橡皮筋偏移，回位用 `spring(1.0, 300)`。
+///
+/// 材质：`surfaceContainer@0.4` + 高斯模糊 + BloomStroke 边缘高光；
+/// 阴影只在胶囊**外侧**绘制（半透明填充下不会透出阴影内部的黑色）。
 class MiuixFloatingTabBar extends StatefulWidget {
   const MiuixFloatingTabBar({
     super.key,
@@ -117,20 +156,57 @@ class MiuixFloatingTabBar extends StatefulWidget {
 }
 
 class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
-    with SingleTickerProviderStateMixin {
-  /// 按压弹簧：官方用于指示器缩放与高光扫过。
-  late final AnimationController _pressController = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 300),
-  );
+    with TickerProviderStateMixin {
+  /// 指示器位置（以「条目」为单位，可为小数）。
+  late final AnimationController _valueCtrl;
 
-  final ValueNotifier<Offset> _highlightPos = ValueNotifier(Offset.zero);
+  /// 按压进度 0→1。
+  late final AnimationController _pressCtrl;
+
+  /// 指示器缩放（受按压与速度共同影响）。
+  late final AnimationController _scaleXCtrl;
+  late final AnimationController _scaleYCtrl;
+
+  /// 两端橡皮筋位移（原始像素）。
+  late final AnimationController _panelCtrl;
+
+  /// 指示器速度（条目/秒），由弹簧值采样得到，驱动拉伸/压缩。
+  double _velocity = 0;
+  final List<double> _sampleTime = <double>[];
+  final List<double> _sampleValue = <double>[];
+
+  bool _dragging = false;
   bool _pressing = false;
+
+  /// 供按压高光定位的触点位置（相对内容区）。
+  Offset _touch = Offset.zero;
+
+  /// 拖动时累计的原始位移，用于橡皮筋。
+  double _panelRaw = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    final double initial = (widget.controller.initialPage).toDouble();
+    _valueCtrl = AnimationController.unbounded(vsync: this, value: initial)
+      ..addListener(_sampleVelocity);
+    _pressCtrl = AnimationController.unbounded(vsync: this, value: 0);
+    _scaleXCtrl = AnimationController.unbounded(vsync: this, value: 1);
+    _scaleYCtrl = AnimationController.unbounded(vsync: this, value: 1);
+    _panelCtrl = AnimationController.unbounded(vsync: this, value: 0);
+    widget.controller.addListener(_onControllerChanged);
+    // PageView 首次布局前拿不到 page，帧后补一次真实值。
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncFromController());
+  }
 
   @override
   void dispose() {
-    _pressController.dispose();
-    _highlightPos.dispose();
+    widget.controller.removeListener(_onControllerChanged);
+    _valueCtrl.dispose();
+    _pressCtrl.dispose();
+    _scaleXCtrl.dispose();
+    _scaleYCtrl.dispose();
+    _panelCtrl.dispose();
     super.dispose();
   }
 
@@ -138,27 +214,199 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
       MediaQuery.disableAnimationsOf(context) ||
       View.of(context).platformDispatcher.accessibilityFeatures.reduceMotion;
 
-  void _onDragStart(DragStartDetails details) {
+  double get _maxIndex =>
+      (widget.items.isEmpty ? 0 : widget.items.length - 1).toDouble();
+
+  void _onControllerChanged() {
+    if (_dragging) return;
+    _syncFromController();
+  }
+
+  /// 外部翻页（点击底栏、程序切换）时让指示器弹簧跟随。
+  void _syncFromController() {
+    if (!widget.controller.hasClients) return;
+    final double target = (widget.controller.page ?? 0.0).clamp(0.0, _maxIndex);
+    if ((_valueCtrl.value - target).abs() < 0.001) return;
+    _animateValueTo(target);
+  }
+
+  // ---- 弹簧驱动 ----
+
+  void _animateValueTo(double target, {double velocity = 0}) {
+    final double clamped = target.clamp(0.0, _maxIndex);
+    if (_reduceMotion) {
+      _valueCtrl.value = clamped;
+      return;
+    }
+    _valueCtrl.animateWith(
+      SpringSimulation(
+        MiuixFloatingBarDefaults.valueSpring,
+        _valueCtrl.value,
+        clamped,
+        velocity,
+      )..tolerance = const Tolerance(distance: 0.001),
+    );
+  }
+
+  void _animatePanelTo(double target) {
+    _panelCtrl.animateWith(
+      SpringSimulation(
+        MiuixFloatingBarDefaults.panelSpring,
+        _panelCtrl.value,
+        target,
+        0,
+      )..tolerance = const Tolerance(distance: 0.5),
+    );
+  }
+
+  void _press() {
+    if (_pressing) return;
+    _pressing = true;
+    if (_reduceMotion) {
+      _pressCtrl.value = 1;
+      _scaleXCtrl.value = 1;
+      _scaleYCtrl.value = 1;
+      return;
+    }
+    _pressCtrl.animateWith(
+      SpringSimulation(
+        MiuixFloatingBarDefaults.pressSpring,
+        _pressCtrl.value,
+        1,
+        0,
+      )..tolerance = const Tolerance(distance: 0.001),
+    );
+    _animatePressScale(
+      1 + MiuixFloatingBarDefaults.pressScaleDelta / _barWidth,
+    );
+  }
+
+  void _release() {
+    if (!_pressing) return;
+    _pressing = false;
+    if (_reduceMotion) {
+      _pressCtrl.value = 0;
+      _scaleXCtrl.value = 1;
+      _scaleYCtrl.value = 1;
+      return;
+    }
+    // 官方 release()：先等指示器就位，再收起按压反馈，避免"松手立刻回弹"的割裂感。
+    _whenValueSettled().then((_) {
+      if (!mounted) return;
+      _pressCtrl.animateWith(
+        SpringSimulation(
+          MiuixFloatingBarDefaults.pressSpring,
+          _pressCtrl.value,
+          0,
+          0,
+        )..tolerance = const Tolerance(distance: 0.001),
+      );
+      _animatePressScale(1);
+    });
+  }
+
+  void _animatePressScale(double target) {
+    _scaleXCtrl.animateWith(
+      SpringSimulation(
+        MiuixFloatingBarDefaults.scaleXSpring,
+        _scaleXCtrl.value,
+        target,
+        0,
+      )..tolerance = const Tolerance(distance: 0.001),
+    );
+    _scaleYCtrl.animateWith(
+      SpringSimulation(
+        MiuixFloatingBarDefaults.scaleYSpring,
+        _scaleYCtrl.value,
+        target,
+        0,
+      )..tolerance = const Tolerance(distance: 0.001),
+    );
+  }
+
+  /// 指示器是否已基本到位（官方 `visibilityThreshold` 取区间 2.5%）。
+  bool get _valueSettled {
+    final double target = _valueCtrl.value.roundToDouble().clamp(
+      0.0,
+      _maxIndex,
+    );
+    final double threshold = _maxIndex <= 0 ? 0.001 : _maxIndex * 0.025;
+    return (_valueCtrl.value - target).abs() < threshold;
+  }
+
+  Future<void> _whenValueSettled() async {
+    if (_valueSettled) return;
+    while (mounted && !_valueSettled) {
+      await Future<void>.delayed(const Duration(milliseconds: 16));
+    }
+  }
+
+  /// 采样指示器速度（官方 VelocityTracker 等价实现，窗口 ~100ms）。
+  void _sampleVelocity() {
+    final double now = DateTime.now().microsecondsSinceEpoch / 1e6;
+    _sampleTime.add(now);
+    _sampleValue.add(_valueCtrl.value);
+    while (_sampleTime.length > 2 && now - _sampleTime.first > 0.1) {
+      _sampleTime.removeAt(0);
+      _sampleValue.removeAt(0);
+    }
+    if (_sampleTime.length >= 2) {
+      final double dt = _sampleTime.last - _sampleTime.first;
+      if (dt > 1e-4) {
+        _velocity = (_sampleValue.last - _sampleValue.first) / dt;
+      }
+    }
+  }
+
+  double get _barWidth {
+    final RenderBox? box = context.findRenderObject() as RenderBox?;
+    return (box != null && box.hasSize && box.size.width > 0)
+        ? box.size.width
+        : 1;
+  }
+
+  // ---- 手势 ----
+
+  void _onDragStart(DragStartDetails details, double tabWidth) {
+    _dragging = true;
+    _panelRaw = 0;
     if (widget.controller.hasClients) {
       (widget.controller.position as ScrollPositionWithSingleContext).goIdle();
     }
-    _setPressing(true, details.localPosition);
+    _touch = details.localPosition;
+    _press();
+    // 官方：按下即跳到触点所在条目（弹簧过去，不是硬跳）。
+    final int index = _indexAt(details.localPosition.dx, tabWidth);
+    _animateValueTo(index.toDouble(), velocity: _velocity);
   }
 
   void _onDragUpdate(DragUpdateDetails details, double tabWidth) {
-    _highlightPos.value = details.localPosition;
+    _touch = details.localPosition;
+    final double dx = details.delta.dx;
+    if (tabWidth <= 0 || dx == 0) return;
+
+    // 指示器：弹簧跟随（滞后阻尼），而非 1:1 硬跟。
+    _animateValueTo(
+      (_valueCtrl.value + dx / tabWidth).clamp(0.0, _maxIndex),
+      velocity: _velocity,
+    );
+
+    // 橡皮筋：累计原始位移，端点外由面板整体轻微偏移。
+    _panelRaw += dx;
+    _panelCtrl.value = _panelRaw;
+
+    // 页面与手指同步。
     if (!widget.controller.hasClients) return;
-    final position = widget.controller.position;
+    final ScrollPosition position = widget.controller.position;
     final double viewport = position.viewportDimension;
-    double target =
-        widget.controller.offset + details.delta.dx * (viewport / tabWidth);
+    double target = widget.controller.offset + dx * (viewport / tabWidth);
     if (target < position.minScrollExtent) {
-      final overshoot = target - position.minScrollExtent;
+      final double overshoot = target - position.minScrollExtent;
       target =
           position.minScrollExtent +
           (overshoot * viewport * 0.55) / (viewport + 0.55 * overshoot.abs());
     } else if (target > position.maxScrollExtent) {
-      final overshoot = target - position.maxScrollExtent;
+      final double overshoot = target - position.maxScrollExtent;
       target =
           position.maxScrollExtent +
           (overshoot * viewport * 0.55) / (viewport + 0.55 * overshoot.abs());
@@ -167,64 +415,69 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
   }
 
   void _onDragEnd(DragEndDetails details, double tabWidth) {
-    if (!widget.controller.hasClients) return;
-    if (_reduceMotion) {
-      widget.controller.jumpToPage(
-        (widget.controller.page ?? 0.0).round().clamp(
-          0,
-          widget.items.length - 1,
-        ),
-      );
-    } else {
-      final position =
-          widget.controller.position as ScrollPositionWithSingleContext;
-      position.goBallistic(
-        details.velocity.pixelsPerSecond.dx *
-            (position.viewportDimension / tabWidth),
-      );
+    _dragging = false;
+    final int target = _valueCtrl.value.round().clamp(
+      0,
+      widget.items.isEmpty ? 0 : widget.items.length - 1,
+    );
+    _animateValueTo(target.toDouble(), velocity: _velocity);
+    _panelRaw = 0;
+    _animatePanelTo(0);
+    _settleVelocity();
+    // 让页面落到最近的一页。
+    if (widget.controller.hasClients) {
+      if (_reduceMotion) {
+        widget.controller.jumpToPage(target);
+      } else {
+        final ScrollPositionWithSingleContext position =
+            widget.controller.position as ScrollPositionWithSingleContext;
+        position.goBallistic(
+          details.velocity.pixelsPerSecond.dx *
+              (position.viewportDimension / tabWidth),
+        );
+      }
     }
-    _setPressing(false);
+    _release();
   }
 
   void _onDragCancel(double tabWidth) {
-    if (!widget.controller.hasClients) {
-      _setPressing(false);
-      return;
+    _dragging = false;
+    final int target = _valueCtrl.value.round().clamp(
+      0,
+      widget.items.isEmpty ? 0 : widget.items.length - 1,
+    );
+    _animateValueTo(target.toDouble());
+    _panelRaw = 0;
+    _animatePanelTo(0);
+    _settleVelocity();
+    if (widget.controller.hasClients) {
+      if (_reduceMotion) {
+        widget.controller.jumpToPage(target);
+      } else {
+        (widget.controller.position as ScrollPositionWithSingleContext)
+            .goBallistic(0);
+      }
     }
-    if (_reduceMotion) {
-      widget.controller.jumpToPage(
-        (widget.controller.page ?? 0.0).round().clamp(
-          0,
-          widget.items.length - 1,
-        ),
-      );
-    } else {
-      (widget.controller.position as ScrollPositionWithSingleContext)
-          .goBallistic(0);
-    }
-    _setPressing(false);
+    _release();
   }
 
-  void _setPressing(bool value, [Offset? position]) {
-    _pressing = value;
-    if (value) {
-      if (position != null) _highlightPos.value = position;
-      if (_reduceMotion) {
-        _pressController.value = 1.0;
-      } else {
-        _pressController.forward();
-      }
-    } else {
-      if (_reduceMotion) {
-        _pressController.value = 0.0;
-      } else {
-        _pressController.reverse();
-      }
-    }
+  /// 松手后速度按 `spring(0.5, 300)` 衰减到 0（官方 velocityAnimationSpec）。
+  void _settleVelocity() {
+    Future<void>.delayed(const Duration(milliseconds: 120), () {
+      if (mounted && !_dragging) _velocity = 0;
+    });
+  }
+
+  int _indexAt(double localX, double tabWidth) {
+    if (tabWidth <= 0) return 0;
+    // localX 已相对内容区（外层 Padding(24) 不计入 GestureDetector 坐标）。
+    final int raw = (localX / tabWidth).floor();
+    return raw.clamp(0, widget.items.isEmpty ? 0 : widget.items.length - 1);
   }
 
   void _select(int index, double tabWidth) {
-    _setPressing(true);
+    _press();
+    _animateValueTo(index.toDouble(), velocity: _velocity);
     if (widget.controller.hasClients) {
       if (_reduceMotion) {
         widget.controller.jumpToPage(index);
@@ -236,10 +489,7 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
         );
       }
     }
-    // 指示器归位由 controller 监听驱动；此处仅收尾按压反馈。
-    Future<void>.delayed(const Duration(milliseconds: 220), () {
-      if (mounted) _setPressing(false);
-    });
+    _release();
   }
 
   @override
@@ -255,6 +505,7 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
     final int count = widget.items.length;
     final double pillHeight =
         widget.height - MiuixFloatingBarDefaults.insidePadding.vertical;
+    final bool ltr = Directionality.of(context) == TextDirection.ltr;
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -273,23 +524,30 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
 
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onHorizontalDragStart: _onDragStart,
+            onHorizontalDragStart: (d) => _onDragStart(d, tabWidth),
             onHorizontalDragUpdate: (d) => _onDragUpdate(d, tabWidth),
             onHorizontalDragEnd: (d) => _onDragEnd(d, tabWidth),
             onHorizontalDragCancel: () => _onDragCancel(tabWidth),
             child: AnimatedBuilder(
               animation: Listenable.merge([
-                widget.controller,
-                _pressController,
+                _valueCtrl,
+                _pressCtrl,
+                _scaleXCtrl,
+                _scaleYCtrl,
+                _panelCtrl,
               ]),
               builder: (context, _) {
-                final double page = widget.controller.hasClients
-                    ? (widget.controller.page ?? 0.0)
-                    : 0.0;
-                final double press = _pressController.value;
-                // 官方 layerBlock：缩放幅度按 16dp / 栏宽换算。
-                final double pillScale =
-                    1.0 + (contentWidth <= 0 ? 0.0 : 16 / contentWidth) * press;
+                final double value = _valueCtrl.value.clamp(0.0, _maxIndex);
+                final double press = _pressCtrl.value;
+                // 官方 layerBlock：速度驱动横向拉伸 / 纵向压缩。
+                final double v = _velocity / 10;
+                final double stretch = (v * 0.75).clamp(-0.2, 0.2);
+                final double squash = (v * 0.25).clamp(-0.2, 0.2);
+                final double scaleX = _scaleXCtrl.value / (1 - stretch);
+                final double scaleY = _scaleYCtrl.value * (1 - squash);
+                final double panelOffset = ltr
+                    ? _rubberBandOffset(_panelCtrl.value, contentWidth)
+                    : -_rubberBandOffset(_panelCtrl.value, contentWidth);
 
                 return _GlassBarSurface(
                   height: widget.height,
@@ -300,28 +558,57 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
                     fit: StackFit.expand,
                     clipBehavior: Clip.none,
                     children: [
-                      // 选中胶囊指示器（坐标基于已内缩 4dp 的内容区）。
-                      Positioned(
-                        left: page * tabWidth,
-                        top: 0,
-                        width: tabWidth.clamp(0.0, double.infinity),
-                        height: pillHeight,
-                        child: Transform.scale(
-                          scale: pillScale,
-                          child: DecoratedBox(
-                            decoration: ShapeDecoration(
-                              color: mc.primary.withValues(
-                                alpha: MiuixFloatingBarDefaults.pillAlpha,
-                              ),
-                              shape: MiuixSquircleBorder(
-                                cornerRadius: pillHeight / 2,
+                      // 内容整体（含图标/标签）按橡皮筋偏移。
+                      Transform.translate(
+                        offset: Offset(panelOffset, 0),
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            // 选中胶囊指示器（坐标基于已内缩 4dp 的内容区）。
+                            Positioned(
+                              left: value * tabWidth,
+                              top: 0,
+                              width: tabWidth.clamp(0.0, double.infinity),
+                              height: pillHeight,
+                              child: Transform(
+                                alignment: Alignment.center,
+                                transform: Matrix4.identity()
+                                  ..scale(scaleX, scaleY),
+                                child: _PillIndicator(
+                                  color: mc.primary.withValues(
+                                    alpha: MiuixFloatingBarDefaults.pillAlpha,
+                                  ),
+                                  radius: pillHeight / 2,
+                                  press: press,
+                                  glassEnabled: glassEnabled,
+                                  isDark: isDark,
+                                ),
                               ),
                             ),
-                          ),
+                            Row(
+                              children: [
+                                for (int i = 0; i < count; i++)
+                                  Expanded(
+                                    child: _MiuixFloatingBarItem(
+                                      data: widget.items[i],
+                                      selected: value.round() == i,
+                                      highlight: (1.0 - (value - i).abs())
+                                          .clamp(0.0, 1.0),
+                                      iconSize: widget.iconSize,
+                                      fontSize: widget.fontSize,
+                                      showLabel: widget.showLabels,
+                                      onPressed: () => _select(i, tabWidth),
+                                      onPressChanged: (v) =>
+                                          v ? _press() : _release(),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
-                      // 按压高光（官方 InteractiveHighlight 等效实现）。
-                      if (_pressing && press > 0.01)
+                      // 按压高光（官方 InteractiveHighlight：整体白扫 + 触点径向光）。
+                      if (blurEnabled && press > 0.01)
                         Positioned.fill(
                           child: IgnorePointer(
                             child: ClipPath(
@@ -332,9 +619,9 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
                               ),
                               child: CustomPaint(
                                 painter: _InteractiveHighlightPainter(
-                                  // 触点相对于整栏，转换为内容区坐标。
+                                  // 触点相对栏外侧坐标，换算到已内缩 4dp 的内容区。
                                   position:
-                                      _highlightPos.value -
+                                      _touch -
                                       Offset(
                                         MiuixFloatingBarDefaults
                                             .insidePadding
@@ -349,26 +636,6 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
                             ),
                           ),
                         ),
-                      Row(
-                        children: [
-                          for (int i = 0; i < count; i++)
-                            Expanded(
-                              child: _MiuixFloatingBarItem(
-                                data: widget.items[i],
-                                selected: page.round() == i,
-                                highlight: (1.0 - (page - i).abs()).clamp(
-                                  0.0,
-                                  1.0,
-                                ),
-                                iconSize: widget.iconSize,
-                                fontSize: widget.fontSize,
-                                showLabel: widget.showLabels,
-                                onPressed: () => _select(i, tabWidth),
-                                onPressChanged: (v) => _setPressing(v),
-                              ),
-                            ),
-                        ],
-                      ),
                     ],
                   ),
                 );
@@ -379,9 +646,64 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
       ),
     );
   }
+
+  /// 官方 panelOffset：`rubberBand * sign * EaseOut(|fraction|)`。
+  double _rubberBandOffset(double raw, double contentWidth) {
+    if (contentWidth <= 0) return 0;
+    final double fraction = (raw / contentWidth).clamp(-1.0, 1.0);
+    if (fraction == 0) return 0;
+    final double eased = Curves.easeOut.transform(fraction.abs());
+    return MiuixFloatingBarDefaults.panelRubberBand * fraction.sign * eased;
+  }
 }
 
-/// 玻璃胶囊容器：填充 + 模糊 + 边缘高光 + 官方阴影。
+/// 选中胶囊：底色 + 按压时的边缘高光与轻微压暗。
+class _PillIndicator extends StatelessWidget {
+  const _PillIndicator({
+    required this.color,
+    required this.radius,
+    required this.press,
+    required this.glassEnabled,
+    required this.isDark,
+  });
+
+  final Color color;
+  final double radius;
+  final double press;
+  final bool glassEnabled;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final shape = MiuixSquircleBorder(cornerRadius: radius);
+    final child = DecoratedBox(
+      decoration: ShapeDecoration(color: color, shape: shape),
+      child: press <= 0.01
+          ? null
+          : ColoredBox(
+              color: Colors.black.withValues(alpha: 0.03 * press),
+              child: const SizedBox.expand(),
+            ),
+    );
+    if (!glassEnabled) return child;
+    return MiuixHighlight(
+      highlight: Highlight(
+        alpha: press,
+        style: isDark
+            ? BloomStroke.glassStrokeSmallDark
+            : BloomStroke.glassStrokeSmallLight,
+      ),
+      shape: shape,
+      child: child,
+    );
+  }
+}
+
+/// 玻璃胶囊容器：外侧阴影 + 填充 + 模糊 + 边缘高光。
+///
+/// 阴影通过 [MiuixDropShadow] 只在形状外侧绘制：半透明填充不会露出阴影
+/// 内部的纯黑区域（`BoxShadow` 会把形状内部一并填黑，叠加半透明填充后
+/// 整块底栏都会发暗）。
 class _GlassBarSurface extends StatelessWidget {
   const _GlassBarSurface({
     required this.child,
@@ -407,16 +729,14 @@ class _GlassBarSurface extends StatelessWidget {
           )
         : mc.surfaceContainer;
 
-    return DecoratedBox(
-      decoration: ShapeDecoration(
-        shape: shape,
-        shadows: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.1),
-            blurRadius: 10,
-          ),
-        ],
+    return MiuixDropShadow(
+      shape: shape,
+      color: Colors.black.withValues(
+        alpha: isDark
+            ? MiuixFloatingBarDefaults.shadowAlphaDark
+            : MiuixFloatingBarDefaults.shadowAlphaLight,
       ),
+      sigma: MiuixFloatingBarDefaults.shadowSigma,
       child: SizedBox(
         height: height,
         child: ClipPath(
@@ -461,7 +781,7 @@ class _GlassBarSurface extends StatelessWidget {
 /// 底栏模糊滤镜：官方 blur 半径 4dp，按 `radius * 0.45` 换算 sigma。
 final ImageFilter _barBlurFilter = liquidGlassImageFilter(blurSigma: 4);
 
-/// 单个底栏项：图标 + 可选标签，选中态按页面位移连续着色。
+/// 单个底栏项：图标 + 可选标签，选中态按指示器位置连续着色。
 class _MiuixFloatingBarItem extends StatelessWidget {
   const _MiuixFloatingBarItem({
     required this.data,

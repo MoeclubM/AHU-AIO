@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'miuix/liquid_glass_card.dart';
 import 'miuix/miuix_components.dart';
 import 'miuix/miuix_floating_bar.dart';
 import 'theme_manager.dart';
@@ -61,14 +60,20 @@ class AdaptiveSectionTitle extends StatelessWidget {
   }
 }
 
-/// 设置分组卡片：Miuix 用液态玻璃卡片，MD3 用标准 Card。
+/// 设置分组卡片。
+///
+/// Miuix 使用官方 [MiuixCard]（实色 `surfaceContainer`，与 Compose 版设置页一致）；
+/// MD3 使用标准 [Card]。
+///
+/// 这里刻意不用自绘的液态玻璃卡片：`BoxShadow` 会把形状内部一并填成黑色，
+/// 而玻璃卡片的填充是半透明的，于是阴影内部的黑色会透出来，整张卡片发暗。
 class AdaptiveCard extends StatelessWidget {
   const AdaptiveCard({
     super.key,
     required this.child,
     this.padding,
     this.margin,
-    this.borderRadius = 16,
+    this.borderRadius = 20,
     this.color,
   });
 
@@ -81,12 +86,17 @@ class AdaptiveCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isMiuixUi()) {
-      return LiquidGlassCard(
-        padding: padding,
-        margin: margin,
-        borderRadius: borderRadius,
-        color: color,
-        child: child,
+      final scheme = Theme.of(context).colorScheme;
+      return Padding(
+        padding: margin ?? EdgeInsets.zero,
+        child: MiuixCard(
+          cornerRadius: borderRadius,
+          insideMargin: padding ?? EdgeInsets.zero,
+          colors: color == null
+              ? null
+              : MiuixCardColors(color: color!, contentColor: scheme.onSurface),
+          child: child,
+        ),
       );
     }
     return Card(
@@ -98,6 +108,53 @@ class AdaptiveCard extends StatelessWidget {
       child: Padding(
         padding: padding ?? const EdgeInsets.symmetric(vertical: 4),
         child: child,
+      ),
+    );
+  }
+}
+
+/// 页面大标题栏：圆形返回按钮 + 左侧大标题，参考 LSPosed 管理器的设置页头部。
+class AdaptivePageHeader extends StatelessWidget {
+  const AdaptivePageHeader({super.key, required this.title, this.onBack});
+
+  final String title;
+  final VoidCallback? onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final bool miuix = isMiuixUi();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Material(
+            color: scheme.surfaceContainerHigh,
+            shape: const CircleBorder(),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onBack ?? () => Navigator.maybePop(context),
+              child: const SizedBox(
+                width: 48,
+                height: 48,
+                child: Icon(Icons.arrow_back, size: 22),
+              ),
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: miuix ? 30 : 32,
+              fontWeight: miuix ? FontWeight.w500 : FontWeight.w700,
+              letterSpacing: miuix ? 0 : -0.5,
+              color: scheme.onSurface,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -167,6 +224,7 @@ class AdaptiveSwitchTile extends StatelessWidget {
     super.key,
     required this.title,
     this.summary,
+    this.leading,
     required this.value,
     required this.onChanged,
     this.enabled = true,
@@ -174,6 +232,7 @@ class AdaptiveSwitchTile extends StatelessWidget {
 
   final String title;
   final String? summary;
+  final Widget? leading;
   final bool value;
   final ValueChanged<bool> onChanged;
   final bool enabled;
@@ -184,6 +243,7 @@ class AdaptiveSwitchTile extends StatelessWidget {
       return MiuixSwitchPreference(
         title: title,
         summary: summary,
+        startAction: leading,
         value: value,
         enabled: enabled,
         onChanged: onChanged,
@@ -192,6 +252,7 @@ class AdaptiveSwitchTile extends StatelessWidget {
     return SwitchListTile(
       title: Text(title),
       subtitle: summary != null ? Text(summary!) : null,
+      secondary: leading,
       value: value,
       onChanged: enabled ? onChanged : null,
     );

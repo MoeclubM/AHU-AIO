@@ -4,10 +4,10 @@ import 'adaptive_ui.dart';
 import 'miuix/miuix_components.dart';
 import 'theme_manager.dart';
 
-/// 个性化与主题设置。
+/// 主题设置。
 ///
-/// 布局参考 LSPosed 管理器：列表只保留「当前取值」的精简行，
-/// 具体选项放进弹窗完成选择，避免大块预览卡片与冗余说明。
+/// 形态参考 LSPosed 管理器：页面使用大标题 + 圆形返回按钮，每个选项一张
+/// 独立卡片（图标在左、标题与副标题在中间、当前取值在右），开关直接内嵌在行内。
 class ThemeSettingsScreen extends StatefulWidget {
   const ThemeSettingsScreen({super.key});
 
@@ -38,92 +38,76 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
   Widget build(BuildContext context) {
     final tm = _themeManager;
     final scheme = Theme.of(context).colorScheme;
-    final chevron = Icon(Icons.chevron_right, color: scheme.onSurfaceVariant);
+    final Color leadingColor = scheme.onSurface;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('个性化与主题')),
       body: ListView(
-        padding: adaptivePagePadding(context, top: 8, bottom: 40),
+        padding: EdgeInsets.only(
+          top: MediaQuery.viewPaddingOf(context).top,
+          bottom: adaptiveBottomPadding(context, withSubBar: false),
+        ),
         children: [
-          const AdaptiveSectionTitle('外观'),
-          AdaptiveCard(
-            child: Column(
-              children: [
-                AdaptiveSettingsTile(
-                  title: '界面风格',
-                  summary: tm.currentUiModeName,
-                  leading: Icon(
-                    tm.isMiuix
-                        ? Icons.phone_iphone_rounded
-                        : Icons.widgets_outlined,
-                    color: scheme.primary,
-                  ),
-                  trailing: chevron,
-                  onTap: _pickUiMode,
-                ),
-                const AdaptiveDivider(),
-                AdaptiveSettingsTile(
-                  title: '色彩模式',
-                  summary: tm.currentColorModeName,
-                  leading: Icon(
-                    Icons.brightness_6_outlined,
-                    color: scheme.primary,
-                  ),
-                  trailing: chevron,
-                  onTap: _pickColorMode,
-                ),
-                const AdaptiveDivider(),
-                AdaptiveSettingsTile(
-                  title: '主题主色',
-                  summary: tm.colorMode == ColorMode.monet
-                      ? '跟随动态壁纸取色'
-                      : '预设色板或自定义取色',
-                  leading: Icon(Icons.palette_outlined, color: scheme.primary),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _ColorDot(
-                        color: tm.keyColor,
-                        monet: tm.colorMode == ColorMode.monet,
-                      ),
-                      const SizedBox(width: 6),
-                      chevron,
-                    ],
-                  ),
-                  onTap: _pickKeyColor,
-                ),
-              ],
-            ),
+          const AdaptivePageHeader(title: '主题设置'),
+
+          // 主题模式
+          _OptionCard(
+            icon: Icons.dark_mode_outlined,
+            iconColor: leadingColor,
+            title: '主题',
+            subtitle: '选择应用的主题模式',
+            trailing: _ValueTrailing(text: tm.currentColorModeName),
+            onTap: _pickColorMode,
           ),
-          if (tm.isMiuix) ...[
-            const SizedBox(height: 20),
-            const AdaptiveSectionTitle('视觉效果'),
-            AdaptiveCard(
-              child: Column(
-                children: [
-                  AdaptiveSwitchTile(
-                    title: '底栏毛玻璃透视',
-                    summary: tm.enableBottomBarTransparent ? '开启' : '关闭',
-                    value: tm.enableBottomBarTransparent,
-                    onChanged: tm.setEnableBottomBarTransparent,
-                  ),
-                  const AdaptiveDivider(),
-                  AdaptiveSwitchTile(
-                    title: '背景高斯模糊',
-                    summary: tm.enableBlur ? '开启' : '关闭',
-                    value: tm.enableBlur,
-                    onChanged: tm.setEnableBlur,
-                  ),
-                  const AdaptiveDivider(),
-                  AdaptiveSwitchTile(
-                    title: '液态玻璃边缘高光',
-                    summary: tm.enableLiquidGlass ? '开启' : '关闭',
-                    value: tm.enableLiquidGlass,
-                    enabled: tm.enableBlur,
-                    onChanged: tm.setEnableLiquidGlass,
-                  ),
-                ],
+          // 强调色
+          _OptionCard(
+            icon: Icons.palette_outlined,
+            iconColor: leadingColor,
+            title: '强调色',
+            subtitle: '自定义主题的强调色与色板',
+            trailing: _ValueTrailing(
+              text: tm.colorMode == ColorMode.monet ? '动态取色' : '默认',
+              leading: _ColorDot(
+                color: tm.keyColor,
+                monet: tm.colorMode == ColorMode.monet,
               ),
+            ),
+            onTap: _pickKeyColor,
+          ),
+          // 界面风格
+          _OptionCard(
+            icon: Icons.auto_awesome_outlined,
+            iconColor: leadingColor,
+            title: '界面风格',
+            subtitle: '在 Miuix 与 Material 3 之间切换',
+            trailing: _ValueTrailing(text: tm.currentUiModeName),
+            onTap: _pickUiMode,
+          ),
+
+          if (tm.isMiuix) ...[
+            _SwitchCard(
+              icon: Icons.blur_on_outlined,
+              iconColor: leadingColor,
+              title: '模糊',
+              subtitle: '启用顶栏和底栏的模糊效果',
+              value: tm.enableBlur,
+              onChanged: tm.setEnableBlur,
+            ),
+            _SwitchCard(
+              icon: Icons.view_agenda_outlined,
+              iconColor: leadingColor,
+              title: '悬浮底栏',
+              subtitle: '使用类 Apple 风格的悬浮底栏',
+              value: tm.enableBottomBarTransparent,
+              onChanged: tm.setEnableBottomBarTransparent,
+            ),
+            _SwitchCard(
+              icon: Icons.water_drop_outlined,
+              iconColor: leadingColor,
+              title: '液态玻璃',
+              subtitle: '启用悬浮底栏的液态玻璃效果',
+              value: tm.enableLiquidGlass,
+              enabled: tm.enableBlur,
+              onChanged: tm.setEnableLiquidGlass,
             ),
           ],
         ],
@@ -157,7 +141,7 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
   Future<void> _pickColorMode() async {
     final mode = await showAdaptiveChoiceDialog<ColorMode>(
       context: context,
-      title: '色彩模式',
+      title: '主题',
       current: _themeManager.colorMode,
       options: const [
         AdaptiveChoice(value: ColorMode.system, label: '跟随系统'),
@@ -191,6 +175,106 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
   }
 }
 
+/// 单行选项卡片：图标 + 标题/副标题 + 右侧当前取值。
+class _OptionCard extends StatelessWidget {
+  const _OptionCard({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.trailing,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final Widget trailing;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: AdaptiveCard(
+        padding: EdgeInsets.zero,
+        child: AdaptiveSettingsTile(
+          title: title,
+          summary: subtitle,
+          leading: Icon(icon, size: 24, color: iconColor),
+          trailing: trailing,
+          onTap: onTap,
+        ),
+      ),
+    );
+  }
+}
+
+/// 开关行卡片：图标 + 标题/副标题 + 内嵌开关。
+class _SwitchCard extends StatelessWidget {
+  const _SwitchCard({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+    this.enabled = true,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: AdaptiveCard(
+        padding: EdgeInsets.zero,
+        child: AdaptiveSwitchTile(
+          title: title,
+          summary: subtitle,
+          leading: Icon(icon, size: 24, color: iconColor),
+          value: value,
+          enabled: enabled,
+          onChanged: onChanged,
+        ),
+      ),
+    );
+  }
+}
+
+/// 右侧当前取值：可选色点 + 文本 + 右箭头。
+class _ValueTrailing extends StatelessWidget {
+  const _ValueTrailing({required this.text, this.leading});
+
+  final String text;
+  final Widget? leading;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (leading != null) ...[leading!, const SizedBox(width: 8)],
+        Text(
+          text,
+          style: TextStyle(fontSize: 15, color: scheme.onSurfaceVariant),
+        ),
+        const SizedBox(width: 2),
+        Icon(Icons.chevron_right, size: 22, color: scheme.onSurfaceVariant),
+      ],
+    );
+  }
+}
+
 /// 当前主色小圆点。
 class _ColorDot extends StatelessWidget {
   const _ColorDot({required this.color, required this.monet});
@@ -202,12 +286,12 @@ class _ColorDot extends StatelessWidget {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return Container(
-      width: 20,
-      height: 20,
+      width: 18,
+      height: 18,
       decoration: BoxDecoration(
         color: monet ? scheme.primary : color,
         shape: BoxShape.circle,
-        border: Border.all(color: scheme.outline, width: 1),
+        border: Border.all(color: scheme.outlineVariant, width: 1),
       ),
     );
   }
@@ -226,7 +310,7 @@ Future<Color?> showThemeColorDialog({
         builder: (ctx, setDialogState) {
           final scheme = Theme.of(ctx).colorScheme;
           return AlertDialog(
-            title: const Text('主题主色'),
+            title: const Text('强调色'),
             content: SizedBox(
               width: 320,
               child: Column(

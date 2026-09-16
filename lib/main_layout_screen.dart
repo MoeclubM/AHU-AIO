@@ -384,43 +384,36 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                 final double visibility =
                     _subTabAnimController.value * gestureVisibility;
 
+                const double slotHeight =
+                    MiuixFloatingBarDefaults.subBarHeight + 8;
                 return Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    IgnorePointer(
-                      ignoring: visibility < 0.5,
-                      child: Opacity(
-                        opacity: visibility.clamp(0.0, 1.0),
+                    // 二级栏收起时不改透明度：半透明玻璃一旦半隐，底下的深色文字
+                    // 会透上来显得整条发暗，而且交叉淡入会让两层玻璃叠加变黑。
+                    // 改为在固定槽位内裁剪下移，视觉上"藏到底栏后面"。
+                    SizedBox(
+                      height: slotHeight,
+                      child: ClipRect(
                         child: Transform.translate(
-                          offset: Offset(0, (1.0 - visibility) * 72),
-                          child: Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 200),
-                              layoutBuilder: (currentChild, previousChildren) =>
-                                  Stack(
-                                    fit: StackFit.passthrough,
-                                    children: [
-                                      ...previousChildren,
-                                      ?currentChild,
-                                    ],
-                                  ),
-                              child: KeyedSubtree(
-                                key: ValueKey(section),
-                                child: section <= 2
-                                    ? MiuixFloatingTabBar(
-                                        controller:
-                                            _subPageControllers[section],
-                                        items: _subTabsOf(section),
-                                        height: MiuixFloatingBarDefaults
-                                            .subBarHeight,
-                                        iconSize: MiuixFloatingBarDefaults
-                                            .subIconSize,
-                                        fontSize: MiuixFloatingBarDefaults
-                                            .subLabelFontSize,
-                                      )
-                                    : const SizedBox.shrink(),
-                              ),
+                          offset: Offset(0, (1.0 - visibility) * slotHeight),
+                          child: IgnorePointer(
+                            ignoring: visibility < 0.5,
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: section <= 2
+                                  ? MiuixFloatingTabBar(
+                                      key: ValueKey(section),
+                                      controller: _subPageControllers[section],
+                                      items: _subTabsOf(section),
+                                      height:
+                                          MiuixFloatingBarDefaults.subBarHeight,
+                                      iconSize:
+                                          MiuixFloatingBarDefaults.subIconSize,
+                                      fontSize: MiuixFloatingBarDefaults
+                                          .subLabelFontSize,
+                                    )
+                                  : const SizedBox.shrink(),
                             ),
                           ),
                         ),
