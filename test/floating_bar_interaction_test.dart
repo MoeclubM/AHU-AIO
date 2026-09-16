@@ -22,10 +22,7 @@ void main() {
       seed: const Color(0xFF3482FF),
       dark: false,
     );
-    final dark = miuixColorsFromSeed(
-      seed: const Color(0xFF3482FF),
-      dark: true,
-    );
+    final dark = miuixColorsFromSeed(seed: const Color(0xFF3482FF), dark: true);
     final items = <MiuixFloatingBarItemData>[
       for (int i = 0; i < count; i++)
         MiuixFloatingBarItemData(
@@ -51,7 +48,8 @@ void main() {
                     controller: controller,
                     physics: const NeverScrollableScrollPhysics(),
                     children: [
-                      for (int i = 0; i < count; i++) Center(child: Text('页$i')),
+                      for (int i = 0; i < count; i++)
+                        Center(child: Text('页$i')),
                     ],
                   ),
                 ),
@@ -142,9 +140,7 @@ void main() {
         barRect.left + MiuixFloatingBarDefaults.horizontalMargin;
 
     // 点击第 3 个条目（索引 2）。
-    await tester.tapAt(
-      Offset(left + tabWidth * 2.5, barRect.center.dy),
-    );
+    await tester.tapAt(Offset(left + tabWidth * 2.5, barRect.center.dy));
     await tester.pumpAndSettle();
     expect(controller.page!, closeTo(2.0, 0.05));
   });
