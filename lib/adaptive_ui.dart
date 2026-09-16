@@ -1,0 +1,381 @@
+import 'package:flutter/material.dart';
+
+import 'miuix/liquid_glass_card.dart';
+import 'miuix/miuix_components.dart';
+import 'miuix/miuix_floating_bar.dart';
+import 'theme_manager.dart';
+
+/// 当前是否为 Miuix 风格。MD3 模式返回 false。
+bool isMiuixUi() => ThemeManager().isMiuix;
+
+/// 内容页底部预留高度。
+///
+/// Miuix 为悬浮底栏（主栏 64 + 间距 8 + 二级栏 56 + 官方底部间距 + 呼吸）
+/// 预留；MD3 的底栏为贴底布局，由 Scaffold 自动避让，只需少量留白。
+/// [withSubBar] 为 false 时只预留主底栏高度（如设置页这类没有二级栏的页面）。
+double adaptiveBottomPadding(BuildContext context, {bool withSubBar = true}) {
+  if (!isMiuixUi()) return 16;
+  final base =
+      MiuixFloatingBarDefaults.bottomPadding(context) +
+      MiuixFloatingBarDefaults.height +
+      16;
+  if (!withSubBar) return base;
+  return base + MiuixFloatingBarDefaults.subBarHeight + 8;
+}
+
+/// 内容页统一内边距，底部自动适配当前风格的底栏高度。
+EdgeInsets adaptivePagePadding(
+  BuildContext context, {
+  double horizontal = 16,
+  double top = 16,
+  double? bottom,
+}) {
+  return EdgeInsets.fromLTRB(
+    horizontal,
+    top,
+    horizontal,
+    bottom ?? adaptiveBottomPadding(context),
+  );
+}
+
+/// 分组小标题：Miuix 用原生小标题，MD3 用标准 titleSmall。
+class AdaptiveSectionTitle extends StatelessWidget {
+  const AdaptiveSectionTitle(this.title, {super.key});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isMiuixUi()) return MiuixSmallTitle(title);
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 10, 4, 8),
+      child: Text(
+        title,
+        style: theme.textTheme.titleSmall?.copyWith(
+          color: theme.colorScheme.primary,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+}
+
+/// 设置分组卡片：Miuix 用液态玻璃卡片，MD3 用标准 Card。
+class AdaptiveCard extends StatelessWidget {
+  const AdaptiveCard({
+    super.key,
+    required this.child,
+    this.padding,
+    this.margin,
+    this.borderRadius = 16,
+    this.color,
+  });
+
+  final Widget child;
+  final EdgeInsets? padding;
+  final EdgeInsets? margin;
+  final double borderRadius;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isMiuixUi()) {
+      return LiquidGlassCard(
+        padding: padding,
+        margin: margin,
+        borderRadius: borderRadius,
+        color: color,
+        child: child,
+      );
+    }
+    return Card(
+      margin: margin ?? EdgeInsets.zero,
+      color: color,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(borderRadius),
+      ),
+      child: Padding(
+        padding: padding ?? const EdgeInsets.symmetric(vertical: 4),
+        child: child,
+      ),
+    );
+  }
+}
+
+/// 分组分隔线：两种风格各自使用主题分隔色。
+class AdaptiveDivider extends StatelessWidget {
+  const AdaptiveDivider({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    if (isMiuixUi()) {
+      return const Divider(height: 0.5, indent: 20, endIndent: 20);
+    }
+    return Divider(
+      height: 1,
+      thickness: 1,
+      indent: 16,
+      endIndent: 16,
+      color: scheme.outlineVariant.withValues(alpha: 0.5),
+    );
+  }
+}
+
+/// 设置行：Miuix 用原生组件，MD3 用标准 ListTile。
+class AdaptiveSettingsTile extends StatelessWidget {
+  const AdaptiveSettingsTile({
+    super.key,
+    required this.title,
+    this.summary,
+    this.leading,
+    this.trailing,
+    this.onTap,
+  });
+
+  final String title;
+  final String? summary;
+  final Widget? leading;
+  final Widget? trailing;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isMiuixUi()) {
+      return MiuixComponent(
+        title: title,
+        summary: summary,
+        leading: leading,
+        trailing: trailing,
+        onTap: onTap,
+      );
+    }
+    return ListTile(
+      title: Text(title),
+      subtitle: summary != null ? Text(summary!) : null,
+      leading: leading,
+      trailing: trailing,
+      onTap: onTap,
+    );
+  }
+}
+
+/// 开关行：Miuix 用原生偏好开关，MD3 用标准 SwitchListTile。
+class AdaptiveSwitchTile extends StatelessWidget {
+  const AdaptiveSwitchTile({
+    super.key,
+    required this.title,
+    this.summary,
+    required this.value,
+    required this.onChanged,
+    this.enabled = true,
+  });
+
+  final String title;
+  final String? summary;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isMiuixUi()) {
+      return MiuixSwitchPreference(
+        title: title,
+        summary: summary,
+        value: value,
+        enabled: enabled,
+        onChanged: onChanged,
+      );
+    }
+    return SwitchListTile(
+      title: Text(title),
+      subtitle: summary != null ? Text(summary!) : null,
+      value: value,
+      onChanged: enabled ? onChanged : null,
+    );
+  }
+}
+
+/// 主按钮：Miuix 用原生主按钮，MD3 用标准 FilledButton。
+class AdaptivePrimaryButton extends StatelessWidget {
+  const AdaptivePrimaryButton({
+    super.key,
+    required this.onPressed,
+    required this.child,
+    this.icon,
+    this.minimumSize = const Size.fromHeight(48),
+  });
+
+  final VoidCallback? onPressed;
+  final Widget child;
+  final Widget? icon;
+  final Size minimumSize;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isMiuixUi()) {
+      return MiuixPrimaryButton(
+        onPressed: onPressed,
+        icon: icon,
+        minimumSize: minimumSize,
+        child: child,
+      );
+    }
+    final style = FilledButton.styleFrom(minimumSize: minimumSize);
+    if (icon != null) {
+      return FilledButton.icon(
+        onPressed: onPressed,
+        style: style,
+        icon: icon!,
+        label: child,
+      );
+    }
+    return FilledButton(onPressed: onPressed, style: style, child: child);
+  }
+}
+
+/// 危险按钮：Miuix 用原生危险按钮，MD3 用错误配色的标准按钮。
+class AdaptiveDangerButton extends StatelessWidget {
+  const AdaptiveDangerButton({
+    super.key,
+    required this.onPressed,
+    required this.child,
+    this.icon,
+    this.minimumSize = const Size.fromHeight(48),
+  });
+
+  final VoidCallback? onPressed;
+  final Widget child;
+  final Widget? icon;
+  final Size minimumSize;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isMiuixUi()) {
+      return MiuixDangerButton(
+        onPressed: onPressed,
+        icon: icon,
+        minimumSize: minimumSize,
+        child: child,
+      );
+    }
+    final scheme = Theme.of(context).colorScheme;
+    final style = FilledButton.styleFrom(
+      backgroundColor: scheme.error,
+      foregroundColor: scheme.onError,
+      minimumSize: minimumSize,
+    );
+    if (icon != null) {
+      return FilledButton.icon(
+        onPressed: onPressed,
+        style: style,
+        icon: icon!,
+        label: child,
+      );
+    }
+    return FilledButton(onPressed: onPressed, style: style, child: child);
+  }
+}
+
+/// 文本按钮：Miuix 用原生文本按钮，MD3 用标准 TextButton。
+class AdaptiveTextButton extends StatelessWidget {
+  const AdaptiveTextButton({
+    super.key,
+    this.text,
+    required this.onPressed,
+    this.child,
+    this.icon,
+  });
+
+  final String? text;
+  final VoidCallback? onPressed;
+  final Widget? child;
+  final Widget? icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget label = child ?? Text(text ?? '');
+    if (isMiuixUi()) {
+      return MiuixTextButton(onPressed: onPressed, icon: icon, child: label);
+    }
+    if (icon != null) {
+      return TextButton.icon(onPressed: onPressed, icon: icon!, label: label);
+    }
+    return TextButton(onPressed: onPressed, child: label);
+  }
+}
+
+/// 选项弹窗中的一项。
+@immutable
+class AdaptiveChoice<T> {
+  const AdaptiveChoice({
+    required this.value,
+    required this.label,
+    this.summary,
+  });
+
+  final T value;
+  final String label;
+  final String? summary;
+}
+
+/// 单选弹窗：Miuix 用原生单选偏好，MD3 用标准 RadioListTile。
+///
+/// 参考 LSPosed 管理器的做法——列表只显示当前值，点按后用弹窗完成选择。
+Future<T?> showAdaptiveChoiceDialog<T>({
+  required BuildContext context,
+  required String title,
+  required List<AdaptiveChoice<T>> options,
+  required T current,
+}) {
+  return showDialog<T>(
+    context: context,
+    builder: (ctx) {
+      final bool miuix = isMiuixUi();
+      return AlertDialog(
+        title: Text(title),
+        contentPadding: EdgeInsets.symmetric(vertical: miuix ? 6 : 12),
+        content: SizedBox(
+          width: 320,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (int i = 0; i < options.length; i++) ...[
+                  if (i > 0 && !miuix) const SizedBox(height: 2),
+                  if (miuix)
+                    MiuixRadioButtonPreference(
+                      title: options[i].label,
+                      summary: options[i].summary,
+                      selected: options[i].value == current,
+                      radioButtonLocation: MiuixRadioButtonLocation.end,
+                      onClick: () => Navigator.pop(ctx, options[i].value),
+                    )
+                  else
+                    RadioListTile<T>(
+                      title: Text(options[i].label),
+                      subtitle: options[i].summary != null
+                          ? Text(options[i].summary!)
+                          : null,
+                      value: options[i].value,
+                      groupValue: current,
+                      onChanged: (v) => Navigator.pop(ctx, v),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                ],
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          AdaptiveTextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
+        ],
+      );
+    },
+  );
+}

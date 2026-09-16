@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../api/getroom.dart';
 import '../models/room_model.dart';
 import '../../globals.dart' as globals;
+import '../../adaptive_ui.dart';
 
 class RoomPage extends StatefulWidget {
   final bool embed;
@@ -140,7 +141,7 @@ class _RoomPageState extends State<RoomPage>
         ],
       ),
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 148.0),
+        padding: EdgeInsets.only(bottom: adaptiveBottomPadding(context)),
         child: FloatingActionButton(
           onPressed: _searchRooms,
           child: const Icon(Icons.search),
@@ -282,7 +283,7 @@ class _RoomPageState extends State<RoomPage>
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 148),
+      padding: adaptivePagePadding(context, horizontal: 16, top: 16),
       itemCount: _rooms.length,
       itemBuilder: (context, index) {
         final room = _rooms[index];

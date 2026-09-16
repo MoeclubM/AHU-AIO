@@ -7,6 +7,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../auth/cas_auth_cache.dart';
 import '../api/synjones_client.dart';
 import '../api/synjones_offline_code.dart';
+import '../../adaptive_ui.dart';
 
 class FinancePayCodePage extends StatefulWidget {
   final bool embed;
@@ -211,7 +212,7 @@ class _FinancePayCodePageState extends State<FinancePayCodePage>
           : RefreshIndicator(
               onRefresh: _refreshCode,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 148),
+                padding: adaptivePagePadding(context, horizontal: 16, top: 12),
                 children: [
                   _buildOneCodeCard(),
                   if (_payments.length > 1) ...[

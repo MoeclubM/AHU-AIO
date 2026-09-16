@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../api/synjones_client.dart';
 import 'finance_recharge_detail_page.dart';
+import '../../adaptive_ui.dart';
 
 /// 充值缴费页面视图模式通知器（false: 网格大方块, true: 列表左图标右文字）
 final ValueNotifier<bool> financeRechargeIsListViewNotifier =
@@ -181,14 +182,22 @@ class _FinanceRechargePageState extends State<FinanceRechargePage>
                   child: isListView
                       ? ListView.builder(
                           physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 148),
+                          padding: adaptivePagePadding(
+                            context,
+                            horizontal: 16,
+                            top: 12,
+                          ),
                           itemCount: _entries.length,
                           itemBuilder: (_, index) =>
                               _buildListEntry(_entries[index]),
                         )
                       : GridView.builder(
                           physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 148),
+                          padding: adaptivePagePadding(
+                            context,
+                            horizontal: 16,
+                            top: 16,
+                          ),
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 2,

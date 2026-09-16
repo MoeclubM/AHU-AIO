@@ -6,6 +6,7 @@ import '../../auth/cas_auth_cache.dart';
 import '../api/synjones_client.dart';
 import '../../auth/unified_login_page.dart';
 import '../pages/finance_cards_page.dart';
+import '../../adaptive_ui.dart';
 
 /// 一卡通首页 — 原生展示余额、一码通入口、电子卡与更多功能。
 class FinanceHomePage extends StatefulWidget {
@@ -118,7 +119,7 @@ class _FinanceHomePageState extends State<FinanceHomePage>
           : RefreshIndicator(
               onRefresh: _loadData,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 148),
+                padding: adaptivePagePadding(context, horizontal: 16, top: 16),
                 children: [
                   _buildUserCard(),
                   const SizedBox(height: 16),

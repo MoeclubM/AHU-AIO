@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
-import 'theme_manager.dart';
-import 'miuix/miuix_components.dart';
-import 'miuix/liquid_glass_app_bar.dart';
 
+import 'adaptive_ui.dart';
+import 'miuix/miuix_components.dart';
+import 'theme_manager.dart';
+
+/// 个性化与主题设置。
+///
+/// 布局参考 LSPosed 管理器：列表只保留「当前取值」的精简行，
+/// 具体选项放进弹窗完成选择，避免大块预览卡片与冗余说明。
 class ThemeSettingsScreen extends StatefulWidget {
   const ThemeSettingsScreen({super.key});
 
@@ -31,187 +36,91 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final mc = MiuixTheme.of(context).colors;
+    final tm = _themeManager;
+    final scheme = Theme.of(context).colorScheme;
+    final chevron = Icon(Icons.chevron_right, color: scheme.onSurfaceVariant);
 
     return Scaffold(
-      appBar: const LiquidGlassAppBar(title: '个性化与主题'),
+      appBar: AppBar(title: const Text('个性化与主题')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 48),
+        padding: adaptivePagePadding(context, top: 8, bottom: 40),
         children: [
-          // 1. 实时预览条（精简版）
-          _buildLivePreviewCard(context, mc),
-          const SizedBox(height: 12),
-
-          // 2. 界面风格
-          const MiuixSmallTitle('界面风格'),
-          const SizedBox(height: 6),
-          _buildUiModeCards(context, mc),
-          const SizedBox(height: 16),
-
-          // 3. 颜色模式
-          const MiuixSmallTitle('色彩模式'),
-          const SizedBox(height: 6),
-          MiuixCard(
-            cornerRadius: 18,
+          const AdaptiveSectionTitle('外观'),
+          AdaptiveCard(
             child: Column(
               children: [
-                MiuixRadioButtonPreference(
-                  title: '跟随系统',
-                  selected: _themeManager.colorMode == ColorMode.system,
-                  radioButtonLocation: MiuixRadioButtonLocation.end,
-                  onClick: () => _themeManager.setColorMode(ColorMode.system),
-                ),
-                const Divider(height: 0.5, indent: 20, endIndent: 20),
-                MiuixRadioButtonPreference(
-                  title: '浅色模式',
-                  selected: _themeManager.colorMode == ColorMode.light,
-                  radioButtonLocation: MiuixRadioButtonLocation.end,
-                  onClick: () => _themeManager.setColorMode(ColorMode.light),
-                ),
-                const Divider(height: 0.5, indent: 20, endIndent: 20),
-                MiuixRadioButtonPreference(
-                  title: '深色模式',
-                  selected: _themeManager.colorMode == ColorMode.dark,
-                  radioButtonLocation: MiuixRadioButtonLocation.end,
-                  onClick: () => _themeManager.setColorMode(ColorMode.dark),
-                ),
-                const Divider(height: 0.5, indent: 20, endIndent: 20),
-                MiuixRadioButtonPreference(
-                  title: 'AMOLED 纯黑',
-                  summary: '专为 OLED 屏幕优化纯黑背景',
-                  selected: _themeManager.colorMode == ColorMode.amoled,
-                  radioButtonLocation: MiuixRadioButtonLocation.end,
-                  onClick: () => _themeManager.setColorMode(ColorMode.amoled),
-                ),
-                const Divider(height: 0.5, indent: 20, endIndent: 20),
-                MiuixRadioButtonPreference(
-                  title: '动态壁纸取色 (Monet)',
-                  summary: '从系统壁纸自动提取主色',
-                  selected: _themeManager.colorMode == ColorMode.monet,
-                  radioButtonLocation: MiuixRadioButtonLocation.end,
-                  onClick: () => _themeManager.setColorMode(ColorMode.monet),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // 4. 主题主色
-          const MiuixSmallTitle('主题主色'),
-          const SizedBox(height: 6),
-          MiuixCard(
-            cornerRadius: 18,
-            insideMargin: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '预设精选色板',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: mc.onSurfaceVariantActions,
+                AdaptiveSettingsTile(
+                  title: '界面风格',
+                  summary: tm.currentUiModeName,
+                  leading: Icon(
+                    tm.isMiuix
+                        ? Icons.phone_iphone_rounded
+                        : Icons.widgets_outlined,
+                    color: scheme.primary,
                   ),
+                  trailing: chevron,
+                  onTap: _pickUiMode,
                 ),
-                const SizedBox(height: 14),
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 5,
-                    mainAxisSpacing: 14,
-                    crossAxisSpacing: 14,
-                    childAspectRatio: 1,
+                const AdaptiveDivider(),
+                AdaptiveSettingsTile(
+                  title: '色彩模式',
+                  summary: tm.currentColorModeName,
+                  leading: Icon(
+                    Icons.brightness_6_outlined,
+                    color: scheme.primary,
                   ),
-                  itemCount: PresetColors.presets.length,
-                  itemBuilder: (context, index) {
-                    final color = PresetColors.presets[index];
-                    final isSelected =
-                        _themeManager.colorMode != ColorMode.monet &&
-                        _themeManager.keyColor.toARGB32() == color.toARGB32();
-                    return GestureDetector(
-                      onTap: () => _themeManager.setKeyColor(color),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: isSelected
-                                ? mc.onSurface
-                                : Colors.transparent,
-                            width: 3,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: color.withOpacity(0.35),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: isSelected
-                            ? const Icon(
-                                Icons.check,
-                                color: Colors.white,
-                                size: 20,
-                              )
-                            : null,
+                  trailing: chevron,
+                  onTap: _pickColorMode,
+                ),
+                const AdaptiveDivider(),
+                AdaptiveSettingsTile(
+                  title: '主题主色',
+                  summary: tm.colorMode == ColorMode.monet
+                      ? '跟随动态壁纸取色'
+                      : '预设色板或自定义取色',
+                  leading: Icon(Icons.palette_outlined, color: scheme.primary),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _ColorDot(
+                        color: tm.keyColor,
+                        monet: tm.colorMode == ColorMode.monet,
                       ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-                const Divider(height: 0.5),
-                const SizedBox(height: 14),
-                Center(
-                  child: MiuixPrimaryButton(
-                    onPressed: () async {
-                      final color = await _showColorPickerDialog(context);
-                      if (color != null) {
-                        await _themeManager.setKeyColor(color);
-                      }
-                    },
-                    icon: const Icon(Icons.colorize_rounded, size: 20),
-                    child: const Text('自定义高级取色器 (OkHSV)'),
+                      const SizedBox(width: 6),
+                      chevron,
+                    ],
                   ),
+                  onTap: _pickKeyColor,
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
-
-          // 5. 视觉效果与细节（整合与精简）
-          if (_themeManager.isMiuix) ...[
-            const MiuixSmallTitle('Miuix 专属视觉'),
-            const SizedBox(height: 6),
-            MiuixCard(
-              cornerRadius: 18,
+          if (tm.isMiuix) ...[
+            const SizedBox(height: 20),
+            const AdaptiveSectionTitle('视觉效果'),
+            AdaptiveCard(
               child: Column(
                 children: [
-                  MiuixSwitchPreference(
-                    title: '悬浮底栏毛玻璃透视',
-                    summary: _themeManager.enableBottomBarTransparent
-                        ? '底栏半透明透视与高斯模糊'
-                        : '纯色实底底栏，背景不透光',
-                    value: _themeManager.enableBottomBarTransparent,
-                    onChanged: (v) =>
-                        _themeManager.setEnableBottomBarTransparent(v),
+                  AdaptiveSwitchTile(
+                    title: '底栏毛玻璃透视',
+                    summary: tm.enableBottomBarTransparent ? '开启' : '关闭',
+                    value: tm.enableBottomBarTransparent,
+                    onChanged: tm.setEnableBottomBarTransparent,
                   ),
-                  const Divider(height: 0.5, indent: 20, endIndent: 20),
-                  MiuixSwitchPreference(
+                  const AdaptiveDivider(),
+                  AdaptiveSwitchTile(
                     title: '背景高斯模糊',
-                    summary: '为顶栏与底栏启用实时背景高斯模糊',
-                    value: _themeManager.enableBlur,
-                    onChanged: (v) => _themeManager.setEnableBlur(v),
+                    summary: tm.enableBlur ? '开启' : '关闭',
+                    value: tm.enableBlur,
+                    onChanged: tm.setEnableBlur,
                   ),
-                  const Divider(height: 0.5, indent: 20, endIndent: 20),
-                  MiuixSwitchPreference(
-                    title: '液态玻璃与边缘高光',
-                    summary: 'Bloom Stroke 高光边缘着色',
-                    value: _themeManager.enableLiquidGlass,
-                    enabled: _themeManager.enableBlur,
-                    onChanged: (v) => _themeManager.setEnableLiquidGlass(v),
+                  const AdaptiveDivider(),
+                  AdaptiveSwitchTile(
+                    title: '液态玻璃边缘高光',
+                    summary: tm.enableLiquidGlass ? '开启' : '关闭',
+                    value: tm.enableLiquidGlass,
+                    enabled: tm.enableBlur,
+                    onChanged: tm.setEnableLiquidGlass,
                   ),
                 ],
               ),
@@ -222,202 +131,281 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
     );
   }
 
-  Widget _buildLivePreviewCard(BuildContext context, MiuixColors mc) {
-    return MiuixCard(
-      cornerRadius: 18,
-      insideMargin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: mc.primary,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  '${_themeManager.isMiuix ? "HyperOS Miuix" : "Material 3"} · ${_themeManager.currentColorModeName}',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  _themeManager.isMaterial3
-                      ? '原生贴底实色导航 · 标准控件规范'
-                      : '连续圆角气泡 · 悬浮毛玻璃动效',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: mc.onSurfaceVariantActions,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              color: mc.primary.withOpacity(0.12),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Icon(
-              _themeManager.isMaterial3
-                  ? Icons.widgets_outlined
-                  : Icons.phone_iphone_rounded,
-              color: mc.primary,
-              size: 18,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUiModeCards(BuildContext context, MiuixColors mc) {
-    return Row(
-      children: [
-        Expanded(
-          child: _uiStyleCard(
-            title: 'Miuix',
-            subtitle: 'HyperOS 风格\n连续圆角与弹簧动效',
-            selected: _themeManager.isMiuix,
-            icon: Icons.phone_iphone_rounded,
-            mc: mc,
-            onTap: () => _themeManager.setUiMode(UiMode.miuix),
-          ),
+  Future<void> _pickUiMode() async {
+    final mode = await showAdaptiveChoiceDialog<UiMode>(
+      context: context,
+      title: '界面风格',
+      current: _themeManager.uiMode,
+      options: const [
+        AdaptiveChoice(
+          value: UiMode.miuix,
+          label: 'Miuix',
+          summary: 'HyperOS 风格：悬浮玻璃胶囊底栏与弹簧动效',
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _uiStyleCard(
-            title: 'Material 3',
-            subtitle: 'Material You\n原生 Google 规范',
-            selected: _themeManager.isMaterial3,
-            icon: Icons.widgets_outlined,
-            mc: mc,
-            onTap: () => _themeManager.setUiMode(UiMode.material3),
-          ),
+        AdaptiveChoice(
+          value: UiMode.material3,
+          label: 'Material 3',
+          summary: 'Google 原生规范：贴底导航栏与标准控件',
         ),
       ],
     );
+    if (mode != null) {
+      await _themeManager.setUiMode(mode);
+    }
   }
 
-  Widget _uiStyleCard({
-    required String title,
-    required String subtitle,
-    required bool selected,
-    required IconData icon,
-    required MiuixColors mc,
-    required VoidCallback onTap,
-  }) {
-    return MiuixCard(
-      cornerRadius: 18,
-      onPressed: onTap,
-      feedbackType: MiuixPressFeedbackType.sink,
-      insideMargin: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      colors: MiuixCardColors(
-        color: selected ? mc.primary.withOpacity(0.08) : mc.surfaceContainer,
-        contentColor: mc.onSurfaceContainer,
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: selected ? mc.primary : mc.outline.withOpacity(0.4),
-            width: selected ? 2.0 : 0.8,
-          ),
+  Future<void> _pickColorMode() async {
+    final mode = await showAdaptiveChoiceDialog<ColorMode>(
+      context: context,
+      title: '色彩模式',
+      current: _themeManager.colorMode,
+      options: const [
+        AdaptiveChoice(value: ColorMode.system, label: '跟随系统'),
+        AdaptiveChoice(value: ColorMode.light, label: '浅色模式'),
+        AdaptiveChoice(value: ColorMode.dark, label: '深色模式'),
+        AdaptiveChoice(
+          value: ColorMode.amoled,
+          label: 'AMOLED 纯黑',
+          summary: '纯黑背景，适合 OLED 屏幕',
         ),
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Icon(
-                  icon,
-                  color: selected ? mc.primary : mc.onSurfaceVariantActions,
-                  size: 24,
-                ),
-                if (selected)
-                  Icon(Icons.check_circle_rounded, color: mc.primary, size: 20)
-                else
-                  Icon(
-                    Icons.radio_button_unchecked,
-                    color: mc.outline,
-                    size: 20,
-                  ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.bold,
-                color: selected ? mc.primary : mc.onSurface,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 11,
-                color: mc.onSurfaceVariantActions,
-                height: 1.3,
-              ),
-            ),
-          ],
+        AdaptiveChoice(
+          value: ColorMode.monet,
+          label: '动态壁纸取色',
+          summary: '从系统壁纸提取主色（Monet）',
         ),
+      ],
+    );
+    if (mode != null) {
+      await _themeManager.setColorMode(mode);
+    }
+  }
+
+  Future<void> _pickKeyColor() async {
+    final color = await showThemeColorDialog(
+      context: context,
+      current: _themeManager.keyColor,
+    );
+    if (color != null) {
+      await _themeManager.setKeyColor(color);
+    }
+  }
+}
+
+/// 当前主色小圆点。
+class _ColorDot extends StatelessWidget {
+  const _ColorDot({required this.color, required this.monet});
+
+  final Color color;
+  final bool monet;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: 20,
+      height: 20,
+      decoration: BoxDecoration(
+        color: monet ? scheme.primary : color,
+        shape: BoxShape.circle,
+        border: Border.all(color: scheme.outline, width: 1),
       ),
     );
   }
+}
 
-  Future<Color?> _showColorPickerDialog(BuildContext context) async {
-    Color picked = _themeManager.keyColor;
+/// 主色选择弹窗：预设色板 + 自定义取色。
+Future<Color?> showThemeColorDialog({
+  required BuildContext context,
+  required Color current,
+}) {
+  return showDialog<Color>(
+    context: context,
+    builder: (ctx) {
+      Color picked = current;
+      return StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          final scheme = Theme.of(ctx).colorScheme;
+          return AlertDialog(
+            title: const Text('主题主色'),
+            content: SizedBox(
+              width: 320,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 6,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                        ),
+                    itemCount: PresetColors.presets.length,
+                    itemBuilder: (context, index) {
+                      final color = PresetColors.presets[index];
+                      final bool selected =
+                          color.toARGB32() == picked.toARGB32();
+                      return GestureDetector(
+                        onTap: () => setDialogState(() => picked = color),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: selected
+                                  ? scheme.onSurface
+                                  : Colors.transparent,
+                              width: 3,
+                            ),
+                          ),
+                          child: selected
+                              ? const Icon(
+                                  Icons.check,
+                                  color: Colors.white,
+                                  size: 18,
+                                )
+                              : null,
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  AdaptiveTextButton(
+                    icon: const Icon(Icons.colorize_rounded, size: 18),
+                    onPressed: () async {
+                      final custom = await _showCustomColorPicker(ctx, picked);
+                      if (custom != null) {
+                        setDialogState(() => picked = custom);
+                      }
+                    },
+                    child: const Text('自定义取色'),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              AdaptiveTextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('取消'),
+              ),
+              AdaptiveTextButton(
+                onPressed: () => Navigator.pop(ctx, picked),
+                child: const Text('确定'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
+
+/// 自定义取色：Miuix 使用 OkHSV 取色器，MD3 使用标准 HSV 滑块。
+Future<Color?> _showCustomColorPicker(BuildContext context, Color initial) {
+  if (isMiuixUi()) {
     return showDialog<Color>(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('自定义高级取色器 (OkHSV)'),
-          content: StatefulBuilder(
-            builder: (context, setDlgState) {
-              return SizedBox(
-                width: 320,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      MiuixColorPicker(
-                        color: picked,
-                        colorSpace: MiuixColorSpace.okhsv,
-                        showPreview: true,
-                        onColorChanged: (c) => setDlgState(() => picked = c),
-                      ),
-                    ],
-                  ),
+      builder: (ctx) {
+        Color picked = initial;
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            return AlertDialog(
+              title: const Text('自定义取色'),
+              content: SizedBox(
+                width: 300,
+                child: MiuixColorPicker(
+                  color: picked,
+                  colorSpace: MiuixColorSpace.okhsv,
+                  showPreview: true,
+                  onColorChanged: (c) => setDialogState(() => picked = c),
                 ),
-              );
-            },
-          ),
-          actions: [
-            MiuixTextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('取消'),
-            ),
-            MiuixTextButton(
-              onPressed: () => Navigator.pop(context, picked),
-              child: const Text('应用'),
-            ),
-          ],
+              ),
+              actions: [
+                AdaptiveTextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('取消'),
+                ),
+                AdaptiveTextButton(
+                  onPressed: () => Navigator.pop(ctx, picked),
+                  child: const Text('应用'),
+                ),
+              ],
+            );
+          },
         );
       },
+    );
+  }
+  return showDialog<Color>(
+    context: context,
+    builder: (ctx) => _HsvColorDialog(initial: initial),
+  );
+}
+
+/// Material 3 下的标准 HSV 取色弹窗。
+class _HsvColorDialog extends StatefulWidget {
+  const _HsvColorDialog({required this.initial});
+
+  final Color initial;
+
+  @override
+  State<_HsvColorDialog> createState() => _HsvColorDialogState();
+}
+
+class _HsvColorDialogState extends State<_HsvColorDialog> {
+  late HSVColor _hsv = HSVColor.fromColor(widget.initial);
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final preview = _hsv.toColor();
+    return AlertDialog(
+      title: const Text('自定义取色'),
+      content: SizedBox(
+        width: 320,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              height: 56,
+              decoration: BoxDecoration(
+                color: preview,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: scheme.outlineVariant),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text('色相'),
+            Slider(
+              value: _hsv.hue,
+              max: 360,
+              onChanged: (v) => setState(() => _hsv = _hsv.withHue(v)),
+            ),
+            const Text('饱和度'),
+            Slider(
+              value: _hsv.saturation,
+              onChanged: (v) => setState(() => _hsv = _hsv.withSaturation(v)),
+            ),
+            const Text('明度'),
+            Slider(
+              value: _hsv.value,
+              onChanged: (v) => setState(() => _hsv = _hsv.withValue(v)),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        AdaptiveTextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('取消'),
+        ),
+        AdaptiveTextButton(
+          onPressed: () => Navigator.pop(context, preview),
+          child: const Text('应用'),
+        ),
+      ],
     );
   }
 }

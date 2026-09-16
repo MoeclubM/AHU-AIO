@@ -4,8 +4,7 @@ import 'auth/auth_manager.dart';
 import 'finance/api/synjones_client.dart';
 import 'globals.dart' as globals;
 import 'jwapp/api/getuserinfo_extended.dart';
-import 'miuix/miuix_components.dart';
-import 'miuix/liquid_glass_card.dart';
+import 'adaptive_ui.dart';
 
 class AdvancedSettingsScreen extends StatefulWidget {
   const AdvancedSettingsScreen({super.key});
@@ -273,26 +272,26 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final mc = MiuixTheme.of(context).colors;
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(title: const Text('高级')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 48),
         children: [
-          const MiuixSmallTitle('认证与安全'),
-          LiquidGlassCard(
+          const AdaptiveSectionTitle('认证与安全'),
+          AdaptiveCard(
             padding: const EdgeInsets.symmetric(vertical: 2),
             child: Column(
               children: [
-                MiuixComponent(
+                AdaptiveSettingsTile(
                   title: '密码认证行为',
                   summary: _authManager.behavior.displayName,
                   leading: Icon(
                     _authManager.isUnified
                         ? Icons.lock_outline_rounded
                         : Icons.password_rounded,
-                    color: mc.primary,
+                    color: scheme.primary,
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -301,14 +300,11 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
                         _authManager.behavior.displayName,
                         style: TextStyle(
                           fontSize: 13,
-                          color: mc.onSurfaceVariantActions,
+                          color: scheme.onSurfaceVariant,
                         ),
                       ),
                       const SizedBox(width: 4),
-                      Icon(
-                        Icons.chevron_right,
-                        color: mc.onSurfaceVariantActions,
-                      ),
+                      Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
                     ],
                   ),
                   onTap: () => _showAuthBehaviorSheet(context),
@@ -320,8 +316,8 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
 
           // 独立密码认证下展示三个平台的独立密码输入与验证卡片
           if (_authManager.isIndependent) ...[
-            const MiuixSmallTitle('独立密码配置'),
-            LiquidGlassCard(
+            const AdaptiveSectionTitle('独立密码配置'),
+            AdaptiveCard(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -329,14 +325,18 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
                   // 学号/账号输入
                   Row(
                     children: [
-                      Icon(Icons.badge_outlined, size: 20, color: mc.primary),
+                      Icon(
+                        Icons.badge_outlined,
+                        size: 20,
+                        color: scheme.primary,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         '认证学号/账号',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: mc.onSurface,
+                          color: scheme.onSurface,
                         ),
                       ),
                     ],
@@ -348,11 +348,11 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
                       hintText: '请输入统一身份认证学号',
                       isDense: true,
                       filled: true,
-                      fillColor: mc.surfaceContainer.withOpacity(0.5),
+                      fillColor: scheme.surfaceContainer.withOpacity(0.5),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
                         borderSide: BorderSide(
-                          color: mc.outline.withOpacity(0.3),
+                          color: scheme.outline.withOpacity(0.3),
                         ),
                       ),
                     ),
@@ -418,18 +418,18 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
               ),
             ),
           ] else ...[
-            LiquidGlassCard(
+            AdaptiveCard(
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  Icon(Icons.info_outline, size: 20, color: mc.primary),
+                  Icon(Icons.info_outline, size: 20, color: scheme.primary),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       '当前为统一密码认证模式。所有平台均使用登录时输入的统一密码。若各平台密码不同，请在上方切换为「独立密码认证」。',
                       style: TextStyle(
                         fontSize: 13,
-                        color: mc.onSurfaceVariantActions,
+                        color: scheme.onSurfaceVariant,
                         height: 1.4,
                       ),
                     ),
@@ -455,21 +455,21 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
     required String? message,
     required VoidCallback onVerify,
   }) {
-    final mc = MiuixTheme.of(context).colors;
+    final scheme = Theme.of(context).colorScheme;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            Icon(icon, size: 20, color: mc.primary),
+            Icon(icon, size: 20, color: scheme.primary),
             const SizedBox(width: 8),
             Text(
               title,
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.bold,
-                color: mc.onSurface,
+                color: scheme.onSurface,
               ),
             ),
           ],
@@ -477,7 +477,7 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
         const SizedBox(height: 2),
         Text(
           subtitle,
-          style: TextStyle(fontSize: 11.5, color: mc.onSurfaceVariantActions),
+          style: TextStyle(fontSize: 11.5, color: scheme.onSurfaceVariant),
         ),
         const SizedBox(height: 10),
         Row(
@@ -490,10 +490,12 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
                   hintText: '请输入密码',
                   isDense: true,
                   filled: true,
-                  fillColor: mc.surfaceContainer.withOpacity(0.5),
+                  fillColor: scheme.surfaceContainer.withOpacity(0.5),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: mc.outline.withOpacity(0.3)),
+                    borderSide: BorderSide(
+                      color: scheme.outline.withOpacity(0.3),
+                    ),
                   ),
                   suffixIcon: IconButton(
                     icon: Icon(
@@ -501,7 +503,7 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
                           ? Icons.visibility_off_outlined
                           : Icons.visibility_outlined,
                       size: 20,
-                      color: mc.onSurfaceVariantActions,
+                      color: scheme.onSurfaceVariant,
                     ),
                     onPressed: onToggleObscure,
                   ),
@@ -582,7 +584,7 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
   }
 
   void _showAuthBehaviorSheet(BuildContext context) {
-    final mc = MiuixTheme.of(context).colors;
+    final scheme = Theme.of(context).colorScheme;
 
     showModalBottomSheet(
       context: context,
@@ -607,7 +609,7 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
                       width: 36,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: mc.outline.withOpacity(0.3),
+                        color: scheme.outline.withOpacity(0.3),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -618,7 +620,7 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: mc.onSurface,
+                      color: scheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -626,7 +628,7 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
                     '选择各业务平台账号密码的认证管理方式',
                     style: TextStyle(
                       fontSize: 12.5,
-                      color: mc.onSurfaceVariantActions,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -670,7 +672,7 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    final mc = MiuixTheme.of(ctx).colors;
+    final scheme = Theme.of(ctx).colorScheme;
 
     return InkWell(
       onTap: onTap,
@@ -679,11 +681,13 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: isSelected
-              ? mc.primary.withOpacity(0.08)
-              : mc.surfaceContainer.withOpacity(0.4),
+              ? scheme.primary.withOpacity(0.08)
+              : scheme.surfaceContainer.withOpacity(0.4),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? mc.primary : mc.outline.withOpacity(0.3),
+            color: isSelected
+                ? scheme.primary
+                : scheme.outline.withOpacity(0.3),
             width: isSelected ? 1.5 : 0.6,
           ),
         ),
@@ -692,11 +696,11 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
             CircleAvatar(
               radius: 20,
               backgroundColor: isSelected
-                  ? mc.primary.withOpacity(0.18)
-                  : mc.surfaceContainerHighest,
+                  ? scheme.primary.withOpacity(0.18)
+                  : scheme.surfaceContainerHighest,
               child: Icon(
                 icon,
-                color: isSelected ? mc.primary : mc.onSurfaceVariantActions,
+                color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
                 size: 22,
               ),
             ),
@@ -712,7 +716,7 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
                       fontWeight: isSelected
                           ? FontWeight.bold
                           : FontWeight.w600,
-                      color: isSelected ? mc.primary : mc.onSurface,
+                      color: isSelected ? scheme.primary : scheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -720,14 +724,14 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
                     subtitle,
                     style: TextStyle(
                       fontSize: 12,
-                      color: mc.onSurfaceVariantActions,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ],
               ),
             ),
             if (isSelected)
-              Icon(Icons.check_circle_rounded, color: mc.primary, size: 22),
+              Icon(Icons.check_circle_rounded, color: scheme.primary, size: 22),
           ],
         ),
       ),

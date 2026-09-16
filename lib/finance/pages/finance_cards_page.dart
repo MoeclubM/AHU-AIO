@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../api/synjones_client.dart';
 import '../widgets/code128_barcode.dart';
+import '../../adaptive_ui.dart';
 
 class FinanceCardsPage extends StatefulWidget {
   final List<dynamic> initialCards;
@@ -136,7 +137,7 @@ class _FinanceCardsPageState extends State<FinanceCardsPage> {
                 await _loadCards();
               },
               child: ListView.separated(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 148),
+                padding: adaptivePagePadding(context, horizontal: 16, top: 16),
                 itemBuilder: (_, index) => _buildCard(_cards[index]),
                 separatorBuilder: (context, index) =>
                     const SizedBox(height: 12),

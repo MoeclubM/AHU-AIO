@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'theme_manager.dart';
-import 'miuix/miuix_components.dart';
-import 'miuix/liquid_glass_card.dart';
+import 'adaptive_ui.dart';
+
 import 'finance/pages/finance_recharge_page.dart';
 
 class WidgetSettingsScreen extends StatefulWidget {
@@ -33,19 +33,19 @@ class _WidgetSettingsScreenState extends State<WidgetSettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final mc = MiuixTheme.of(context).colors;
+    final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(title: const Text('控件')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 48),
         children: [
-          const MiuixSmallTitle('顶栏设置'),
-          LiquidGlassCard(
+          const AdaptiveSectionTitle('顶栏设置'),
+          AdaptiveCard(
             padding: const EdgeInsets.symmetric(vertical: 2),
             child: Column(
               children: [
-                MiuixSwitchPreference(
+                AdaptiveSwitchTile(
                   title: '显示Title',
                   summary: _themeManager.showAppBarTitle
                       ? '在微教务、安大教务、一卡通最上方显示标题与通知图标'
@@ -58,22 +58,22 @@ class _WidgetSettingsScreenState extends State<WidgetSettingsScreen> {
           ),
           const SizedBox(height: 24),
 
-          const MiuixSmallTitle('一卡通'),
-          LiquidGlassCard(
+          const AdaptiveSectionTitle('一卡通'),
+          AdaptiveCard(
             padding: const EdgeInsets.symmetric(vertical: 2),
             child: ValueListenableBuilder<bool>(
               valueListenable: financeRechargeIsListViewNotifier,
               builder: (context, isList, _) {
                 return Column(
                   children: [
-                    MiuixComponent(
+                    AdaptiveSettingsTile(
                       title: '充值缴费显示样式',
                       summary: isList ? '列表 (左图标右文字)' : '网格大方块',
                       leading: Icon(
                         isList
                             ? Icons.view_list_rounded
                             : Icons.grid_view_rounded,
-                        color: mc.primary,
+                        color: scheme.primary,
                       ),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -82,13 +82,13 @@ class _WidgetSettingsScreenState extends State<WidgetSettingsScreen> {
                             isList ? '列表' : '网格',
                             style: TextStyle(
                               fontSize: 13,
-                              color: mc.onSurfaceVariantActions,
+                              color: scheme.onSurfaceVariant,
                             ),
                           ),
                           const SizedBox(width: 4),
                           Icon(
                             Icons.chevron_right,
-                            color: mc.onSurfaceVariantActions,
+                            color: scheme.onSurfaceVariant,
                           ),
                         ],
                       ),
@@ -105,7 +105,7 @@ class _WidgetSettingsScreenState extends State<WidgetSettingsScreen> {
   }
 
   void _showRechargeStyleSheet(BuildContext context, bool currentIsList) {
-    final mc = MiuixTheme.of(context).colors;
+    final scheme = Theme.of(context).colorScheme;
 
     showModalBottomSheet(
       context: context,
@@ -129,7 +129,7 @@ class _WidgetSettingsScreenState extends State<WidgetSettingsScreen> {
                       width: 36,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: mc.outline.withOpacity(0.3),
+                        color: scheme.outline.withOpacity(0.3),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -140,7 +140,7 @@ class _WidgetSettingsScreenState extends State<WidgetSettingsScreen> {
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: mc.onSurface,
+                      color: scheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -184,7 +184,7 @@ class _WidgetSettingsScreenState extends State<WidgetSettingsScreen> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    final mc = MiuixTheme.of(ctx).colors;
+    final scheme = Theme.of(ctx).colorScheme;
 
     return InkWell(
       onTap: onTap,
@@ -193,11 +193,13 @@ class _WidgetSettingsScreenState extends State<WidgetSettingsScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: isSelected
-              ? mc.primary.withOpacity(0.08)
-              : mc.surfaceContainer.withOpacity(0.4),
+              ? scheme.primary.withOpacity(0.08)
+              : scheme.surfaceContainer.withOpacity(0.4),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected ? mc.primary : mc.outline.withOpacity(0.3),
+            color: isSelected
+                ? scheme.primary
+                : scheme.outline.withOpacity(0.3),
             width: isSelected ? 1.5 : 0.6,
           ),
         ),
@@ -206,11 +208,11 @@ class _WidgetSettingsScreenState extends State<WidgetSettingsScreen> {
             CircleAvatar(
               radius: 20,
               backgroundColor: isSelected
-                  ? mc.primary.withOpacity(0.18)
-                  : mc.surfaceContainerHighest,
+                  ? scheme.primary.withOpacity(0.18)
+                  : scheme.surfaceContainerHighest,
               child: Icon(
                 icon,
-                color: isSelected ? mc.primary : mc.onSurfaceVariantActions,
+                color: isSelected ? scheme.primary : scheme.onSurfaceVariant,
                 size: 22,
               ),
             ),
@@ -226,7 +228,7 @@ class _WidgetSettingsScreenState extends State<WidgetSettingsScreen> {
                       fontWeight: isSelected
                           ? FontWeight.bold
                           : FontWeight.w600,
-                      color: isSelected ? mc.primary : mc.onSurface,
+                      color: isSelected ? scheme.primary : scheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 2),
@@ -234,14 +236,14 @@ class _WidgetSettingsScreenState extends State<WidgetSettingsScreen> {
                     subtitle,
                     style: TextStyle(
                       fontSize: 12,
-                      color: mc.onSurfaceVariantActions,
+                      color: scheme.onSurfaceVariant,
                     ),
                   ),
                 ],
               ),
             ),
             if (isSelected)
-              Icon(Icons.check_circle_rounded, color: mc.primary, size: 22),
+              Icon(Icons.check_circle_rounded, color: scheme.primary, size: 22),
           ],
         ),
       ),

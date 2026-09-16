@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../api/jw_api.dart';
 import '../models/jw_models.dart';
+import '../../adaptive_ui.dart';
 
 class JwGradesPage extends StatefulWidget {
   final bool embed;
@@ -194,7 +195,7 @@ class _JwGradesPageState extends State<JwGradesPage>
         : null;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 148),
+      padding: adaptivePagePadding(context, horizontal: 12, top: 12),
       children: [
         if (gpa != null)
           Card(

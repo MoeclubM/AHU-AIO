@@ -67,7 +67,12 @@ android {
             if (signingConfigs.release.storeFile != null) {
                 signingConfig signingConfigs.release
             } else {
-                throw new GradleException("Release keystore 未配置 (KEYSTORE_FILE) — 拒绝用 debug 签名打 release 包。请配置你的 keystore 后再构建。")
+                // 仅在真正请求 release 构建时失败：buildTypes 在配置阶段求值，
+                // 无条件抛异常会连 debug 构建一起拒绝。绝不能静默回退 debug 签名。
+                def wantsRelease = gradle.startParameter.taskNames.any { it.toLowerCase().contains("release") }
+                if (wantsRelease) {
+                    throw new GradleException("Release keystore 未配置 (KEYSTORE_FILE) — 拒绝用 debug 签名打 release 包。请配置你的 keystore 后再构建。")
+                }
             }
         }
     }

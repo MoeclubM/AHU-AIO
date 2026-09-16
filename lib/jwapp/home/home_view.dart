@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'home_service.dart';
+import '../../adaptive_ui.dart';
 
 class HomePage extends StatefulWidget {
   final bool isVisible;
@@ -393,7 +394,12 @@ class _HomePageState extends State<HomePage>
                   ),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 148),
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    0,
+                    16,
+                    adaptiveBottomPadding(context),
+                  ),
                   itemCount: groupedSchedules.keys.length,
                   itemBuilder: (context, index) {
                     final timeSlot = groupedSchedules.keys.elementAt(index);
@@ -597,7 +603,7 @@ class _HomePageState extends State<HomePage>
     }
 
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 148),
+      padding: EdgeInsets.fromLTRB(16, 0, 16, adaptiveBottomPadding(context)),
       itemCount: exams.length,
       itemBuilder: (context, index) {
         final exam = exams[index];

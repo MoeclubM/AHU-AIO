@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'globals.dart' as globals;
 import 'jwapp/mainpage/mainpage_view.dart';
@@ -9,10 +8,99 @@ import 'finance/home/finance_main_tabs.dart';
 import 'app_settings_screen.dart';
 import 'auth/unified_login_page.dart';
 import 'auth/cas_auth_cache.dart';
-import 'miuix/miuix_theme.dart';
-import 'miuix/bloom_stroke_painter.dart';
-import 'miuix/liquid_glass_filter.dart';
+import 'miuix/miuix_floating_bar.dart';
 import 'theme_manager.dart';
+
+/// 主底栏标签（Miuix 悬浮栏不显示文字，仅用于无障碍朗读）。
+const List<MiuixFloatingBarItemData> _mainTabs = [
+  MiuixFloatingBarItemData(
+    icon: Icons.bolt_outlined,
+    activeIcon: Icons.bolt,
+    label: '微教务',
+  ),
+  MiuixFloatingBarItemData(
+    icon: Icons.school_outlined,
+    activeIcon: Icons.school,
+    label: '安大教务',
+  ),
+  MiuixFloatingBarItemData(
+    icon: Icons.credit_card_outlined,
+    activeIcon: Icons.credit_card,
+    label: '一卡通',
+  ),
+  MiuixFloatingBarItemData(
+    icon: Icons.settings_outlined,
+    activeIcon: Icons.settings,
+    label: '设置',
+  ),
+];
+
+/// 微教务二级标签。
+const List<MiuixFloatingBarItemData> _microSubTabs = [
+  MiuixFloatingBarItemData(
+    icon: Icons.home_outlined,
+    activeIcon: Icons.home,
+    label: '首页',
+  ),
+  MiuixFloatingBarItemData(
+    icon: Icons.schedule_outlined,
+    activeIcon: Icons.schedule,
+    label: '课表',
+  ),
+  MiuixFloatingBarItemData(
+    icon: Icons.grade_outlined,
+    activeIcon: Icons.grade,
+    label: '成绩',
+  ),
+  MiuixFloatingBarItemData(
+    icon: Icons.meeting_room_outlined,
+    activeIcon: Icons.meeting_room,
+    label: '空闲教室',
+  ),
+];
+
+/// 安大教务二级标签。
+const List<MiuixFloatingBarItemData> _jwSubTabs = [
+  MiuixFloatingBarItemData(
+    icon: Icons.home_outlined,
+    activeIcon: Icons.home,
+    label: '首页',
+  ),
+  MiuixFloatingBarItemData(
+    icon: Icons.schedule_outlined,
+    activeIcon: Icons.schedule,
+    label: '课表',
+  ),
+  MiuixFloatingBarItemData(
+    icon: Icons.grade_outlined,
+    activeIcon: Icons.grade,
+    label: '成绩',
+  ),
+  MiuixFloatingBarItemData(
+    icon: Icons.description_outlined,
+    activeIcon: Icons.description,
+    label: '方案',
+  ),
+];
+
+/// 一卡通二级标签。
+const List<MiuixFloatingBarItemData> _financeSubTabs = [
+  MiuixFloatingBarItemData(
+    icon: Icons.home_outlined,
+    activeIcon: Icons.home,
+    label: '主页',
+  ),
+  MiuixFloatingBarItemData(
+    icon: Icons.qr_code_outlined,
+    activeIcon: Icons.qr_code,
+    label: '一码通',
+  ),
+  MiuixFloatingBarItemData(
+    icon: Icons.payment_outlined,
+    activeIcon: Icons.payment,
+    label: '充值缴费',
+  ),
+];
 
 class MainLayoutScreen extends StatefulWidget {
   const MainLayoutScreen({super.key});
@@ -46,17 +134,15 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
   final SynjonesClient _synjonesClient = SynjonesClient();
   late PageController _pageController;
   final ValueNotifier<double> _pagePercentNotifier = ValueNotifier(0.0);
-  bool _isDraggingBubble = false;
-  // SukiSU-style bubble press spring: pressProgress spring(1, 1000).
-  late AnimationController _bubblePressController;
-  // InteractiveHighlight touch position relative to the bubble bar.
-  final ValueNotifier<Offset> _highlightPosNotifier = ValueNotifier(
-    Offset.zero,
-  );
-  bool _showHighlight = false;
   late PageController _microPageController;
   late PageController _jwPageController;
   late PageController _financePageController;
+
+  /// 二级标签的 PageController 列表（索引即一级标签序号）。
+  late final List<PageController> _subPageControllers;
+
+  /// MD3 模式下贴底 TabBar 使用的控制器（与二级 PageController 双向同步）。
+  late final List<TabController> _subTabControllers;
 
   late AnimationController _subTabAnimController;
 
@@ -74,14 +160,24 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     _jwPageController = PageController(initialPage: 0, keepPage: false);
     _financePageController = PageController(initialPage: 0, keepPage: false);
 
+    _subPageControllers = [
+      _microPageController,
+      _jwPageController,
+      _financePageController,
+    ];
+    _subTabControllers = [
+      TabController(length: _microSubTabs.length, vsync: this),
+      TabController(length: _jwSubTabs.length, vsync: this),
+      TabController(length: _financeSubTabs.length, vsync: this),
+    ];
+    for (int i = 0; i < _subPageControllers.length; i++) {
+      final int section = i;
+      _subPageControllers[i].addListener(() => _syncSubTabIndex(section));
+    }
+
     _subTabAnimController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 250),
-    );
-
-    _bubblePressController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
     );
 
     if (_currentBottomIndex >= 0 && _currentBottomIndex <= 2) {
@@ -106,19 +202,45 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     _jwPageController.dispose();
     _financePageController.dispose();
     _subTabAnimController.dispose();
-    _bubblePressController.dispose();
-    _highlightPosNotifier.dispose();
+    for (final controller in _subTabControllers) {
+      controller.dispose();
+    }
     super.dispose();
+  }
+
+  /// 二级页面翻页后，同步贴底 TabBar 的选中项。
+  void _syncSubTabIndex(int section) {
+    if (section < 0 || section >= _subTabControllers.length) return;
+    final pageController = _subPageControllers[section];
+    if (!pageController.hasClients) return;
+    final tabController = _subTabControllers[section];
+    final int index = (pageController.page ?? 0.0).round().clamp(
+      0,
+      tabController.length - 1,
+    );
+    if (tabController.index != index) {
+      tabController.index = index;
+    }
+  }
+
+  List<MiuixFloatingBarItemData> _subTabsOf(int section) {
+    switch (section) {
+      case 0:
+        return _microSubTabs;
+      case 1:
+        return _jwSubTabs;
+      default:
+        return _financeSubTabs;
+    }
   }
 
   void _resetToHomeTab() {
     _currentBottomIndex = 0;
     _pagePercentNotifier.value = 0.0;
     _subTabAnimController.value = 1.0;
-    _bubblePressController.value = 0.0;
-    _showHighlight = false;
-    _highlightPosNotifier.value = Offset.zero;
-    _isDraggingBubble = false;
+    for (final controller in _subTabControllers) {
+      if (controller.index != 0) controller.index = 0;
+    }
 
     if (_pageController.hasClients) {
       _pageController.jumpToPage(0);
@@ -162,230 +284,6 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     }
   }
 
-  Widget _buildSubTabBarChild(double currentPage) {
-    PageController? controller;
-    List<Map<String, dynamic>> tabs = [];
-    final activeIndex = currentPage.round();
-
-    if (activeIndex == 0) {
-      controller = _microPageController;
-      tabs = const [
-        {'icon': Icons.home_outlined, 'activeIcon': Icons.home, 'text': '首页'},
-        {
-          'icon': Icons.schedule_outlined,
-          'activeIcon': Icons.schedule,
-          'text': '课表',
-        },
-        {'icon': Icons.grade_outlined, 'activeIcon': Icons.grade, 'text': '成绩'},
-        {
-          'icon': Icons.meeting_room_outlined,
-          'activeIcon': Icons.meeting_room,
-          'text': '空闲教室',
-        },
-      ];
-    } else if (activeIndex == 1) {
-      controller = _jwPageController;
-      tabs = const [
-        {'icon': Icons.home_outlined, 'activeIcon': Icons.home, 'text': '首页'},
-        {
-          'icon': Icons.schedule_outlined,
-          'activeIcon': Icons.schedule,
-          'text': '课表',
-        },
-        {'icon': Icons.grade_outlined, 'activeIcon': Icons.grade, 'text': '成绩'},
-        {
-          'icon': Icons.description_outlined,
-          'activeIcon': Icons.description,
-          'text': '方案',
-        },
-      ];
-    } else if (activeIndex == 2) {
-      controller = _financePageController;
-      tabs = const [
-        {'icon': Icons.home_outlined, 'activeIcon': Icons.home, 'text': '主页'},
-        {
-          'icon': Icons.qr_code_outlined,
-          'activeIcon': Icons.qr_code,
-          'text': '一码通',
-        },
-        {
-          'icon': Icons.payment_outlined,
-          'activeIcon': Icons.payment,
-          'text': '充值缴费',
-        },
-      ];
-    }
-
-    if (controller == null) return const SizedBox.shrink();
-
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 200),
-      layoutBuilder: (currentChild, previousChildren) => Stack(
-        fit: StackFit.expand,
-        children: [...previousChildren, ?currentChild],
-      ),
-      child: _buildCustomSubTabBar(controller, tabs, activeIndex),
-    );
-  }
-
-  Widget _buildCustomSubTabBar(
-    PageController controller,
-    List<Map<String, dynamic>> tabs,
-    int activeIndex,
-  ) {
-    final int tabCount = tabs.length;
-    final colorScheme = Theme.of(context).colorScheme;
-    final reduceMotion =
-        MediaQuery.disableAnimationsOf(context) ||
-        View.of(context).platformDispatcher.accessibilityFeatures.reduceMotion;
-
-    return LayoutBuilder(
-      key: ValueKey(activeIndex),
-      builder: (context, constraints) {
-        final double totalWidth = constraints.maxWidth;
-        final double tabWidth = totalWidth / tabCount;
-        final double bubbleWidth = tabWidth - 12;
-        final double bubbleHeight = 40;
-
-        return GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onHorizontalDragStart: (_) {
-            if (controller.hasClients) {
-              (controller.position as ScrollPositionWithSingleContext).goIdle();
-            }
-          },
-          onHorizontalDragUpdate: (details) {
-            if (!controller.hasClients) return;
-            final position = controller.position;
-            final double pageViewWidth = position.viewportDimension;
-            final double dragDelta = details.delta.dx;
-            double targetOffset =
-                controller.offset + dragDelta * (pageViewWidth / tabWidth);
-            if (targetOffset < position.minScrollExtent) {
-              final overshoot = targetOffset - position.minScrollExtent;
-              targetOffset =
-                  position.minScrollExtent +
-                  (overshoot * pageViewWidth * 0.55) /
-                      (pageViewWidth + 0.55 * overshoot.abs());
-            } else if (targetOffset > position.maxScrollExtent) {
-              final overshoot = targetOffset - position.maxScrollExtent;
-              targetOffset =
-                  position.maxScrollExtent +
-                  (overshoot * pageViewWidth * 0.55) /
-                      (pageViewWidth + 0.55 * overshoot.abs());
-            }
-            controller.jumpTo(targetOffset);
-          },
-          onHorizontalDragEnd: (details) {
-            if (!controller.hasClients) return;
-            if (reduceMotion) {
-              controller.jumpToPage(
-                (controller.page ?? 0.0).round().clamp(0, tabCount - 1),
-              );
-              return;
-            }
-            final position =
-                controller.position as ScrollPositionWithSingleContext;
-            position.goBallistic(
-              details.velocity.pixelsPerSecond.dx *
-                  (position.viewportDimension / tabWidth),
-            );
-          },
-          onHorizontalDragCancel: () {
-            if (!controller.hasClients) return;
-            if (reduceMotion) {
-              controller.jumpToPage(
-                (controller.page ?? 0.0).round().clamp(0, tabCount - 1),
-              );
-            } else {
-              (controller.position as ScrollPositionWithSingleContext)
-                  .goBallistic(0);
-            }
-          },
-          child: AnimatedBuilder(
-            animation: controller,
-            builder: (context, child) {
-              final double displayPage = controller.hasClients
-                  ? (controller.page ?? 0.0)
-                  : 0.0;
-
-              return Stack(
-                children: [
-                  Positioned(
-                    left: displayPage * tabWidth + (tabWidth - bubbleWidth) / 2,
-                    top: (56 - bubbleHeight) / 2,
-                    width: bubbleWidth,
-                    height: bubbleHeight,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: MiuixTheme.of(
-                          context,
-                        ).colors.primary.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                  ),
-                  Row(
-                    children: List.generate(tabCount, (index) {
-                      final tab = tabs[index];
-                      final bool isSelected = displayPage.round() == index;
-                      return Expanded(
-                        child: InkWell(
-                          onTap: () {
-                            if (reduceMotion) {
-                              controller.jumpToPage(index);
-                            } else {
-                              controller.animateToPage(
-                                index,
-                                duration: const Duration(milliseconds: 250),
-                                curve: Curves.easeOut,
-                              );
-                            }
-                          },
-                          borderRadius: BorderRadius.circular(20),
-                          highlightColor: Colors.transparent,
-                          splashColor: colorScheme.primary.withOpacity(0.1),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                isSelected ? tab['activeIcon'] : tab['icon'],
-                                color: isSelected
-                                    ? colorScheme.primary
-                                    : colorScheme.onSurfaceVariant.withOpacity(
-                                        0.7,
-                                      ),
-                                size: 18,
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                tab['text'],
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                  color: isSelected
-                                      ? colorScheme.primary
-                                      : colorScheme.onSurfaceVariant
-                                            .withOpacity(0.7),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                ],
-              );
-            },
-          ),
-        );
-      },
-    );
-  }
-
   double _getSubTabVisibility(double page) =>
       MainLayoutScreen.calculateSubTabVisibility(page);
 
@@ -421,6 +319,193 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     }
   }
 
+  Widget _buildPageView() {
+    return PageView(
+      physics: const NeverScrollableScrollPhysics(
+        parent: BouncingScrollPhysics(),
+      ),
+      controller: _pageController,
+      onPageChanged: (index) {
+        if (_currentBottomIndex != index) {
+          setState(() {
+            _currentBottomIndex = index;
+          });
+          if (index >= 0 && index <= 2) {
+            _subTabAnimController.forward();
+          } else {
+            _subTabAnimController.reverse();
+          }
+        }
+      },
+      children: [
+        MainPage(
+          isActive: _currentBottomIndex == 0,
+          pageController: _microPageController,
+        ),
+        JwMainTabs(
+          isActive: _currentBottomIndex == 1,
+          pageController: _jwPageController,
+        ),
+        FinanceMainTabs(
+          isActive: _currentBottomIndex == 2,
+          pageController: _financePageController,
+        ),
+        AppSettingsScreen(onSwitchTab: _handleTabSwitch),
+      ],
+    );
+  }
+
+  /// Miuix 模式：悬浮液态玻璃胶囊底栏（主栏不显示文字，二级栏显示文字）。
+  Widget _buildMiuix() {
+    return Scaffold(
+      body: Stack(
+        children: [
+          _buildPageView(),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: AnimatedBuilder(
+              animation: Listenable.merge([
+                _pagePercentNotifier,
+                _subTabAnimController,
+              ]),
+              builder: (context, child) {
+                final reduceMotion =
+                    MediaQuery.disableAnimationsOf(context) ||
+                    View.of(
+                      context,
+                    ).platformDispatcher.accessibilityFeatures.reduceMotion;
+                final double currentPage = _pagePercentNotifier.value;
+                final int section = currentPage.round().clamp(0, 3);
+                final double gestureVisibility = reduceMotion
+                    ? (section <= 2 ? 1.0 : 0.0)
+                    : _getSubTabVisibility(currentPage);
+                final double visibility =
+                    _subTabAnimController.value * gestureVisibility;
+
+                return Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IgnorePointer(
+                      ignoring: visibility < 0.5,
+                      child: Opacity(
+                        opacity: visibility.clamp(0.0, 1.0),
+                        child: Transform.translate(
+                          offset: Offset(0, (1.0 - visibility) * 72),
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 200),
+                              layoutBuilder: (currentChild, previousChildren) =>
+                                  Stack(
+                                    fit: StackFit.passthrough,
+                                    children: [
+                                      ...previousChildren,
+                                      ?currentChild,
+                                    ],
+                                  ),
+                              child: KeyedSubtree(
+                                key: ValueKey(section),
+                                child: section <= 2
+                                    ? MiuixFloatingTabBar(
+                                        controller:
+                                            _subPageControllers[section],
+                                        items: _subTabsOf(section),
+                                        height: MiuixFloatingBarDefaults
+                                            .subBarHeight,
+                                        iconSize: MiuixFloatingBarDefaults
+                                            .subIconSize,
+                                        fontSize: MiuixFloatingBarDefaults
+                                            .subLabelFontSize,
+                                      )
+                                    : const SizedBox.shrink(),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.only(
+                        bottom: MiuixFloatingBarDefaults.bottomPadding(context),
+                      ),
+                      child: MiuixFloatingTabBar(
+                        controller: _pageController,
+                        items: _mainTabs,
+                        showLabels: false,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// MD3 模式：标准贴底 NavigationBar + 标准 TabBar，无悬浮、无模糊、无阴影自定义。
+  Widget _buildMaterial3() {
+    final theme = Theme.of(context);
+    final int section = _currentBottomIndex.clamp(0, 3);
+    final bool showSubTabs = section <= 2;
+    final List<MiuixFloatingBarItemData> subTabs = _subTabsOf(section);
+
+    return Scaffold(
+      body: _buildPageView(),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showSubTabs)
+            Material(
+              color: theme.colorScheme.surface,
+              child: TabBar(
+                controller: _subTabControllers[section],
+                tabs: [for (final tab in subTabs) Tab(text: tab.label)],
+                onTap: (index) {
+                  final controller = _subPageControllers[section];
+                  if (!controller.hasClients) return;
+                  controller.animateToPage(
+                    index,
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOut,
+                  );
+                },
+              ),
+            ),
+          NavigationBar(
+            selectedIndex: section,
+            onDestinationSelected: _handleTabSwitch,
+            destinations: const [
+              NavigationDestination(
+                icon: Icon(Icons.bolt_outlined),
+                selectedIcon: Icon(Icons.bolt),
+                label: '微教务',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.school_outlined),
+                selectedIcon: Icon(Icons.school),
+                label: '安大教务',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.credit_card_outlined),
+                selectedIcon: Icon(Icons.credit_card),
+                label: '一卡通',
+              ),
+              NavigationDestination(
+                icon: Icon(Icons.settings_outlined),
+                selectedIcon: Icon(Icons.settings),
+                label: '设置',
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isInitializing) {
@@ -431,17 +516,6 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
         globals.idToken != null ||
         globals.jwLoggedIn ||
         _synjonesClient.loggedIn;
-    final reduceMotion =
-        MediaQuery.disableAnimationsOf(context) ||
-        View.of(context).platformDispatcher.accessibilityFeatures.reduceMotion;
-    final reduceTransparency = MediaQuery.highContrastOf(context);
-    final tm = ThemeManager();
-    final isMaterial3 = tm.isMaterial3;
-    final isTransparentBottomBar =
-        !isMaterial3 && tm.enableBottomBarTransparent && !reduceTransparency;
-    final blurEnabled = !isMaterial3 && tm.enableBlur && isTransparentBottomBar;
-    final glassEnabled =
-        !isMaterial3 && tm.enableLiquidGlass && isTransparentBottomBar;
 
     if (!isLoggedIn) {
       return UnifiedLoginPage(
@@ -452,714 +526,6 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
       );
     }
 
-    return Scaffold(
-      body: Stack(
-        children: [
-          PageView(
-            physics: const NeverScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
-            ),
-            controller: _pageController,
-            onPageChanged: (index) {
-              if (_currentBottomIndex != index) {
-                setState(() {
-                  _currentBottomIndex = index;
-                });
-                if (index >= 0 && index <= 2) {
-                  if (reduceMotion) {
-                    _subTabAnimController.value = 1.0;
-                  } else {
-                    _subTabAnimController.forward();
-                  }
-                } else {
-                  if (reduceMotion) {
-                    _subTabAnimController.value = 0.0;
-                  } else {
-                    _subTabAnimController.reverse();
-                  }
-                }
-              }
-            },
-            children: [
-              MainPage(
-                isActive: _currentBottomIndex == 0,
-                pageController: _microPageController,
-              ),
-              JwMainTabs(
-                isActive: _currentBottomIndex == 1,
-                pageController: _jwPageController,
-              ),
-              FinanceMainTabs(
-                isActive: _currentBottomIndex == 2,
-                pageController: _financePageController,
-              ),
-              AppSettingsScreen(onSwitchTab: _handleTabSwitch),
-            ],
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: SafeArea(
-              top: false,
-              bottom: true,
-              child: AnimatedBuilder(
-                animation: Listenable.merge([
-                  _pagePercentNotifier,
-                  _subTabAnimController,
-                ]),
-                builder: (context, child) {
-                  final double currentPage = _pagePercentNotifier.value;
-                  final gestureVisibility = reduceMotion
-                      ? (currentPage.round() <= 2 ? 1.0 : 0.0)
-                      : _getSubTabVisibility(currentPage);
-                  final finalVisibility =
-                      _subTabAnimController.value * gestureVisibility;
-                  final double maxTranslate = isMaterial3 ? 72.0 : 88.0;
-                  final double yOffset = (1.0 - finalVisibility) * maxTranslate;
-
-                  return Stack(
-                    alignment: Alignment.bottomCenter,
-                    children: [
-                      IgnorePointer(
-                        ignoring: finalVisibility < 0.5,
-                        child: Opacity(
-                          opacity: finalVisibility.clamp(0.0, 1.0),
-                          child: Transform.translate(
-                            offset: Offset(0, yOffset),
-                            child: Padding(
-                              padding: isMaterial3
-                                  ? const EdgeInsets.fromLTRB(16, 0, 16, 68)
-                                  : const EdgeInsets.fromLTRB(64, 0, 64, 76),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(
-                                  isMaterial3 ? 16 : 28,
-                                ),
-                                child: BackdropFilter(
-                                  filter: blurEnabled
-                                      ? liquidGlassImageFilter(blurSigma: 4)
-                                      : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
-                                  child: Container(
-                                    height: isMaterial3 ? 48 : 56,
-                                    decoration: BoxDecoration(
-                                      color: isMaterial3
-                                          ? Theme.of(
-                                              context,
-                                            ).colorScheme.surfaceContainerHigh
-                                          : (isTransparentBottomBar
-                                                ? (blurEnabled
-                                                      ? (Theme.of(
-                                                                  context,
-                                                                ).brightness ==
-                                                                Brightness.dark
-                                                            ? MiuixTheme.of(
-                                                                    context,
-                                                                  )
-                                                                  .colors
-                                                                  .surfaceContainer
-                                                                  .withOpacity(
-                                                                    0.55,
-                                                                  )
-                                                            : MiuixTheme.of(
-                                                                    context,
-                                                                  )
-                                                                  .colors
-                                                                  .surfaceContainer
-                                                                  .withOpacity(
-                                                                    0.65,
-                                                                  ))
-                                                      : MiuixTheme.of(context)
-                                                            .colors
-                                                            .surfaceContainer
-                                                            .withOpacity(0.92))
-                                                : MiuixTheme.of(
-                                                    context,
-                                                  ).colors.surfaceContainer),
-                                      borderRadius: BorderRadius.circular(
-                                        isMaterial3 ? 16 : 28,
-                                      ),
-                                      border: Border.all(
-                                        color: isMaterial3
-                                            ? Theme.of(context)
-                                                  .colorScheme
-                                                  .outlineVariant
-                                                  .withOpacity(0.5)
-                                            : MiuixTheme.of(
-                                                context,
-                                              ).colors.outline.withOpacity(
-                                                isTransparentBottomBar
-                                                    ? (reduceTransparency
-                                                          ? 0.9
-                                                          : 0.35)
-                                                    : 0.8,
-                                              ),
-                                        width: 0.5,
-                                      ),
-                                    ),
-                                    child: Stack(
-                                      children: [
-                                        Positioned.fill(
-                                          child: _buildSubTabBarChild(
-                                            currentPage,
-                                          ),
-                                        ),
-                                        if (glassEnabled)
-                                          Positioned.fill(
-                                            child: BloomStrokeLayer(
-                                              radius: 28,
-                                              isDark:
-                                                  Theme.of(
-                                                    context,
-                                                  ).brightness ==
-                                                  Brightness.dark,
-                                              enabled: glassEnabled,
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: isMaterial3
-                            ? EdgeInsets.zero
-                            : const EdgeInsets.fromLTRB(24, 0, 24, 12),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: isMaterial3
-                                ? BorderRadius.zero
-                                : BorderRadius.circular(32),
-                            boxShadow: isMaterial3
-                                ? [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.05),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, -2),
-                                    ),
-                                  ]
-                                : [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(
-                                        isTransparentBottomBar ? 0.06 : 0.12,
-                                      ),
-                                      blurRadius: isTransparentBottomBar
-                                          ? 16
-                                          : 20,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: isMaterial3
-                                ? BorderRadius.zero
-                                : BorderRadius.circular(32),
-                            child: BackdropFilter(
-                              filter: blurEnabled
-                                  ? liquidGlassImageFilter(blurSigma: 4)
-                                  : ImageFilter.blur(sigmaX: 0, sigmaY: 0),
-                              child: Container(
-                                height: 64,
-                                decoration: BoxDecoration(
-                                  color: isMaterial3
-                                      ? Theme.of(
-                                          context,
-                                        ).colorScheme.surfaceContainer
-                                      : (isTransparentBottomBar
-                                            ? (blurEnabled
-                                                  ? (Theme.of(
-                                                              context,
-                                                            ).brightness ==
-                                                            Brightness.dark
-                                                        ? MiuixTheme.of(context)
-                                                              .colors
-                                                              .surfaceContainer
-                                                              .withOpacity(0.58)
-                                                        : MiuixTheme.of(context)
-                                                              .colors
-                                                              .surfaceContainer
-                                                              .withOpacity(
-                                                                0.68,
-                                                              ))
-                                                  : MiuixTheme.of(context)
-                                                        .colors
-                                                        .surfaceContainer
-                                                        .withOpacity(0.92))
-                                            : MiuixTheme.of(
-                                                context,
-                                              ).colors.surfaceContainer),
-                                  borderRadius: isMaterial3
-                                      ? BorderRadius.zero
-                                      : BorderRadius.circular(32),
-                                  border: isMaterial3
-                                      ? Border(
-                                          top: BorderSide(
-                                            color: Theme.of(context)
-                                                .colorScheme
-                                                .outlineVariant
-                                                .withOpacity(0.4),
-                                            width: 0.5,
-                                          ),
-                                        )
-                                      : Border.all(
-                                          color: MiuixTheme.of(context)
-                                              .colors
-                                              .outline
-                                              .withOpacity(
-                                                isTransparentBottomBar
-                                                    ? (reduceTransparency
-                                                          ? 0.9
-                                                          : 0.35)
-                                                    : 0.8,
-                                              ),
-                                          width: 0.5,
-                                        ),
-                                ),
-                                child: Stack(
-                                  children: [
-                                    Positioned.fill(
-                                      child: LayoutBuilder(
-                                        builder: (context, constraints) {
-                                          final double totalWidth =
-                                              constraints.maxWidth;
-                                          final double tabWidth =
-                                              totalWidth / 4;
-                                          final double bubbleWidth = isMaterial3
-                                              ? (tabWidth - 16)
-                                              : (tabWidth - 8);
-                                          final double bubbleHeight =
-                                              isMaterial3 ? 36 : 48;
-
-                                          return GestureDetector(
-                                            behavior:
-                                                HitTestBehavior.translucent,
-                                            onHorizontalDragStart: isMaterial3
-                                                ? null
-                                                : (details) {
-                                                    final double bubbleLeft =
-                                                        currentPage * tabWidth +
-                                                        (tabWidth -
-                                                                bubbleWidth) /
-                                                            2;
-                                                    final double bubbleRight =
-                                                        bubbleLeft +
-                                                        bubbleWidth;
-                                                    final double touchX =
-                                                        details
-                                                            .localPosition
-                                                            .dx;
-                                                    _isDraggingBubble =
-                                                        touchX >= bubbleLeft &&
-                                                        touchX <= bubbleRight;
-                                                    if (_isDraggingBubble &&
-                                                        _pageController
-                                                            .hasClients) {
-                                                      (_pageController.position
-                                                              as ScrollPositionWithSingleContext)
-                                                          .goIdle();
-                                                    }
-                                                    _showHighlight = true;
-                                                    _highlightPosNotifier
-                                                            .value =
-                                                        details.localPosition;
-                                                    _bubblePressController
-                                                        .forward();
-                                                  },
-                                            onHorizontalDragUpdate: (details) {
-                                              if (!_isDraggingBubble) return;
-                                              _highlightPosNotifier.value =
-                                                  details.localPosition;
-                                              if (!_pageController.hasClients) {
-                                                return;
-                                              }
-                                              final position =
-                                                  _pageController.position;
-                                              final double pageViewWidth =
-                                                  position.viewportDimension;
-                                              final double dragDelta =
-                                                  details.delta.dx;
-                                              double targetOffset =
-                                                  _pageController.offset +
-                                                  dragDelta *
-                                                      (pageViewWidth /
-                                                          tabWidth);
-                                              if (targetOffset <
-                                                  position.minScrollExtent) {
-                                                final overshoot =
-                                                    targetOffset -
-                                                    position.minScrollExtent;
-                                                targetOffset =
-                                                    position.minScrollExtent +
-                                                    (overshoot *
-                                                            pageViewWidth *
-                                                            0.55) /
-                                                        (pageViewWidth +
-                                                            0.55 *
-                                                                overshoot
-                                                                    .abs());
-                                              } else if (targetOffset >
-                                                  position.maxScrollExtent) {
-                                                final overshoot =
-                                                    targetOffset -
-                                                    position.maxScrollExtent;
-                                                targetOffset =
-                                                    position.maxScrollExtent +
-                                                    (overshoot *
-                                                            pageViewWidth *
-                                                            0.55) /
-                                                        (pageViewWidth +
-                                                            0.55 *
-                                                                overshoot
-                                                                    .abs());
-                                              }
-                                              _pageController.jumpTo(
-                                                targetOffset,
-                                              );
-                                            },
-                                            onHorizontalDragEnd: (details) {
-                                              if (!_isDraggingBubble) return;
-                                              if (!_pageController.hasClients) {
-                                                return;
-                                              }
-                                              if (reduceMotion) {
-                                                _pageController.jumpToPage(
-                                                  (_pageController.page ?? 0.0)
-                                                      .round()
-                                                      .clamp(0, 3),
-                                                );
-                                              } else {
-                                                final position =
-                                                    _pageController.position
-                                                        as ScrollPositionWithSingleContext;
-                                                position.goBallistic(
-                                                  details
-                                                          .velocity
-                                                          .pixelsPerSecond
-                                                          .dx *
-                                                      (position
-                                                              .viewportDimension /
-                                                          tabWidth),
-                                                );
-                                              }
-                                              _isDraggingBubble = false;
-                                              _showHighlight = false;
-                                              _highlightPosNotifier.value =
-                                                  Offset.zero;
-                                              if (mounted) {
-                                                _bubblePressController
-                                                    .reverse();
-                                              }
-                                            },
-                                            onHorizontalDragCancel: () {
-                                              if (!_isDraggingBubble ||
-                                                  !_pageController.hasClients) {
-                                                return;
-                                              }
-                                              if (reduceMotion) {
-                                                _pageController.jumpToPage(
-                                                  (_pageController.page ?? 0.0)
-                                                      .round()
-                                                      .clamp(0, 3),
-                                                );
-                                              } else {
-                                                (_pageController.position
-                                                        as ScrollPositionWithSingleContext)
-                                                    .goBallistic(0);
-                                              }
-                                              _isDraggingBubble = false;
-                                              _showHighlight = false;
-                                              _highlightPosNotifier.value =
-                                                  Offset.zero;
-                                              if (mounted) {
-                                                _bubblePressController
-                                                    .reverse();
-                                              }
-                                            },
-                                            child: Stack(
-                                              children: [
-                                                Positioned(
-                                                  left:
-                                                      currentPage * tabWidth +
-                                                      (tabWidth - bubbleWidth) /
-                                                          2,
-                                                  top: (64 - bubbleHeight) / 2,
-                                                  width: bubbleWidth,
-                                                  height: bubbleHeight,
-                                                  child: AnimatedBuilder(
-                                                    animation: Listenable.merge(
-                                                      [
-                                                        _bubblePressController,
-                                                        _highlightPosNotifier,
-                                                      ],
-                                                    ),
-                                                    builder: (context, _) {
-                                                      final pressProgress =
-                                                          _bubblePressController
-                                                              .value;
-                                                      final scale = isMaterial3
-                                                          ? 1.0
-                                                          : (1.0 +
-                                                                0.06 *
-                                                                    pressProgress);
-                                                      return Transform.scale(
-                                                        scale: scale,
-                                                        child: ClipRRect(
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                                isMaterial3
-                                                                    ? 18
-                                                                    : 24,
-                                                              ),
-                                                          child: Stack(
-                                                            children: [
-                                                              Positioned.fill(
-                                                                child: Container(
-                                                                  decoration: BoxDecoration(
-                                                                    color:
-                                                                        isMaterial3
-                                                                        ? Theme.of(
-                                                                            context,
-                                                                          ).colorScheme.secondaryContainer
-                                                                        : MiuixTheme.of(
-                                                                            context,
-                                                                          ).colors.primary.withOpacity(
-                                                                            0.12 +
-                                                                                0.04 *
-                                                                                    pressProgress,
-                                                                          ),
-                                                                    borderRadius: BorderRadius.circular(
-                                                                      isMaterial3
-                                                                          ? 18
-                                                                          : 24,
-                                                                    ),
-                                                                    border:
-                                                                        isMaterial3
-                                                                        ? null
-                                                                        : Border.all(
-                                                                            color:
-                                                                                MiuixTheme.of(
-                                                                                  context,
-                                                                                ).colors.primary.withOpacity(
-                                                                                  0.16 +
-                                                                                      0.08 *
-                                                                                          pressProgress,
-                                                                                ),
-                                                                            width:
-                                                                                0.8,
-                                                                          ),
-                                                                  ),
-                                                                ),
-                                                              ),
-                                                              if (!isMaterial3 &&
-                                                                  _showHighlight &&
-                                                                  pressProgress >
-                                                                      0.01)
-                                                                Positioned.fill(
-                                                                  child: CustomPaint(
-                                                                    painter: _InteractiveHighlightPainter(
-                                                                      position:
-                                                                          _highlightPosNotifier
-                                                                              .value,
-                                                                      progress:
-                                                                          pressProgress,
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                            ],
-                                                          ),
-                                                        ),
-                                                      );
-                                                    },
-                                                  ),
-                                                ),
-                                                Row(
-                                                  children: [
-                                                    _buildTabItem(
-                                                      0,
-                                                      Icons.bolt_outlined,
-                                                      Icons.bolt,
-                                                      '微教务',
-                                                    ),
-                                                    _buildTabItem(
-                                                      1,
-                                                      Icons.school_outlined,
-                                                      Icons.school,
-                                                      '安大教务',
-                                                    ),
-                                                    _buildTabItem(
-                                                      2,
-                                                      Icons
-                                                          .credit_card_outlined,
-                                                      Icons.credit_card,
-                                                      '一卡通',
-                                                    ),
-                                                    _buildTabItem(
-                                                      3,
-                                                      Icons.settings_outlined,
-                                                      Icons.settings,
-                                                      '设置',
-                                                    ),
-                                                  ],
-                                                ),
-                                              ],
-                                            ),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                    if (glassEnabled)
-                                      Positioned.fill(
-                                        child: BloomStrokeLayer(
-                                          radius: 32,
-                                          isDark:
-                                              Theme.of(context).brightness ==
-                                              Brightness.dark,
-                                          enabled: glassEnabled,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    return ThemeManager().isMaterial3 ? _buildMaterial3() : _buildMiuix();
   }
-
-  Widget _buildTabItem(
-    int index,
-    IconData icon,
-    IconData activeIcon,
-    String label,
-  ) {
-    final bool isSelected = _currentBottomIndex == index;
-    final colorScheme = Theme.of(context).colorScheme;
-    final isMaterial3 = ThemeManager().isMaterial3;
-    return Expanded(
-      child: InkWell(
-        onTap: () => _handleTabSwitch(index),
-        borderRadius: BorderRadius.circular(32),
-        highlightColor: Colors.transparent,
-        splashColor: colorScheme.primary.withOpacity(0.1),
-        child: isMaterial3
-            ? Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    isSelected ? activeIcon : icon,
-                    color: isSelected
-                        ? colorScheme.primary
-                        : colorScheme.onSurfaceVariant,
-                    size: 22,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                      color: isSelected
-                          ? colorScheme.primary
-                          : colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              )
-            : AnimatedBuilder(
-                animation: _bubblePressController,
-                builder: (context, child) {
-                  final scale = isSelected
-                      ? (1.0 + 0.05 * _bubblePressController.value)
-                      : 1.0;
-                  return Transform.scale(scale: scale, child: child);
-                },
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      isSelected ? activeIcon : icon,
-                      color: isSelected
-                          ? colorScheme.primary
-                          : colorScheme.onSurfaceVariant.withOpacity(0.7),
-                      size: 20,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: 10.5,
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.normal,
-                        color: isSelected
-                            ? colorScheme.primary
-                            : colorScheme.onSurfaceVariant.withOpacity(0.7),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-      ),
-    );
-  }
-}
-
-/// SukiSU InteractiveHighlight: White(0.06*progress) rect (BlendMode.plus) +
-/// radial White(0.12*progress) glow at touch position, radius = minDim*1.2.
-class _InteractiveHighlightPainter extends CustomPainter {
-  const _InteractiveHighlightPainter({
-    required this.position,
-    required this.progress,
-  });
-
-  final Offset position;
-  final double progress;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (size.width <= 0 || size.height <= 0 || progress <= 0) return;
-
-    // Base white wash: White.copy(0.06 * progress)
-    final baseWash = Paint()
-      ..color = Colors.white.withOpacity(0.06 * progress)
-      ..blendMode = BlendMode.plus;
-    canvas.drawRect(Offset.zero & size, baseWash);
-
-    // Radial glow: White.copy(0.12 * progress), radius = minDim * 1.2
-    final clampedX = position.dx.clamp(0.0, size.width);
-    final clampedY = position.dy.clamp(0.0, size.height);
-    final glowPaint = Paint()
-      ..shader = RadialGradient(
-        center: FractionalOffset.fromOffsetAndRect(
-          Offset(clampedX, clampedY),
-          Offset.zero & size,
-        ),
-        radius: 1.0,
-        colors: [
-          Colors.white.withOpacity(0.12 * progress),
-          Colors.white.withOpacity(0.0),
-        ],
-        stops: const [0.0, 1.0],
-      ).createShader(Offset.zero & size)
-      ..blendMode = BlendMode.plus;
-    canvas.drawRect(Offset.zero & size, glowPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _InteractiveHighlightPainter oldDelegate) =>
-      position != oldDelegate.position || progress != oldDelegate.progress;
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../api/getgrades.dart';
 import '../models/grade_model.dart';
 import '../../globals.dart' as globals;
+import '../../adaptive_ui.dart';
 
 class GradesPage extends StatefulWidget {
   final bool embed;
@@ -226,7 +227,7 @@ class _GradesPageState extends State<GradesPage>
       ..sort((a, b) => b.compareTo(a));
 
     return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 148),
+      padding: adaptivePagePadding(context, horizontal: 16, top: 16),
       itemCount: sortedSemesters.length,
       itemBuilder: (context, index) {
         final semester = sortedSemesters[index];

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../api/jw_api.dart';
 import '../models/jw_models.dart';
+import '../../adaptive_ui.dart';
 
 class JwProgramPage extends StatefulWidget {
   final bool embed;
@@ -79,7 +80,7 @@ class _JwProgramPageState extends State<JwProgramPage>
     final totalRequired = root.requiredCredits?.toStringAsFixed(1) ?? '-';
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 148),
+      padding: adaptivePagePadding(context, horizontal: 12, top: 12),
       children: [
         Card(
           color: Theme.of(context).colorScheme.primaryContainer,

@@ -6,7 +6,7 @@ import '../jw/api/jw_api.dart';
 import '../finance/api/synjones_client.dart';
 import 'cas_auth_cache.dart';
 import 'auth_manager.dart';
-import '../miuix/miuix_components.dart';
+import '../adaptive_ui.dart';
 
 class UnifiedLoginPage extends StatefulWidget {
   final VoidCallback? onLoginSuccess;
@@ -355,7 +355,7 @@ class _UnifiedLoginPageState extends State<UnifiedLoginPage> {
                     const SizedBox(height: 24),
                     SizedBox(
                       width: double.infinity,
-                      child: MiuixPrimaryButton(
+                      child: AdaptivePrimaryButton(
                         onPressed: _isLoading ? null : _handleLogin,
                         icon: _isLoading
                             ? const SizedBox(

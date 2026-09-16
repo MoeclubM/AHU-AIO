@@ -15,6 +15,7 @@ import '../pages/jw_student_info_page.dart';
 import '../pages/jw_precaution_page.dart';
 import '../pages/jw_course_select_page.dart';
 import '../pages/jw_notice_page.dart';
+import '../../adaptive_ui.dart';
 
 /// 新教务系统首页
 class JwHomePage extends StatefulWidget {
@@ -174,7 +175,7 @@ class _JwHomePageState extends State<JwHomePage>
           : RefreshIndicator(
               onRefresh: _loadData,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 148),
+                padding: adaptivePagePadding(context, horizontal: 16, top: 16),
                 children: [
                   if (showCachedBanner) _buildCacheBanner(),
                   if (showCachedBanner) const SizedBox(height: 12),

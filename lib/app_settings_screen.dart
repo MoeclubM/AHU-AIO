@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'globals.dart' as globals;
-import 'miuix/miuix_components.dart';
-import 'miuix/liquid_glass_card.dart';
+import 'adaptive_ui.dart';
 import 'theme_manager.dart';
 import 'theme_settings_screen.dart';
 import 'widget_settings_screen.dart';
@@ -11,6 +10,7 @@ import 'auth/auth_manager.dart';
 import 'jw/login/jw_login_service.dart';
 import 'finance/api/synjones_client.dart';
 import 'auth/cas_auth_cache.dart';
+import 'miuix/liquid_glass_app_bar.dart';
 
 class AppSettingsScreen extends StatefulWidget {
   final ValueChanged<int> onSwitchTab;
@@ -72,110 +72,84 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     }
   }
 
+  void _open(Widget screen) {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
+  }
+
   @override
   Widget build(BuildContext context) {
-    final mc = MiuixTheme.of(context).colors;
+    final scheme = Theme.of(context).colorScheme;
+    final chevron = Icon(Icons.chevron_right, color: scheme.onSurfaceVariant);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('系统设置')),
+      appBar: const LiquidGlassAppBar(title: '系统设置'),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 148),
+        padding: adaptivePagePadding(
+          context,
+          top: 8,
+          bottom: adaptiveBottomPadding(context, withSubBar: false),
+        ),
         children: [
-          const MiuixSmallTitle('个性化与显示'),
-          LiquidGlassCard(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Column(
-              children: [
-                MiuixComponent(
-                  title: '个性化与主题',
-                  summary:
-                      '${_themeManager.currentUiModeName} · ${_themeManager.currentColorModeName}',
-                  leading: Icon(Icons.palette_outlined, color: mc.primary),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildKeyColorDot(),
-                      const SizedBox(width: 6),
-                      Icon(
-                        Icons.chevron_right,
-                        color: mc.onSurfaceVariantActions,
-                      ),
-                    ],
+          const AdaptiveSectionTitle('个性化与显示'),
+          AdaptiveCard(
+            child: AdaptiveSettingsTile(
+              title: '个性化与主题',
+              summary:
+                  '${_themeManager.currentUiModeName} · ${_themeManager.currentColorModeName}',
+              leading: Icon(Icons.palette_outlined, color: scheme.primary),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: _themeManager.colorMode == ColorMode.monet
+                          ? scheme.primary
+                          : _themeManager.keyColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: scheme.outline, width: 1),
+                    ),
                   ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ThemeSettingsScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ],
+                  const SizedBox(width: 6),
+                  chevron,
+                ],
+              ),
+              onTap: () => _open(const ThemeSettingsScreen()),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
-          const MiuixSmallTitle('控件'),
-          LiquidGlassCard(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Column(
-              children: [
-                MiuixComponent(
-                  title: '控件',
-                  summary: _themeManager.showAppBarTitle
-                      ? '显示Title · 已开启'
-                      : '显示Title · 已关闭',
-                  leading: Icon(Icons.widgets_outlined, color: mc.primary),
-                  trailing: Icon(
-                    Icons.chevron_right,
-                    color: mc.onSurfaceVariantActions,
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const WidgetSettingsScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ],
+          const AdaptiveSectionTitle('控件'),
+          AdaptiveCard(
+            child: AdaptiveSettingsTile(
+              title: '控件',
+              summary: _themeManager.showAppBarTitle
+                  ? '显示Title · 已开启'
+                  : '显示Title · 已关闭',
+              leading: Icon(Icons.widgets_outlined, color: scheme.primary),
+              trailing: chevron,
+              onTap: () => _open(const WidgetSettingsScreen()),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
-          const MiuixSmallTitle('高级'),
-          LiquidGlassCard(
-            padding: const EdgeInsets.symmetric(vertical: 2),
-            child: Column(
-              children: [
-                MiuixComponent(
-                  title: '高级',
-                  summary: '密码认证行为 · ${_authManager.behavior.displayName}',
-                  leading: Icon(Icons.tune_outlined, color: mc.primary),
-                  trailing: Icon(
-                    Icons.chevron_right,
-                    color: mc.onSurfaceVariantActions,
-                  ),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const AdvancedSettingsScreen(),
-                      ),
-                    );
-                  },
-                ),
-              ],
+          const AdaptiveSectionTitle('高级'),
+          AdaptiveCard(
+            child: AdaptiveSettingsTile(
+              title: '高级',
+              summary: '密码认证行为 · ${_authManager.behavior.displayName}',
+              leading: Icon(Icons.tune_outlined, color: scheme.primary),
+              trailing: chevron,
+              onTap: () => _open(const AdvancedSettingsScreen()),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
-          const MiuixSmallTitle('账号与登录状态'),
-          const SizedBox(height: 8),
+          const AdaptiveSectionTitle('账号与登录状态'),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: MiuixDangerButton(
+            child: AdaptiveDangerButton(
               onPressed: _globalLogout,
               icon: const Icon(Icons.logout_rounded),
               minimumSize: const Size.fromHeight(52),
@@ -186,23 +160,6 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildKeyColorDot() {
-    return Container(
-      width: 24,
-      height: 24,
-      decoration: BoxDecoration(
-        color: _themeManager.colorMode == ColorMode.monet
-            ? MiuixTheme.of(context).colors.primary
-            : _themeManager.keyColor,
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: MiuixTheme.of(context).colors.outline,
-          width: 1.5,
-        ),
       ),
     );
   }
