@@ -423,10 +423,10 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                       padding: EdgeInsets.only(
                         bottom: MiuixFloatingBarDefaults.bottomPadding(context),
                       ),
+                      // 官方液态玻璃底栏常显图标 + 文字（图标 22dp、标签 11sp）。
                       child: MiuixFloatingTabBar(
                         controller: _pageController,
                         items: _mainTabs,
-                        showLabels: false,
                       ),
                     ),
                   ],

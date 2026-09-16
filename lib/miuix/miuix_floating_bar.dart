@@ -87,6 +87,10 @@ class MiuixFloatingBarDefaults {
   static SpringDescription get panelSpring =>
       SpringDescription.withDampingRatio(mass: 1, stiffness: 300, ratio: 1);
 
+  /// 指示器速度衰减弹簧（官方 `spring(0.5f, 300f)`）。
+  static SpringDescription get velocitySpring =>
+      SpringDescription.withDampingRatio(mass: 1, stiffness: 300, ratio: 0.5);
+
   /// 底栏距屏幕底部距离。
   ///
   /// 官方规则：iOS 20dp；Android 存在导航栏内边距时为 `8dp + inset`，
@@ -115,9 +119,14 @@ class MiuixFloatingBarItemData {
 /// 液态玻璃悬浮胶囊底栏。
 ///
 /// 动效对齐官方 `DampedDragAnimation`：
-/// - 指示器位移由弹簧驱动，拖动时**阻尼跟随**手指而非 1:1 硬跟；
-/// - 按压进度、缩放均为弹簧；松手后等指示器到位再收起按压反馈；
-/// - 带速度时指示器横向拉伸、纵向压缩（`velocity / 10`）；
+/// - 拖动时指示器与联动页面都 **1:1 跟手**（Compose 版拖动中也用弹簧，但那边
+///   没有联动页面；这里若让页面跟着弹簧走，临界阻尼在快速滑动下的稳态滞后
+///   可达 0.6 个条目，手感就是"不跟手"）；
+/// - 松手后按 `spring(1.0, 1000)` 回位，页面与指示器**共用同一个值**，
+///   因此不可能出现「指示器到位了页面还没到」的不一致；
+/// - 按压进度、缩放为弹簧；松手后等指示器就位再收起按压反馈；
+/// - 带速度时指示器横向拉伸、纵向压缩（`velocity / 10`），松手后按
+///   `spring(0.5, 300)` 衰减；
 /// - 拖到两端时内容按 4dp 橡皮筋偏移，回位用 `spring(1.0, 300)`。
 ///
 /// 材质：`surfaceContainer@0.4` + 高斯模糊 + BloomStroke 边缘高光；
@@ -157,7 +166,7 @@ class MiuixFloatingTabBar extends StatefulWidget {
 
 class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
     with TickerProviderStateMixin {
-  /// 指示器位置（以「条目」为单位，可为小数）。
+  /// 指示器位置（以「条目」为单位，可为小数），同时决定页面位置。
   late final AnimationController _valueCtrl;
 
   /// 按压进度 0→1。
@@ -170,33 +179,49 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
   /// 两端橡皮筋位移（原始像素）。
   late final AnimationController _panelCtrl;
 
-  /// 指示器速度（条目/秒），由弹簧值采样得到，驱动拉伸/压缩。
-  double _velocity = 0;
-  final List<double> _sampleTime = <double>[];
-  final List<double> _sampleValue = <double>[];
+  /// 指示器速度（条目/秒）。拖动时由采样写入，松手后按弹簧衰减到 0。
+  late final AnimationController _velocityCtrl;
 
-  bool _dragging = false;
+  /// 拖动目标（条目单位）。
+  ///
+  /// 必须从**目标**累积：若从当前动画值累积，弹簧的滞后会逐帧累加成永久
+  /// 落后，表现为「滑动不跟手」。从目标累积则总位移恒等于手指位移。
+  double _dragTarget = 0;
+
+  /// 当前弹簧的目的地，用于判断指示器是否已就位。
+  double _springTarget = 0;
+
   bool _pressing = false;
 
-  /// 供按压高光定位的触点位置（相对内容区）。
+  /// 底栏正在驱动页面（拖动与回位期间）。此时忽略 PageController 的回调，
+  /// 避免「底栏驱动页面 → 页面回调又改指示器」的相互拉扯。
+  bool _driving = false;
+  bool _ignoreController = false;
+
+  /// 供按压高光定位的触点位置（相对栏外侧）。
   Offset _touch = Offset.zero;
 
-  /// 拖动时累计的原始位移，用于橡皮筋。
-  double _panelRaw = 0;
+  final List<double> _sampleTimes = <double>[];
+  final List<double> _sampleValues = <double>[];
 
   @override
   void initState() {
     super.initState();
-    final double initial = (widget.controller.initialPage).toDouble();
+    final double initial = widget.controller.initialPage.toDouble();
     _valueCtrl = AnimationController.unbounded(vsync: this, value: initial)
-      ..addListener(_sampleVelocity);
+      ..addListener(_onValueTick);
     _pressCtrl = AnimationController.unbounded(vsync: this, value: 0);
     _scaleXCtrl = AnimationController.unbounded(vsync: this, value: 1);
     _scaleYCtrl = AnimationController.unbounded(vsync: this, value: 1);
     _panelCtrl = AnimationController.unbounded(vsync: this, value: 0);
+    _velocityCtrl = AnimationController.unbounded(vsync: this, value: 0);
+    _dragTarget = initial;
+    _springTarget = initial;
     widget.controller.addListener(_onControllerChanged);
     // PageView 首次布局前拿不到 page，帧后补一次真实值。
-    WidgetsBinding.instance.addPostFrameCallback((_) => _syncFromController());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _syncFromController(snap: true);
+    });
   }
 
   @override
@@ -207,6 +232,7 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
     _scaleXCtrl.dispose();
     _scaleYCtrl.dispose();
     _panelCtrl.dispose();
+    _velocityCtrl.dispose();
     super.dispose();
   }
 
@@ -218,44 +244,71 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
       (widget.items.isEmpty ? 0 : widget.items.length - 1).toDouble();
 
   void _onControllerChanged() {
-    if (_dragging) return;
+    if (_ignoreController || _driving) return;
     _syncFromController();
   }
 
-  /// 外部翻页（点击底栏、程序切换）时让指示器弹簧跟随。
-  void _syncFromController() {
+  /// 外部翻页（程序切换、设置页跳转）时让指示器跟随。
+  void _syncFromController({bool snap = false}) {
     if (!widget.controller.hasClients) return;
     final double target = (widget.controller.page ?? 0.0).clamp(0.0, _maxIndex);
-    if ((_valueCtrl.value - target).abs() < 0.001) return;
-    _animateValueTo(target);
+    final double delta = (target - _valueCtrl.value).abs();
+    if (delta < 0.001) return;
+    _dragTarget = target;
+    // 跨度大（如重置回首页）时直接对齐，否则弹簧会把内容一路拖过多页。
+    if (snap || delta > 0.5) {
+      _valueCtrl.value = target;
+      _springTarget = target;
+      _pushToController();
+    } else {
+      _animateValueTo(target);
+    }
+  }
+
+  /// 把指示器位置写回 PageController —— 指示器与页面因此同源，
+  /// 不会出现「指示器到位了页面还没到」的不一致。
+  void _pushToController() {
+    if (!widget.controller.hasClients) return;
+    final ScrollPosition position = widget.controller.position;
+    if (position.viewportDimension <= 0) return;
+    _ignoreController = true;
+    widget.controller.jumpTo(
+      _valueCtrl.value.clamp(0.0, _maxIndex) * position.viewportDimension,
+    );
+    _ignoreController = false;
+  }
+
+  void _onValueTick() {
+    _sampleVelocity();
+    if (_driving) _pushToController();
   }
 
   // ---- 弹簧驱动 ----
 
-  void _animateValueTo(double target, {double velocity = 0}) {
-    final double clamped = target.clamp(0.0, _maxIndex);
-    if (_reduceMotion) {
-      _valueCtrl.value = clamped;
-      return;
-    }
-    _valueCtrl.animateWith(
-      SpringSimulation(
-        MiuixFloatingBarDefaults.valueSpring,
-        _valueCtrl.value,
-        clamped,
-        velocity,
-      )..tolerance = const Tolerance(distance: 0.001),
+  void _springTo(
+    AnimationController controller,
+    double target,
+    SpringDescription spring, {
+    double velocity = 0,
+  }) {
+    controller.animateWith(
+      SpringSimulation(spring, controller.value, target, velocity)
+        ..tolerance = const Tolerance(distance: 0.001),
     );
   }
 
-  void _animatePanelTo(double target) {
-    _panelCtrl.animateWith(
-      SpringSimulation(
-        MiuixFloatingBarDefaults.panelSpring,
-        _panelCtrl.value,
-        target,
-        0,
-      )..tolerance = const Tolerance(distance: 0.5),
+  void _animateValueTo(double target, {double velocity = 0}) {
+    _springTarget = target.clamp(0.0, _maxIndex);
+    if (_reduceMotion) {
+      _valueCtrl.value = _springTarget;
+      _pushToController();
+      return;
+    }
+    _springTo(
+      _valueCtrl,
+      _springTarget,
+      MiuixFloatingBarDefaults.valueSpring,
+      velocity: velocity,
     );
   }
 
@@ -264,24 +317,17 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
     _pressing = true;
     if (_reduceMotion) {
       _pressCtrl.value = 1;
-      _scaleXCtrl.value = 1;
-      _scaleYCtrl.value = 1;
       return;
     }
-    _pressCtrl.animateWith(
-      SpringSimulation(
-        MiuixFloatingBarDefaults.pressSpring,
-        _pressCtrl.value,
-        1,
-        0,
-      )..tolerance = const Tolerance(distance: 0.001),
-    );
-    _animatePressScale(
-      1 + MiuixFloatingBarDefaults.pressScaleDelta / _barWidth,
-    );
+    _springTo(_pressCtrl, 1, MiuixFloatingBarDefaults.pressSpring);
+    final double target =
+        1 + MiuixFloatingBarDefaults.pressScaleDelta / _barWidth;
+    _springTo(_scaleXCtrl, target, MiuixFloatingBarDefaults.scaleXSpring);
+    _springTo(_scaleYCtrl, target, MiuixFloatingBarDefaults.scaleYSpring);
   }
 
-  void _release() {
+  /// 收起按压反馈。
+  void _collapsePress() {
     if (!_pressing) return;
     _pressing = false;
     if (_reduceMotion) {
@@ -290,71 +336,47 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
       _scaleYCtrl.value = 1;
       return;
     }
-    // 官方 release()：先等指示器就位，再收起按压反馈，避免"松手立刻回弹"的割裂感。
-    _whenValueSettled().then((_) {
+    _springTo(_pressCtrl, 0, MiuixFloatingBarDefaults.pressSpring);
+    _springTo(_scaleXCtrl, 1, MiuixFloatingBarDefaults.scaleXSpring);
+    _springTo(_scaleYCtrl, 1, MiuixFloatingBarDefaults.scaleYSpring);
+  }
+
+  /// 结束一次「底栏驱动」：指示器回位、橡皮筋与速度归零，
+  /// 并在指示器就位后收起按压反馈（官方 release() 的时序）。
+  void _finishDriving(double target, {double? velocity}) {
+    _animateValueTo(target, velocity: velocity ?? _velocityCtrl.value);
+    _springTo(_panelCtrl, 0, MiuixFloatingBarDefaults.panelSpring);
+    _springTo(_velocityCtrl, 0, MiuixFloatingBarDefaults.velocitySpring);
+    _whenSettled().then((_) {
       if (!mounted) return;
-      _pressCtrl.animateWith(
-        SpringSimulation(
-          MiuixFloatingBarDefaults.pressSpring,
-          _pressCtrl.value,
-          0,
-          0,
-        )..tolerance = const Tolerance(distance: 0.001),
-      );
-      _animatePressScale(1);
+      _pushToController();
+      _driving = false;
+      _collapsePress();
     });
   }
 
-  void _animatePressScale(double target) {
-    _scaleXCtrl.animateWith(
-      SpringSimulation(
-        MiuixFloatingBarDefaults.scaleXSpring,
-        _scaleXCtrl.value,
-        target,
-        0,
-      )..tolerance = const Tolerance(distance: 0.001),
-    );
-    _scaleYCtrl.animateWith(
-      SpringSimulation(
-        MiuixFloatingBarDefaults.scaleYSpring,
-        _scaleYCtrl.value,
-        target,
-        0,
-      )..tolerance = const Tolerance(distance: 0.001),
-    );
-  }
+  /// 指示器是否已到达弹簧目的地。
+  bool get _settled => (_valueCtrl.value - _springTarget).abs() < 0.002;
 
-  /// 指示器是否已基本到位（官方 `visibilityThreshold` 取区间 2.5%）。
-  bool get _valueSettled {
-    final double target = _valueCtrl.value.roundToDouble().clamp(
-      0.0,
-      _maxIndex,
-    );
-    final double threshold = _maxIndex <= 0 ? 0.001 : _maxIndex * 0.025;
-    return (_valueCtrl.value - target).abs() < threshold;
-  }
-
-  Future<void> _whenValueSettled() async {
-    if (_valueSettled) return;
-    while (mounted && !_valueSettled) {
+  Future<void> _whenSettled() async {
+    while (mounted && !_settled) {
       await Future<void>.delayed(const Duration(milliseconds: 16));
     }
   }
 
-  /// 采样指示器速度（官方 VelocityTracker 等价实现，窗口 ~100ms）。
+  /// 采样指示器速度（官方 VelocityTracker 的等价实现，窗口 ~80ms）。
   void _sampleVelocity() {
     final double now = DateTime.now().microsecondsSinceEpoch / 1e6;
-    _sampleTime.add(now);
-    _sampleValue.add(_valueCtrl.value);
-    while (_sampleTime.length > 2 && now - _sampleTime.first > 0.1) {
-      _sampleTime.removeAt(0);
-      _sampleValue.removeAt(0);
+    _sampleTimes.add(now);
+    _sampleValues.add(_valueCtrl.value);
+    while (_sampleTimes.length > 2 && now - _sampleTimes.first > 0.08) {
+      _sampleTimes.removeAt(0);
+      _sampleValues.removeAt(0);
     }
-    if (_sampleTime.length >= 2) {
-      final double dt = _sampleTime.last - _sampleTime.first;
-      if (dt > 1e-4) {
-        _velocity = (_sampleValue.last - _sampleValue.first) / dt;
-      }
+    if (_sampleTimes.length < 2) return;
+    final double dt = _sampleTimes.last - _sampleTimes.first;
+    if (dt > 1e-4) {
+      _velocityCtrl.value = (_sampleValues.last - _sampleValues.first) / dt;
     }
   }
 
@@ -368,128 +390,48 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
   // ---- 手势 ----
 
   void _onDragStart(DragStartDetails details, double tabWidth) {
-    _dragging = true;
-    _panelRaw = 0;
+    _driving = true;
+    _touch = details.localPosition;
+    _dragTarget = _valueCtrl.value;
+    _panelCtrl.value = 0;
     if (widget.controller.hasClients) {
       (widget.controller.position as ScrollPositionWithSingleContext).goIdle();
     }
-    _touch = details.localPosition;
     _press();
-    // 官方：按下即跳到触点所在条目（弹簧过去，不是硬跳）。
-    final int index = _indexAt(details.localPosition.dx, tabWidth);
-    _animateValueTo(index.toDouble(), velocity: _velocity);
   }
 
+  /// 拖动：指示器与页面都 1:1 跟手，弹簧只负责松手后的回位。
   void _onDragUpdate(DragUpdateDetails details, double tabWidth) {
     _touch = details.localPosition;
+    if (tabWidth <= 0) return;
     final double dx = details.delta.dx;
-    if (tabWidth <= 0 || dx == 0) return;
+    if (dx == 0) return;
 
-    // 指示器：弹簧跟随（滞后阻尼），而非 1:1 硬跟。
-    _animateValueTo(
-      (_valueCtrl.value + dx / tabWidth).clamp(0.0, _maxIndex),
-      velocity: _velocity,
-    );
-
-    // 橡皮筋：累计原始位移，端点外由面板整体轻微偏移。
-    _panelRaw += dx;
-    _panelCtrl.value = _panelRaw;
-
-    // 页面与手指同步。
-    if (!widget.controller.hasClients) return;
-    final ScrollPosition position = widget.controller.position;
-    final double viewport = position.viewportDimension;
-    double target = widget.controller.offset + dx * (viewport / tabWidth);
-    if (target < position.minScrollExtent) {
-      final double overshoot = target - position.minScrollExtent;
-      target =
-          position.minScrollExtent +
-          (overshoot * viewport * 0.55) / (viewport + 0.55 * overshoot.abs());
-    } else if (target > position.maxScrollExtent) {
-      final double overshoot = target - position.maxScrollExtent;
-      target =
-          position.maxScrollExtent +
-          (overshoot * viewport * 0.55) / (viewport + 0.55 * overshoot.abs());
-    }
-    widget.controller.jumpTo(target);
+    // 从目标累积，并允许少量越界，便于回拖时立刻响应。
+    _dragTarget = (_dragTarget + dx / tabWidth).clamp(-0.4, _maxIndex + 0.4);
+    _valueCtrl.value = _dragTarget.clamp(0.0, _maxIndex);
+    _springTarget = _valueCtrl.value;
+    _panelCtrl.value += dx;
+    _pushToController();
   }
 
   void _onDragEnd(DragEndDetails details, double tabWidth) {
-    _dragging = false;
-    final int target = _valueCtrl.value.round().clamp(
-      0,
-      widget.items.isEmpty ? 0 : widget.items.length - 1,
-    );
-    _animateValueTo(target.toDouble(), velocity: _velocity);
-    _panelRaw = 0;
-    _animatePanelTo(0);
-    _settleVelocity();
-    // 让页面落到最近的一页。
-    if (widget.controller.hasClients) {
-      if (_reduceMotion) {
-        widget.controller.jumpToPage(target);
-      } else {
-        final ScrollPositionWithSingleContext position =
-            widget.controller.position as ScrollPositionWithSingleContext;
-        position.goBallistic(
-          details.velocity.pixelsPerSecond.dx *
-              (position.viewportDimension / tabWidth),
-        );
-      }
-    }
-    _release();
+    _finishDriving(_nearestIndex);
   }
 
   void _onDragCancel(double tabWidth) {
-    _dragging = false;
-    final int target = _valueCtrl.value.round().clamp(
-      0,
-      widget.items.isEmpty ? 0 : widget.items.length - 1,
-    );
-    _animateValueTo(target.toDouble());
-    _panelRaw = 0;
-    _animatePanelTo(0);
-    _settleVelocity();
-    if (widget.controller.hasClients) {
-      if (_reduceMotion) {
-        widget.controller.jumpToPage(target);
-      } else {
-        (widget.controller.position as ScrollPositionWithSingleContext)
-            .goBallistic(0);
-      }
-    }
-    _release();
+    _finishDriving(_nearestIndex);
   }
 
-  /// 松手后速度按 `spring(0.5, 300)` 衰减到 0（官方 velocityAnimationSpec）。
-  void _settleVelocity() {
-    Future<void>.delayed(const Duration(milliseconds: 120), () {
-      if (mounted && !_dragging) _velocity = 0;
-    });
-  }
+  /// 松手后落到的条目。
+  double get _nearestIndex => _dragTarget.roundToDouble().clamp(0.0, _maxIndex);
 
-  int _indexAt(double localX, double tabWidth) {
-    if (tabWidth <= 0) return 0;
-    // localX 已相对内容区（外层 Padding(24) 不计入 GestureDetector 坐标）。
-    final int raw = (localX / tabWidth).floor();
-    return raw.clamp(0, widget.items.isEmpty ? 0 : widget.items.length - 1);
-  }
-
-  void _select(int index, double tabWidth) {
+  /// 点击：指示器与页面共用同一个弹簧，因此两者必然同步到位。
+  void _select(int index) {
+    _driving = true;
     _press();
-    _animateValueTo(index.toDouble(), velocity: _velocity);
-    if (widget.controller.hasClients) {
-      if (_reduceMotion) {
-        widget.controller.jumpToPage(index);
-      } else {
-        widget.controller.animateToPage(
-          index,
-          duration: const Duration(milliseconds: 260),
-          curve: Curves.easeOutCubic,
-        );
-      }
-    }
-    _release();
+    _dragTarget = index.toDouble();
+    _finishDriving(index.toDouble(), velocity: 0);
   }
 
   @override
@@ -535,12 +477,13 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
                 _scaleXCtrl,
                 _scaleYCtrl,
                 _panelCtrl,
+                _velocityCtrl,
               ]),
               builder: (context, _) {
                 final double value = _valueCtrl.value.clamp(0.0, _maxIndex);
                 final double press = _pressCtrl.value;
                 // 官方 layerBlock：速度驱动横向拉伸 / 纵向压缩。
-                final double v = _velocity / 10;
+                final double v = _velocityCtrl.value / 10;
                 final double stretch = (v * 0.75).clamp(-0.2, 0.2);
                 final double squash = (v * 0.25).clamp(-0.2, 0.2);
                 final double scaleX = _scaleXCtrl.value / (1 - stretch);
@@ -597,9 +540,16 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
                                       iconSize: widget.iconSize,
                                       fontSize: widget.fontSize,
                                       showLabel: widget.showLabels,
-                                      onPressed: () => _select(i, tabWidth),
-                                      onPressChanged: (v) =>
-                                          v ? _press() : _release(),
+                                      onPressed: () => _select(i),
+                                      onPressChanged: (pressed) {
+                                        // 拖动/回位期间统一交给 _finishDriving 收尾，
+                                        // 避免"按下-抬起"与"点击"两次收放互相打断。
+                                        if (pressed) {
+                                          _press();
+                                        } else if (!_driving) {
+                                          _collapsePress();
+                                        }
+                                      },
                                     ),
                                   ),
                               ],

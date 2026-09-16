@@ -34,6 +34,46 @@ enum UiMode {
   String get displayName => this == UiMode.material3 ? 'Material 3' : 'Miuix';
 }
 
+/// Material 3 调色板风格（对应 Flutter 的 [DynamicSchemeVariant]）。
+///
+/// 决定「由种子色推导整套配色」的算法，是 MD3 下最主要的一类样式调整。
+/// Miuix 模式不使用该设置。
+enum PaletteStyle {
+  tonalSpot('色调点', '默认，色彩平衡、低饱和'),
+  vibrant('鲜明', '更高饱和度，色彩更抢眼'),
+  expressive('表现力', '色彩分布更有个性'),
+  fidelity('忠实', '最大程度贴近种子色本身'),
+  content('内容', '从种子色提取更多色彩层次'),
+  neutral('中性', '近乎灰阶，极低饱和'),
+  monochrome('单色', '完全灰阶'),
+  rainbow('彩虹', '跨色相的丰富配色'),
+  fruitSalad('果缤纷', '相邻色相，活泼明快');
+
+  const PaletteStyle(this.displayName, this.summary);
+
+  final String displayName;
+  final String summary;
+
+  DynamicSchemeVariant get variant => switch (this) {
+    PaletteStyle.tonalSpot => DynamicSchemeVariant.tonalSpot,
+    PaletteStyle.vibrant => DynamicSchemeVariant.vibrant,
+    PaletteStyle.expressive => DynamicSchemeVariant.expressive,
+    PaletteStyle.fidelity => DynamicSchemeVariant.fidelity,
+    PaletteStyle.content => DynamicSchemeVariant.content,
+    PaletteStyle.neutral => DynamicSchemeVariant.neutral,
+    PaletteStyle.monochrome => DynamicSchemeVariant.monochrome,
+    PaletteStyle.rainbow => DynamicSchemeVariant.rainbow,
+    PaletteStyle.fruitSalad => DynamicSchemeVariant.fruitSalad,
+  };
+
+  static PaletteStyle fromValue(int v) => PaletteStyle.values.firstWhere(
+    (e) => e.index == v,
+    orElse: () => PaletteStyle.tonalSpot,
+  );
+
+  int get value => index;
+}
+
 /// 预设主色列表，参考 MIUI / HyperOS 官方经典配色与 SukiSU 的 keyColor。
 class PresetColors {
   static const List<Color> presets = [
@@ -75,6 +115,9 @@ class ThemeManager extends ChangeNotifier {
   ColorMode _colorMode = ColorMode.system;
   Color _keyColor = const Color(0xFF3482FF);
   UiMode _uiMode = UiMode.miuix;
+  PaletteStyle _paletteStyle = PaletteStyle.tonalSpot;
+  double _uiScale = 1.0;
+  bool _predictiveBack = false;
   bool _enableBlur = true;
   bool _enableLiquidGlass = true;
   bool _enableBottomBarTransparent = true;
@@ -83,6 +126,13 @@ class ThemeManager extends ChangeNotifier {
   ColorMode get colorMode => _colorMode;
   Color get keyColor => _keyColor;
   UiMode get uiMode => _uiMode;
+  PaletteStyle get paletteStyle => _paletteStyle;
+
+  /// 全局界面缩放（仅作用于文字），范围 0.85–1.30。
+  double get uiScale => _uiScale;
+
+  /// 是否启用 Android 预测性返回手势（仅 Android 生效）。
+  bool get predictiveBack => _predictiveBack;
   bool get enableBlur => _enableBlur;
   bool get enableLiquidGlass => _enableLiquidGlass;
   bool get enableBottomBarTransparent => _enableBottomBarTransparent;
@@ -170,6 +220,27 @@ class ThemeManager extends ChangeNotifier {
     await prefs.setString('uiMode', mode.value);
   }
 
+  Future<void> setPaletteStyle(PaletteStyle style) async {
+    _paletteStyle = style;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('paletteStyle', style.value);
+  }
+
+  Future<void> setUiScale(double scale) async {
+    _uiScale = scale.clamp(0.85, 1.30);
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('uiScale', _uiScale);
+  }
+
+  Future<void> setPredictiveBack(bool value) async {
+    _predictiveBack = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('predictiveBack', value);
+  }
+
   Future<void> setEnableBlur(bool value) async {
     _enableBlur = value;
     notifyListeners();
@@ -230,6 +301,12 @@ class ThemeManager extends ChangeNotifier {
     if (uiModeVal != null) {
       _uiMode = UiMode.fromValue(uiModeVal);
     }
+    final paletteVal = prefs.getInt('paletteStyle');
+    if (paletteVal != null) {
+      _paletteStyle = PaletteStyle.fromValue(paletteVal);
+    }
+    _uiScale = (prefs.getDouble('uiScale') ?? 1.0).clamp(0.85, 1.30);
+    _predictiveBack = prefs.getBool('predictiveBack') ?? false;
     _enableBlur = prefs.getBool('enableBlur') ?? true;
     _enableLiquidGlass = prefs.getBool('enableLiquidGlass') ?? true;
     _enableBottomBarTransparent =

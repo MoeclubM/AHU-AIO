@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 import 'package:flutter_miuix/miuix.dart';
 
@@ -136,31 +137,42 @@ ThemeData _buildMiuixTheme(MiuixColors c, Brightness brightness) {
   );
 }
 
-/// Material 3 浅色主题：完全使用框架默认值，仅固定种子色与居中标题。
-ThemeData material3LightTheme({Color? keyColor}) {
+/// Material 3 浅色主题：完全使用框架默认值，仅固定种子色、调色板风格与居中标题。
+ThemeData material3LightTheme({
+  Color? keyColor,
+  DynamicSchemeVariant variant = DynamicSchemeVariant.tonalSpot,
+}) {
   return ThemeData(
     colorScheme: ColorScheme.fromSeed(
       seedColor: keyColor ?? const Color(0xFF3482FF),
       brightness: Brightness.light,
+      dynamicSchemeVariant: variant,
     ),
     appBarTheme: const AppBarTheme(centerTitle: true),
   );
 }
 
 /// Material 3 深色主题。
-ThemeData material3DarkTheme({Color? keyColor}) {
+ThemeData material3DarkTheme({
+  Color? keyColor,
+  DynamicSchemeVariant variant = DynamicSchemeVariant.tonalSpot,
+}) {
   return ThemeData(
     colorScheme: ColorScheme.fromSeed(
       seedColor: keyColor ?? const Color(0xFF277AF7),
       brightness: Brightness.dark,
+      dynamicSchemeVariant: variant,
     ),
     appBarTheme: const AppBarTheme(centerTitle: true),
   );
 }
 
 /// Material 3 AMOLED 纯黑主题：仅把 surface 系列压到纯黑，其余保持默认。
-ThemeData material3AmoledTheme({Color? keyColor}) {
-  final base = material3DarkTheme(keyColor: keyColor);
+ThemeData material3AmoledTheme({
+  Color? keyColor,
+  DynamicSchemeVariant variant = DynamicSchemeVariant.tonalSpot,
+}) {
+  final base = material3DarkTheme(keyColor: keyColor, variant: variant);
   return base.copyWith(
     scaffoldBackgroundColor: Colors.black,
     colorScheme: base.colorScheme.copyWith(
@@ -176,4 +188,27 @@ ThemeData material3AmoledTheme({Color? keyColor}) {
       foregroundColor: Color(0xE6FFFFFF),
     ),
   );
+}
+
+/// 按设置选择 Android 的页面转场。
+///
+/// 开启时使用预测性返回转场（需配合 manifest 的 `enableOnBackInvokedCallback`，
+/// 这也是 Flutter 3.44 的 Android 默认值）；关闭时退回传统缩放转场。
+/// 其余平台显式保持框架默认，避免 iOS / 桌面端转场退化。
+ThemeData withPredictiveBack(ThemeData base, bool enabled) {
+  if (!enabled) {
+    return base.copyWith(
+      pageTransitionsTheme: PageTransitionsTheme(
+        builders: <TargetPlatform, PageTransitionsBuilder>{
+          TargetPlatform.android: const ZoomPageTransitionsBuilder(),
+          TargetPlatform.iOS: const CupertinoPageTransitionsBuilder(),
+          TargetPlatform.macOS: const CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: const ZoomPageTransitionsBuilder(),
+          TargetPlatform.linux: const ZoomPageTransitionsBuilder(),
+        },
+      ),
+    );
+  }
+  // 开启时即框架默认，无需改动。
+  return base;
 }

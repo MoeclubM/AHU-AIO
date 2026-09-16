@@ -79,12 +79,31 @@ class MyApp extends StatelessWidget {
                         appBarTheme: const AppBarTheme(centerTitle: true),
                       );
               } else {
-                light = material3LightTheme(keyColor: effectiveKeyColor);
+                light = material3LightTheme(
+                  keyColor: effectiveKeyColor,
+                  variant: themeManager.paletteStyle.variant,
+                );
                 dark = themeManager.isAmoled
-                    ? material3AmoledTheme(keyColor: effectiveKeyColor)
-                    : material3DarkTheme(keyColor: effectiveKeyColor);
+                    ? material3AmoledTheme(
+                        keyColor: effectiveKeyColor,
+                        variant: themeManager.paletteStyle.variant,
+                      )
+                    : material3DarkTheme(
+                        keyColor: effectiveKeyColor,
+                        variant: themeManager.paletteStyle.variant,
+                      );
               }
             }
+
+            // 预测性返回手势（仅 Android 生效），与全局界面缩放一起在根部应用。
+            final ThemeData effectiveLight = withPredictiveBack(
+              light,
+              themeManager.predictiveBack,
+            );
+            final ThemeData effectiveDark = withPredictiveBack(
+              dark,
+              themeManager.predictiveBack,
+            );
 
             final systemBrightness =
                 MediaQuery.maybePlatformBrightnessOf(context) ??
@@ -113,9 +132,21 @@ class MyApp extends StatelessWidget {
                   Locale('zh', 'CN'),
                   Locale('en', 'US'),
                 ],
-                theme: light,
-                darkTheme: dark,
+                theme: effectiveLight,
+                darkTheme: effectiveDark,
                 themeMode: themeManager.themeModeEnum,
+                builder: (context, child) {
+                  final mediaQuery = MediaQuery.of(context);
+                  // 界面缩放：在系统文字缩放之上叠加用户设置的比例。
+                  final double scale =
+                      mediaQuery.textScaler.scale(1) * themeManager.uiScale;
+                  return MediaQuery(
+                    data: mediaQuery.copyWith(
+                      textScaler: TextScaler.linear(scale),
+                    ),
+                    child: child ?? const SizedBox.shrink(),
+                  );
+                },
                 home: const MainLayoutScreen(),
               ),
             );

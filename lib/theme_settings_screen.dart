@@ -82,6 +82,16 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
             trailing: _ValueTrailing(text: tm.currentUiModeName),
             onTap: _pickUiMode,
           ),
+          // 调色板风格：Material 3 专属的配色推导算法
+          if (tm.isMaterial3)
+            _OptionCard(
+              icon: Icons.color_lens_outlined,
+              iconColor: leadingColor,
+              title: '调色板风格',
+              subtitle: '用于推导 Material 3 配色的算法',
+              trailing: _ValueTrailing(text: tm.paletteStyle.displayName),
+              onTap: _pickPaletteStyle,
+            ),
 
           if (tm.isMiuix) ...[
             _SwitchCard(
@@ -110,9 +120,101 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
               onChanged: tm.setEnableLiquidGlass,
             ),
           ],
+
+          // 通用：与界面风格无关的系统级样式调整
+          _SwitchCard(
+            icon: Icons.swipe_outlined,
+            iconColor: leadingColor,
+            title: '预测性返回手势',
+            subtitle: '启用对预测性返回手势的支持（仅 Android）',
+            value: tm.predictiveBack,
+            onChanged: tm.setPredictiveBack,
+          ),
+          _OptionCard(
+            icon: Icons.format_size_outlined,
+            iconColor: leadingColor,
+            title: '界面缩放',
+            subtitle: '调整全局显示比例',
+            trailing: _ValueTrailing(text: '${(tm.uiScale * 100).round()}%'),
+            onTap: _pickUiScale,
+          ),
         ],
       ),
     );
+  }
+
+  Future<void> _pickPaletteStyle() async {
+    final style = await showAdaptiveChoiceDialog<PaletteStyle>(
+      context: context,
+      title: '调色板风格',
+      current: _themeManager.paletteStyle,
+      options: [
+        for (final item in PaletteStyle.values)
+          AdaptiveChoice(
+            value: item,
+            label: item.displayName,
+            summary: item.summary,
+          ),
+      ],
+    );
+    if (style != null) {
+      await _themeManager.setPaletteStyle(style);
+    }
+  }
+
+  Future<void> _pickUiScale() async {
+    final scale = await showDialog<double>(
+      context: context,
+      builder: (ctx) {
+        double current = _themeManager.uiScale;
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) {
+            final scheme = Theme.of(ctx).colorScheme;
+            return AlertDialog(
+              title: const Text('界面缩放'),
+              content: SizedBox(
+                width: 320,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '${(current * 100).round()}%',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: scheme.primary,
+                      ),
+                    ),
+                    Slider(
+                      value: current,
+                      min: 0.85,
+                      max: 1.30,
+                      divisions: 9,
+                      label: '${(current * 100).round()}%',
+                      onChanged: (v) => setDialogState(() => current = v),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                AdaptiveTextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text('取消'),
+                ),
+                AdaptiveTextButton(
+                  onPressed: () => Navigator.pop(ctx, current),
+                  child: const Text('确定'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    if (scale != null) {
+      await _themeManager.setUiScale(scale);
+    }
   }
 
   Future<void> _pickUiMode() async {
