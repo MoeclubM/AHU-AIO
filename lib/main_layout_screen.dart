@@ -9,6 +9,7 @@ import 'app_settings_screen.dart';
 import 'auth/unified_login_page.dart';
 import 'auth/cas_auth_cache.dart';
 import 'miuix/miuix_floating_bar.dart';
+import 'miuix/miuix_theme.dart';
 import 'theme_manager.dart';
 
 /// 主底栏标签（Miuix 悬浮栏不显示文字，仅用于无障碍朗读）。
@@ -208,7 +209,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     super.dispose();
   }
 
-  /// 二级页面翻页后，同步贴底 TabBar 的选中项。
+  /// 二级页面翻页后，同步二级标签的选中项。
   void _syncSubTabIndex(int section) {
     if (section < 0 || section >= _subTabControllers.length) return;
     final pageController = _subPageControllers[section];
@@ -220,6 +221,37 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     );
     if (tabController.index != index) {
       tabController.index = index;
+      // 贴底模式下的 MiuixTabRow 由父级重建驱动选中态。
+      if (mounted) setState(() {});
+    }
+  }
+
+  /// 二级标签当前选中的下标。
+  int _subIndex(int section) {
+    final tabController = _subTabControllers[section];
+    final pageController = _subPageControllers[section];
+    if (!pageController.hasClients) return tabController.index;
+    return (pageController.page ?? 0.0).round().clamp(
+      0,
+      tabController.length - 1,
+    );
+  }
+
+  /// 点击二级标签：翻到对应子页面。
+  void _selectSubTab(int section, int index) {
+    final pageController = _subPageControllers[section];
+    if (!pageController.hasClients) return;
+    final reduceMotion =
+        MediaQuery.disableAnimationsOf(context) ||
+        View.of(context).platformDispatcher.accessibilityFeatures.reduceMotion;
+    if (reduceMotion) {
+      pageController.jumpToPage(index);
+    } else {
+      pageController.animateToPage(
+        index,
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOutCubic,
+      );
     }
   }
 
@@ -499,6 +531,50 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     );
   }
 
+  /// Miuix 模式（关闭「悬浮底栏」）：官方贴底导航栏 + 官方 TabRow 二级标签。
+  ///
+  /// 贴底栏与悬浮栏是两个不同组件，规格也不同：贴底栏为实色 `surface` 背景、
+  /// 顶部 0.5dp 分隔线、无外边距与胶囊；条目图标 26（悬浮栏 22）、标签 12sp
+  /// （悬浮栏 11sp），未选中整体降到 40% 不透明度。这里直接用官方
+  /// [MiuixNavigationBar] / [MiuixNavigationBarItem] / [MiuixTabRow] 实现，
+  /// 保证与 Compose 版逐项一致。
+  Widget _buildMiuixDocked() {
+    final int section = _currentBottomIndex.clamp(0, 3);
+    final bool showSubTabs = section <= 2;
+    final List<MiuixFloatingBarItemData> subTabs = _subTabsOf(section);
+
+    return Scaffold(
+      body: _buildPageView(),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (showSubTabs)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              child: MiuixTabRow(
+                tabs: [for (final tab in subTabs) tab.label],
+                selectedTabIndex: _subIndex(section),
+                onTabSelected: (index) => _selectSubTab(section, index),
+              ),
+            ),
+          MiuixNavigationBar(
+            children: [
+              for (int i = 0; i < _mainTabs.length; i++)
+                MiuixNavigationBarItem(
+                  selected: section == i,
+                  onPressed: () => _handleTabSwitch(i),
+                  icon: Icon(
+                    section == i ? _mainTabs[i].activeIcon : _mainTabs[i].icon,
+                  ),
+                  label: _mainTabs[i].label,
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isInitializing) {
@@ -519,6 +595,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
       );
     }
 
-    return ThemeManager().isMaterial3 ? _buildMaterial3() : _buildMiuix();
+    final tm = ThemeManager();
+    if (tm.isMaterial3) return _buildMaterial3();
+    // 「悬浮底栏」开关决定用悬浮玻璃胶囊还是官方贴底栏。
+    return tm.enableBottomBarTransparent ? _buildMiuix() : _buildMiuixDocked();
   }
 }

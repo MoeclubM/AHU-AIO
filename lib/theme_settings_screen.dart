@@ -366,10 +366,7 @@ class _ValueTrailing extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (leading != null) ...[leading!, const SizedBox(width: 8)],
-        Text(
-          text,
-          style: TextStyle(fontSize: 15, color: scheme.onSurfaceVariant),
-        ),
+        Text(text, style: _valueStyle(context, scheme)),
         const SizedBox(width: 2),
         Icon(Icons.chevron_right, size: 22, color: scheme.onSurfaceVariant),
       ],
@@ -594,4 +591,15 @@ class _HsvColorDialogState extends State<_HsvColorDialog> {
       ],
     );
   }
+}
+
+/// 当前取值文本样式：Miuix 用官方 body1(16sp) + 弱化前景色，MD3 用 bodyMedium。
+TextStyle _valueStyle(BuildContext context, ColorScheme scheme) {
+  if (!isMiuixUi()) {
+    return TextStyle(fontSize: 15, color: scheme.onSurfaceVariant);
+  }
+  final theme = MiuixTheme.of(context);
+  return theme.textStyles.body1
+      .copyWith(color: theme.colors.onSurfaceVariantSummary)
+      .withMiuixWeight(theme.fontWeightAdjustment);
 }

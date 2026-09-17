@@ -5,9 +5,9 @@ import 'miuix_theme.dart';
 
 /// 应用顶栏。
 ///
-/// - Miuix 模式：实色 `surface` 背景 + 居中标题（对齐 miuix `SmallTopAppBar` 规范，
-///   高度 52、标题 17sp/w500）；内容不会从顶栏下方滚过，因此不叠加毛玻璃，
-///   避免无意义的 BackdropFilter 开销。
+/// - Miuix 模式：对齐官方 `SmallTopAppBar` 规格——高度 50、标题用
+///   `textStyles.title3`(20sp) + `FontWeight.w500` 并应用 Miuix 字重偏移、
+///   实色 `surface` 背景；
 /// - Material 3 模式：完全交给标准 [AppBar] 与主题默认值，不做任何自定义样式。
 class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   const LiquidGlassAppBar({
@@ -17,7 +17,7 @@ class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.actions,
     this.centerTitle = true,
     this.bottom,
-    this.toolbarHeight = 52,
+    this.toolbarHeight = MiuixTopAppBarDefaults.smallTopAppBarCenterHeight,
   });
 
   final String title;
@@ -44,7 +44,13 @@ class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
       );
     }
 
-    final mc = MiuixTheme.of(context).colors;
+    final MiuixThemeData miuixTheme = MiuixTheme.of(context);
+    final mc = miuixTheme.colors;
+    // 官方 SmallTopAppBar 的标题规格：title3(20sp) + w500 + 字重偏移。
+    final TextStyle titleStyle = miuixTheme.textStyles.title3
+        .copyWith(color: mc.onSurface, fontWeight: FontWeight.w500)
+        .withMiuixWeight(miuixTheme.fontWeightAdjustment);
+
     return AppBar(
       toolbarHeight: toolbarHeight,
       backgroundColor: mc.surface,
@@ -55,11 +61,9 @@ class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
       centerTitle: centerTitle,
       title: Text(
         title,
-        style: TextStyle(
-          fontSize: 17,
-          fontWeight: FontWeight.w500,
-          color: mc.onSurface,
-        ),
+        style: titleStyle,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
       actions: actions,
       bottom: bottom,

@@ -9,11 +9,13 @@ bool isMiuixUi() => ThemeManager().isMiuix;
 
 /// 内容页底部预留高度。
 ///
-/// Miuix 为悬浮底栏（主栏 64 + 间距 8 + 二级栏 56 + 官方底部间距 + 呼吸）
-/// 预留；MD3 的底栏为贴底布局，由 Scaffold 自动避让，只需少量留白。
+/// Miuix 悬浮底栏会盖住内容，需要为其（主栏 + 二级栏 + 官方底部间距）预留；
+/// Miuix 贴底栏与 MD3 的贴底栏都由 Scaffold 自动避让，只需少量留白。
 /// [withSubBar] 为 false 时只预留主底栏高度（如设置页这类没有二级栏的页面）。
 double adaptiveBottomPadding(BuildContext context, {bool withSubBar = true}) {
-  if (!isMiuixUi()) return 16;
+  final tm = ThemeManager();
+  final bool floating = tm.isMiuix && tm.enableBottomBarTransparent;
+  if (!floating) return 16;
   final base =
       MiuixFloatingBarDefaults.bottomPadding(context) +
       MiuixFloatingBarDefaults.height +
@@ -145,15 +147,7 @@ class AdaptivePageHeader extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 18),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: miuix ? 30 : 32,
-              fontWeight: miuix ? FontWeight.w500 : FontWeight.w700,
-              letterSpacing: miuix ? 0 : -0.5,
-              color: scheme.onSurface,
-            ),
-          ),
+          Text(title, style: _headerStyle(context, miuix, scheme)),
         ],
       ),
     );
@@ -439,4 +433,23 @@ Future<T?> showAdaptiveChoiceDialog<T>({
       );
     },
   );
+}
+
+/// 页头大标题样式。
+///
+/// Miuix 走官方大标题规格：`textStyles.title1`(32sp) + 常规字重 + 字重偏移
+/// （对应官方 `MiuixTopAppBar` 的 largeTitle）；MD3 用框架 headlineLarge。
+TextStyle _headerStyle(BuildContext context, bool miuix, ColorScheme scheme) {
+  if (!miuix) {
+    return TextStyle(
+      fontSize: 32,
+      fontWeight: FontWeight.w700,
+      letterSpacing: -0.5,
+      color: scheme.onSurface,
+    );
+  }
+  final theme = MiuixTheme.of(context);
+  return theme.textStyles.title1
+      .copyWith(color: scheme.onSurface, fontWeight: FontWeight.normal)
+      .withMiuixWeight(theme.fontWeightAdjustment);
 }

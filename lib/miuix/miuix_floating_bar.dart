@@ -509,10 +509,9 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final reduceTransparency = MediaQuery.highContrastOf(context);
     final tm = ThemeManager();
-    final transparent = tm.enableBottomBarTransparent;
-    final blurEnabled = transparent && tm.enableBlur && !reduceTransparency;
-    final glassEnabled =
-        transparent && tm.enableLiquidGlass && !reduceTransparency;
+    // 悬浮栏只在「悬浮底栏」开启时渲染；此处只受模糊/高光开关与高对比度影响。
+    final blurEnabled = tm.enableBlur && !reduceTransparency;
+    final glassEnabled = tm.enableLiquidGlass && !reduceTransparency;
     final int count = widget.items.length;
     final double pillHeight =
         widget.height - MiuixFloatingBarDefaults.insidePadding.vertical;
