@@ -335,6 +335,112 @@ void main() {
     expect(bars, isNotEmpty, reason: '底栏应常开 lens(24dp, 24dp)，这是玻璃质感的主体');
     expect(bars.first.blurSigma, greaterThan(0), reason: '底栏背景应带模糊');
   });
+  testWidgets('按压时底栏本身不缩放，只有胶囊胀大', (tester) async {
+    final probe = await pumpProbe(tester);
+    final Rect barRect = tester.getRect(find.byType(MiuixFloatingTabBar));
+
+    /// 从左侧扫出玻璃边缘的 x：底栏玻璃比页面灰底亮。
+    Future<double> glassLeftEdge() async {
+      final _Pixels px = await probe.capture();
+      final int y = barRect.center.dy.round();
+      for (int x = 0; x < px.width; x++) {
+        if (px.luminance(x, y) > 0.55) return x.toDouble();
+      }
+      return -1;
+    }
+
+    final double restEdge = await glassLeftEdge();
+    // 玻璃左右各有 24dp 外边距，所以静止时的左边缘就在这里。
+    expect(
+      restEdge,
+      closeTo(barRect.left + MiuixFloatingBarDefaults.horizontalMargin, 2),
+      reason: '静止时玻璃左边缘应落在左边距处',
+    );
+
+    // 按住最后一个条目：胶囊在右侧胀大，不会影响左侧边缘。
+    final gesture = await tester.startGesture(
+      Offset(
+        barRect.right - MiuixFloatingBarDefaults.horizontalMargin - 20,
+        barRect.center.dy,
+      ),
+    );
+    for (int i = 0; i < 8; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    expect(
+      await glassLeftEdge(),
+      closeTo(restEdge, 2),
+      reason: '按压只让胶囊胀大（液滴效果），底栏整体不能缩放',
+    );
+
+    await gesture.up();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('子栏槽位给玻璃留出取样空间，不会切掉上半边', (tester) async {
+    tester.view.physicalSize = const Size(800, 900);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final controller = PageController();
+    addTearDown(controller.dispose);
+    await tester.pumpWidget(
+      MiuixTheme(
+        data: MiuixThemeData.of(
+          Brightness.light,
+          lightColors: lightColorScheme(),
+          darkColors: darkColorScheme(),
+        ),
+        child: MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.bottomCenter,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  MiuixFloatingSubBarSlot(
+                    visibility: 1,
+                    child: MiuixFloatingTabBar(
+                      controller: controller,
+                      height: MiuixFloatingBarDefaults.subBarHeight,
+                      iconSize: MiuixFloatingBarDefaults.subIconSize,
+                      fontSize: MiuixFloatingBarDefaults.subLabelFontSize,
+                      items: const <MiuixFloatingBarItemData>[
+                        MiuixFloatingBarItemData(
+                          icon: Icons.circle_outlined,
+                          activeIcon: Icons.circle,
+                          label: '标签',
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final Rect clip = tester.getRect(find.byType(ClipRect));
+    final Rect bar = tester.getRect(find.byType(MiuixFloatingTabBar));
+
+    // 玻璃的折射要往形状外取样，裁剪窗口必须比子栏本身高出一圈，
+    // 否则上半边的折射取样被切掉，看起来就是「玻璃缺了上半部分」。
+    expect(
+      bar.top - clip.top,
+      greaterThanOrEqualTo(MiuixFloatingBarDefaults.refractionPad),
+      reason: '槽位上方必须留出折射取样空间',
+    );
+    expect(
+      clip.bottom - bar.bottom,
+      greaterThanOrEqualTo(MiuixFloatingSubBarSlot.gap),
+      reason: '槽位下方要留出与主栏的间距',
+    );
+    expect(clip.height, MiuixFloatingSubBarSlot.slotHeight);
+  });
 }
 
 /// 悬浮底栏测试用的像素探针。
