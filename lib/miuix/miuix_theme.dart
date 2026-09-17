@@ -1,14 +1,11 @@
 import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
-import 'package:flutter_miuix/miuix.dart';
 
-export 'package:flutter_miuix/miuix.dart';
+import 'miuix_kit.dart';
 
-/// 上下文扩展，方便快速获取 Miuix 主题与配色。
-extension MiuixContextExt on BuildContext {
-  MiuixThemeData get miuixTheme => MiuixTheme.of(this);
-  MiuixColors get miuixColors => MiuixTheme.of(this).colors;
-}
+// 统一出口：令牌、主题与自研组件一起暴露，使用方只需 import 本文件。
+export 'miuix_kit.dart';
+export 'miuix_tokens.dart';
 
 /// AMOLED 纯黑配色方案：基于 Miuix 深色体系将 surface/background 等推向纯黑。
 MiuixColors amoledColorScheme({Color? keyColor}) {
@@ -51,11 +48,31 @@ ThemeData miuixAmoledTheme({Color? keyColor}) {
 }
 
 ThemeData _buildMiuixTheme(MiuixColors c, Brightness brightness) {
+  final MiuixTextStyles ts = defaultTextStyles();
   return ThemeData(
     useMaterial3: true,
     brightness: brightness,
     scaffoldBackgroundColor: c.background,
     canvasColor: c.background,
+    // 文本体系整体换成 Miuix 规格：未显式指定样式的 Text 与
+    // `Theme.of(context).textTheme.*` 都拿到 HyperOS 的字号与前景色。
+    textTheme: TextTheme(
+      displayLarge: ts.title1.copyWith(color: c.onBackground),
+      displayMedium: ts.title2.copyWith(color: c.onBackground),
+      displaySmall: ts.title3.copyWith(color: c.onBackground),
+      headlineLarge: ts.title3.copyWith(color: c.onBackground),
+      headlineMedium: ts.title4.copyWith(color: c.onBackground),
+      headlineSmall: ts.headline2.copyWith(color: c.onBackground),
+      titleLarge: ts.headline1.copyWith(color: c.onBackground),
+      titleMedium: ts.headline2.copyWith(color: c.onBackground),
+      titleSmall: ts.subtitle.copyWith(color: c.onBackgroundVariant),
+      bodyLarge: ts.main.copyWith(color: c.onBackground),
+      bodyMedium: ts.body1.copyWith(color: c.onBackground),
+      bodySmall: ts.body2.copyWith(color: c.onSurfaceVariantSummary),
+      labelLarge: ts.button.copyWith(color: c.onBackground),
+      labelMedium: ts.footnote1.copyWith(color: c.onSurfaceVariantSummary),
+      labelSmall: ts.footnote2.copyWith(color: c.onSurfaceVariantSummary),
+    ),
     colorScheme: ColorScheme(
       brightness: brightness,
       primary: c.primary,
@@ -91,8 +108,8 @@ ThemeData _buildMiuixTheme(MiuixColors c, Brightness brightness) {
       elevation: 0,
       scrolledUnderElevation: 0,
       titleTextStyle: TextStyle(
-        fontSize: 17,
-        fontWeight: FontWeight.w600,
+        fontSize: ts.title3.fontSize,
+        fontWeight: FontWeight.w500,
         color: c.onBackground,
       ),
     ),

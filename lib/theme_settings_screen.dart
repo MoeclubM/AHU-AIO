@@ -499,7 +499,7 @@ Future<Color?> _showCustomColorPicker(BuildContext context, Color initial) {
                 width: 300,
                 child: MiuixColorPicker(
                   color: picked,
-                  colorSpace: MiuixColorSpace.okhsv,
+                  colorSpace: MiuixColorSpace.oklch,
                   showPreview: true,
                   onColorChanged: (c) => setDialogState(() => picked = c),
                 ),

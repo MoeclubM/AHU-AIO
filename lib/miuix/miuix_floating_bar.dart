@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 
 import '../theme_manager.dart';
+import 'bloom_stroke_painter.dart';
 import 'liquid_glass_filter.dart';
 import 'miuix_drop_shadow.dart';
 import 'miuix_theme.dart';
@@ -700,15 +701,21 @@ class _PillIndicator extends StatelessWidget {
             ),
     );
     if (!glassEnabled) return child;
-    return MiuixHighlight(
-      highlight: Highlight(
-        alpha: press,
-        style: isDark
-            ? BloomStroke.glassStrokeSmallDark
-            : BloomStroke.glassStrokeSmallLight,
-      ),
-      shape: shape,
-      child: child,
+    // 按压高光复用 miuix-blur 的 BloomStroke 渲染（自研 shader 层）。
+    return Stack(
+      children: [
+        child,
+        Positioned.fill(
+          child: IgnorePointer(
+            child: BloomStrokeLayer(
+              radius: radius,
+              isDark: isDark,
+              enabled: press > 0.01,
+              highlightAlpha: press,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -768,14 +775,11 @@ class _GlassBarSurface extends StatelessWidget {
               if (glassEnabled)
                 Positioned.fill(
                   child: IgnorePointer(
-                    child: MiuixHighlight(
-                      highlight: Highlight(
-                        alpha: MiuixFloatingBarDefaults.highlightAlpha,
-                        style: isDark
-                            ? BloomStroke.glassStrokeMiddleDark
-                            : BloomStroke.glassStrokeMiddleLight,
-                      ),
-                      shape: shape,
+                    child: BloomStrokeLayer(
+                      radius: height / 2,
+                      isDark: isDark,
+                      enabled: true,
+                      highlightAlpha: MiuixFloatingBarDefaults.highlightAlpha,
                     ),
                   ),
                 ),
