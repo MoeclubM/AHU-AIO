@@ -6,8 +6,13 @@ import 'theme_manager.dart';
 
 /// 主题设置。
 ///
-/// 形态参考 LSPosed 管理器：页面使用大标题 + 圆形返回按钮，每个选项一张
-/// 独立卡片（图标在左、标题与副标题在中间、当前取值在右），开关直接内嵌在行内。
+/// 两种风格的布局按设计稿区分：
+/// - **Miuix**：大标题 + 普通返回箭头；所有选项装在**同一张卡片**里，
+///   行内不显示图标，取值行尾随箭头（选择器用上下双箭头）；
+/// - **Material 3**：大标题 + 圆形返回按钮；**每个选项一张独立卡片**，
+///   行内有前置图标，取值行只显示文本。
+///
+/// 两种风格的「界面缩放」都是**卡内内联滑块**，不再弹窗。
 class ThemeSettingsScreen extends StatefulWidget {
   const ThemeSettingsScreen({super.key});
 
@@ -37,8 +42,101 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final tm = _themeManager;
-    final scheme = Theme.of(context).colorScheme;
-    final Color leadingColor = scheme.onSurface;
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    final bool miuix = tm.isMiuix;
+    final Color iconColor = miuix ? scheme.onSurface : scheme.onSurfaceVariant;
+
+    // 行内容两种风格共用；差别只在是否显示前置图标与卡片如何分组：
+    // - Miuix：一整张卡片装下所有行，行内不显示图标（与设计稿一致）；
+    // - MD3：每行一张独立卡片，行内带前置图标。
+    final List<Widget> rows = <Widget>[
+      _ThemeRow(
+        icon: Icons.dark_mode_outlined,
+        iconColor: iconColor,
+        title: '主题',
+        subtitle: '选择应用的主题模式',
+        trailing: _ValueTrailing(
+          text: tm.currentColorModeName,
+          chevron: miuix ? Icons.unfold_more : null,
+        ),
+        onTap: _pickColorMode,
+      ),
+      _ThemeRow(
+        icon: Icons.auto_awesome_outlined,
+        iconColor: iconColor,
+        title: '界面风格',
+        subtitle: '在 Miuix 与 Material 3 之间切换',
+        trailing: _ValueTrailing(
+          text: tm.currentUiModeName,
+          chevron: miuix ? Icons.unfold_more : null,
+        ),
+        onTap: _pickUiMode,
+      ),
+      if (miuix) ...[
+        _ThemeSwitchRow(
+          icon: Icons.blur_on_outlined,
+          iconColor: iconColor,
+          title: '模糊',
+          subtitle: '启用顶栏和底栏的模糊效果',
+          value: tm.enableBlur,
+          onChanged: tm.setEnableBlur,
+        ),
+        _ThemeSwitchRow(
+          icon: Icons.view_agenda_outlined,
+          iconColor: iconColor,
+          title: '悬浮底栏',
+          subtitle: '使用类 Apple 风格的悬浮底栏',
+          value: tm.enableBottomBarTransparent,
+          onChanged: tm.setEnableBottomBarTransparent,
+        ),
+        _ThemeSwitchRow(
+          icon: Icons.water_drop_outlined,
+          iconColor: iconColor,
+          title: '液态玻璃',
+          subtitle: '启用悬浮底栏的液态玻璃效果',
+          value: tm.enableLiquidGlass,
+          enabled: tm.enableBlur,
+          onChanged: tm.setEnableLiquidGlass,
+        ),
+      ] else ...[
+        _ThemeRow(
+          icon: Icons.palette_outlined,
+          iconColor: iconColor,
+          title: '强调色',
+          subtitle: '在使用 Monet 时自定义种子色',
+          trailing: _ValueTrailing(
+            text: tm.colorMode == ColorMode.monet ? '动态取色' : '默认',
+            leading: _ColorDot(
+              color: tm.keyColor,
+              monet: tm.colorMode == ColorMode.monet,
+            ),
+          ),
+          onTap: _pickKeyColor,
+        ),
+        _ThemeRow(
+          icon: Icons.color_lens_outlined,
+          iconColor: iconColor,
+          title: '调色板风格',
+          subtitle: '用于推导 Material 3 调色板的色调算法',
+          trailing: _ValueTrailing(text: tm.paletteStyle.displayName),
+          onTap: _pickPaletteStyle,
+        ),
+      ],
+      _ThemeSwitchRow(
+        icon: Icons.swipe_outlined,
+        iconColor: iconColor,
+        title: '预测性返回手势',
+        subtitle: '启用对预测性返回手势的支持',
+        value: tm.predictiveBack,
+        onChanged: tm.setPredictiveBack,
+      ),
+      _ThemeScaleRow(
+        icon: Icons.format_size_outlined,
+        iconColor: iconColor,
+        value: tm.uiScale,
+        onChanged: tm.setUiScale,
+      ),
+    ];
 
     return Scaffold(
       body: ListView(
@@ -46,110 +144,29 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
           top: MediaQuery.viewPaddingOf(context).top,
           bottom: adaptiveBottomPadding(context, withSubBar: false),
         ),
-        children: [
+        children: <Widget>[
           const AdaptivePageHeader(title: '主题设置'),
-
-          // 外观：主题 / 强调色 / 界面风格 / 调色板风格
-          AdaptiveSettingsGroup(
-            children: [
-              _OptionCard(
-                icon: Icons.dark_mode_outlined,
-                iconColor: leadingColor,
-                title: '主题',
-                subtitle: '选择应用的主题模式',
-                trailing: _ValueTrailing(text: tm.currentColorModeName),
-                onTap: _pickColorMode,
+          if (miuix)
+            // Miuix：一整张卡片包住所有行，行间不加分隔线。
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: MiuixCard(
+                cornerRadius: 20,
+                insideMargin: EdgeInsets.zero,
+                child: Column(mainAxisSize: MainAxisSize.min, children: rows),
               ),
-              _OptionCard(
-                icon: Icons.palette_outlined,
-                iconColor: leadingColor,
-                title: '强调色',
-                subtitle: '自定义主题的强调色与色板',
-                trailing: _ValueTrailing(
-                  text: tm.colorMode == ColorMode.monet ? '动态取色' : '默认',
-                  leading: _ColorDot(
-                    color: tm.keyColor,
-                    monet: tm.colorMode == ColorMode.monet,
-                  ),
+            )
+          else
+            // MD3：每行一张独立卡片。
+            for (final Widget row in rows)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: Card(
+                  margin: EdgeInsets.zero,
+                  clipBehavior: Clip.antiAlias,
+                  child: row,
                 ),
-                onTap: _pickKeyColor,
               ),
-              _OptionCard(
-                icon: Icons.auto_awesome_outlined,
-                iconColor: leadingColor,
-                title: '界面风格',
-                subtitle: '在 Miuix 与 Material 3 之间切换',
-                trailing: _ValueTrailing(text: tm.currentUiModeName),
-                onTap: _pickUiMode,
-              ),
-              // 调色板风格：Material 3 专属的配色推导算法
-              if (tm.isMaterial3)
-                _OptionCard(
-                  icon: Icons.color_lens_outlined,
-                  iconColor: leadingColor,
-                  title: '调色板风格',
-                  subtitle: '用于推导 Material 3 配色的算法',
-                  trailing: _ValueTrailing(text: tm.paletteStyle.displayName),
-                  onTap: _pickPaletteStyle,
-                ),
-            ],
-          ),
-
-          // 显示效果：Miuix 专属的模糊 / 悬浮底栏 / 液态玻璃
-          if (tm.isMiuix)
-            AdaptiveSettingsGroup(
-              children: [
-                _SwitchCard(
-                  icon: Icons.blur_on_outlined,
-                  iconColor: leadingColor,
-                  title: '模糊',
-                  subtitle: '启用顶栏和底栏的模糊效果',
-                  value: tm.enableBlur,
-                  onChanged: tm.setEnableBlur,
-                ),
-                _SwitchCard(
-                  icon: Icons.view_agenda_outlined,
-                  iconColor: leadingColor,
-                  title: '悬浮底栏',
-                  subtitle: '使用类 Apple 风格的悬浮底栏',
-                  value: tm.enableBottomBarTransparent,
-                  onChanged: tm.setEnableBottomBarTransparent,
-                ),
-                _SwitchCard(
-                  icon: Icons.water_drop_outlined,
-                  iconColor: leadingColor,
-                  title: '液态玻璃',
-                  subtitle: '启用悬浮底栏的液态玻璃效果',
-                  value: tm.enableLiquidGlass,
-                  enabled: tm.enableBlur,
-                  onChanged: tm.setEnableLiquidGlass,
-                ),
-              ],
-            ),
-
-          // 通用：与界面风格无关的系统级样式调整
-          AdaptiveSettingsGroup(
-            children: [
-              _SwitchCard(
-                icon: Icons.swipe_outlined,
-                iconColor: leadingColor,
-                title: '预测性返回手势',
-                subtitle: '启用对预测性返回手势的支持（仅 Android）',
-                value: tm.predictiveBack,
-                onChanged: tm.setPredictiveBack,
-              ),
-              _OptionCard(
-                icon: Icons.format_size_outlined,
-                iconColor: leadingColor,
-                title: '界面缩放',
-                subtitle: '调整全局显示比例',
-                trailing: _ValueTrailing(
-                  text: '${(tm.uiScale * 100).round()}%',
-                ),
-                onTap: _pickUiScale,
-              ),
-            ],
-          ),
         ],
       ),
     );
@@ -171,59 +188,6 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
     );
     if (style != null) {
       await _themeManager.setPaletteStyle(style);
-    }
-  }
-
-  Future<void> _pickUiScale() async {
-    final scale = await showDialog<double>(
-      context: context,
-      builder: (ctx) {
-        double current = _themeManager.uiScale;
-        return StatefulBuilder(
-          builder: (ctx, setDialogState) {
-            final scheme = Theme.of(ctx).colorScheme;
-            return AlertDialog(
-              title: const Text('界面缩放'),
-              content: SizedBox(
-                width: 320,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '${(current * 100).round()}%',
-                      style: Theme.of(
-                        ctx,
-                      ).textTheme.titleMedium?.copyWith(color: scheme.primary),
-                    ),
-                    Slider(
-                      value: current,
-                      min: 0.85,
-                      max: 1.30,
-                      divisions: 9,
-                      label: '${(current * 100).round()}%',
-                      onChanged: (v) => setDialogState(() => current = v),
-                    ),
-                  ],
-                ),
-              ),
-              actions: [
-                AdaptiveTextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: const Text('取消'),
-                ),
-                AdaptiveTextButton(
-                  onPressed: () => Navigator.pop(ctx, current),
-                  child: const Text('确定'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-    if (scale != null) {
-      await _themeManager.setUiScale(scale);
     }
   }
 
@@ -287,42 +251,45 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
   }
 }
 
-/// 单行选项：图标 + 标题/副标题 + 右侧当前取值。
+/// 主题设置行。
 ///
-/// 不再自己套卡片：卡片由外层 [AdaptiveSettingsGroup] 提供（Miuix 与 MD3
-/// 都是「一组一张卡」），这里只负责行内容。
-class _OptionCard extends StatelessWidget {
-  const _OptionCard({
+/// 两种风格共用同一套行内容，差别在是否显示前置图标：Miuix 的设计稿里行内
+/// 没有图标，MD3 每行都有。
+class _ThemeRow extends StatelessWidget {
+  const _ThemeRow({
     required this.icon,
     required this.iconColor,
     required this.title,
     required this.subtitle,
-    required this.trailing,
-    required this.onTap,
+    this.trailing,
+    this.onTap,
   });
 
   final IconData icon;
   final Color iconColor;
   final String title;
   final String subtitle;
-  final Widget trailing;
-  final VoidCallback onTap;
+  final Widget? trailing;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return AdaptiveSettingsTile(
       title: title,
       summary: subtitle,
-      leading: Icon(icon, size: 24, color: iconColor),
+      leading: isMiuixUi() ? null : Icon(icon, size: 24, color: iconColor),
       trailing: trailing,
       onTap: onTap,
     );
   }
 }
 
-/// 开关行：图标 + 标题/副标题 + 内嵌开关。
-class _SwitchCard extends StatelessWidget {
-  const _SwitchCard({
+/// 开关行。
+///
+/// Miuix 用原生偏好开关；MD3 用标准 [SwitchListTile]，开关滑块内带勾选图标
+/// （设计稿里 MD3 的开关是带勾的）。
+class _ThemeSwitchRow extends StatelessWidget {
+  const _ThemeSwitchRow({
     required this.icon,
     required this.iconColor,
     required this.title,
@@ -342,34 +309,165 @@ class _SwitchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AdaptiveSwitchTile(
-      title: title,
-      summary: subtitle,
-      leading: Icon(icon, size: 24, color: iconColor),
+    if (isMiuixUi()) {
+      return AdaptiveSwitchTile(
+        title: title,
+        summary: subtitle,
+        value: value,
+        enabled: enabled,
+        onChanged: onChanged,
+      );
+    }
+    return SwitchListTile(
+      title: Text(title),
+      subtitle: Text(subtitle),
+      secondary: Icon(icon, size: 24, color: iconColor),
       value: value,
-      enabled: enabled,
-      onChanged: onChanged,
+      onChanged: enabled ? onChanged : null,
+      thumbIcon: WidgetStateProperty.resolveWith<Icon?>(
+        (Set<WidgetState> states) => states.contains(WidgetState.selected)
+            ? const Icon(Icons.check, size: 16)
+            : null,
+      ),
     );
   }
 }
 
-/// 右侧当前取值：可选色点 + 文本 + 右箭头。
-class _ValueTrailing extends StatelessWidget {
-  const _ValueTrailing({required this.text, this.leading});
+/// 界面缩放行：滑块直接放在卡片内，不再弹窗。
+///
+/// Miuix 用官方滑块并在轨道上叠常用档位的关键点；MD3 用新版 Material 3 滑块
+/// （`year2023: false`，竖条形滑块 + 轨道档位点）。
+class _ThemeScaleRow extends StatelessWidget {
+  const _ThemeScaleRow({
+    required this.icon,
+    required this.iconColor,
+    required this.value,
+    required this.onChanged,
+  });
 
-  final String text;
-  final Widget? leading;
+  static const double min = 0.85;
+  static const double max = 1.30;
+
+  /// 轨道上的关键点（Miuix 滑块的档位标记），放在常用比例处。
+  static const List<double> keyPoints = <double>[0.90, 1.00, 1.25];
+
+  final IconData icon;
+  final Color iconColor;
+  final double value;
+  final ValueChanged<double> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
+    final bool miuix = isMiuixUi();
+    final double clamped = value.clamp(min, max);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        _ThemeRow(
+          icon: icon,
+          iconColor: iconColor,
+          title: '界面缩放',
+          subtitle: '调整全局显示比例',
+          trailing: _ValueTrailing(
+            text: '${(clamped * 100).round()}%',
+            chevron: miuix ? Icons.chevron_right : null,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Stack(
+            alignment: Alignment.center,
+            children: <Widget>[
+              Slider(
+                value: clamped,
+                min: min,
+                max: max,
+                year2023: !miuix,
+                label: '${(clamped * 100).round()}%',
+                onChanged: onChanged,
+              ),
+              if (miuix)
+                Positioned.fill(
+                  child: IgnorePointer(
+                    child: CustomPaint(
+                      painter: _MiuixSliderKeyPointsPainter(
+                        value: clamped,
+                        primary: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Miuix 滑块的关键点：按比例在轨道上画小圆点，落在已填充段的用亮色。
+class _MiuixSliderKeyPointsPainter extends CustomPainter {
+  const _MiuixSliderKeyPointsPainter({
+    required this.value,
+    required this.primary,
+  });
+
+  final double value;
+  final Color primary;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // 与 Slider 的默认内边距对齐：两侧各留出半个滑块宽度。
+    const double horizontalInset = 12;
+    final double usable = size.width - horizontalInset * 2;
+    if (usable <= 0) return;
+    final double centerY = size.height / 2;
+
+    for (final double point in _ThemeScaleRow.keyPoints) {
+      final double t =
+          ((point - _ThemeScaleRow.min) /
+                  (_ThemeScaleRow.max - _ThemeScaleRow.min))
+              .clamp(0.0, 1.0);
+      final double x = horizontalInset + usable * t;
+      canvas.drawCircle(
+        Offset(x, centerY),
+        3,
+        Paint()
+          ..color = point <= value
+              ? Colors.white.withValues(alpha: 0.55)
+              : primary.withValues(alpha: 0.18),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_MiuixSliderKeyPointsPainter oldDelegate) =>
+      oldDelegate.value != value || oldDelegate.primary != primary;
+}
+
+/// 右侧当前取值：可选色点 + 文本 + 可选箭头。
+///
+/// Miuix 会显示箭头（取值选择器用上下双箭头、可展开项用右箭头）；
+/// MD3 只显示文本。
+class _ValueTrailing extends StatelessWidget {
+  const _ValueTrailing({required this.text, this.leading, this.chevron});
+
+  final String text;
+  final Widget? leading;
+  final IconData? chevron;
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: [
-        if (leading != null) ...[leading!, const SizedBox(width: 8)],
+      children: <Widget>[
+        if (leading != null) ...<Widget>[leading!, const SizedBox(width: 8)],
         Text(text, style: _valueStyle(context, scheme)),
-        const SizedBox(width: 2),
-        Icon(Icons.chevron_right, size: 22, color: scheme.onSurfaceVariant),
+        if (chevron != null) ...<Widget>[
+          const SizedBox(width: 4),
+          Icon(chevron, size: 20, color: scheme.onSurfaceVariant),
+        ],
       ],
     );
   }

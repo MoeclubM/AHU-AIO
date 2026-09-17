@@ -13,6 +13,7 @@ class MiuixDropShadow extends StatelessWidget {
     required this.color,
     required this.sigma,
     required this.child,
+    this.offset = Offset.zero,
   });
 
   /// 投影形状（同时作为挖空区域）。
@@ -23,6 +24,9 @@ class MiuixDropShadow extends StatelessWidget {
 
   /// 高斯模糊 sigma，约等于 Compose shadow radius 的一半。
   final double sigma;
+
+  /// 阴影相对形状的偏移（Compose `Shadow` 的 offset）。
+  final Offset offset;
 
   final Widget child;
 
@@ -38,6 +42,7 @@ class MiuixDropShadow extends StatelessWidget {
                 shape: shape,
                 color: color,
                 sigma: sigma,
+                offset: offset,
               ),
             ),
           ),
@@ -53,11 +58,13 @@ class _OutsideShadowPainter extends CustomPainter {
     required this.shape,
     required this.color,
     required this.sigma,
+    required this.offset,
   });
 
   final ShapeBorder shape;
   final Color color;
   final double sigma;
+  final Offset offset;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -65,16 +72,18 @@ class _OutsideShadowPainter extends CustomPainter {
 
     final Rect rect = Offset.zero & size;
     final Path shaped = shape.getOuterPath(rect);
+    // 偏移后的阴影不能画进形状内部，否则半透明表面会透出阴影的黑色。
+    final Path shifted = shaped.shift(offset);
     final Path outside = Path.combine(
       PathOperation.difference,
-      Path()..addRect(rect.inflate(sigma * 4)),
+      Path()..addRect(rect.inflate(sigma * 4 + offset.distance)),
       shaped,
     );
 
     canvas.save();
     canvas.clipPath(outside, doAntiAlias: true);
     canvas.drawPath(
-      shaped,
+      shifted,
       Paint()
         ..color = color
         ..maskFilter = MaskFilter.blur(BlurStyle.normal, sigma),
@@ -86,5 +95,6 @@ class _OutsideShadowPainter extends CustomPainter {
   bool shouldRepaint(covariant _OutsideShadowPainter oldDelegate) =>
       oldDelegate.shape != shape ||
       oldDelegate.color != color ||
-      oldDelegate.sigma != sigma;
+      oldDelegate.sigma != sigma ||
+      oldDelegate.offset != offset;
 }

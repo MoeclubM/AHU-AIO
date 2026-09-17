@@ -37,17 +37,17 @@ class MiuixFloatingBarDefaults {
   /// 胶囊左右外边距（官方 24dp）。
   static const double horizontalMargin = 24;
 
-  /// 主底栏图标尺寸（官方 22dp）。
-  static const double iconSize = 22;
+  /// 主底栏图标尺寸（参考库 `LiquidBottomTab` 内容 28dp）。
+  static const double iconSize = 28;
 
   /// 二级底栏图标尺寸。
-  static const double subIconSize = 18;
+  static const double subIconSize = 20;
 
-  /// 主底栏标签字号（官方 11sp）。
-  static const double labelFontSize = 11;
+  /// 主底栏标签字号（参考库 12sp）。
+  static const double labelFontSize = 12;
 
   /// 二级底栏标签字号。
-  static const double subLabelFontSize = 10;
+  static const double subLabelFontSize = 11;
 
   /// 选中胶囊底色不透明度（官方 `accentColor @ 0.15`）。
   static const double pillAlpha = 0.15;
@@ -55,8 +55,36 @@ class MiuixFloatingBarDefaults {
   /// 玻璃填充不透明度（官方 `surfaceContainer @ 0.4`）。
   static const double fillAlpha = 0.4;
 
-  /// 边缘高光不透明度（官方 `baseHighlight.copy(alpha = 0.75f)`）。
-  static const double highlightAlpha = 0.75;
+  /// 边缘高光基础不透明度（参考库 `Highlight.Default` = 白 50%，
+  /// 实际强度再乘以按压力度）。
+  static const double highlightAlpha = 0.5;
+
+  /// 底栏背景模糊半径（参考库 `blur(8.dp)`）。
+  static const double blurRadius = 8;
+
+  /// 高斯 sigma 与 Compose 模糊半径的换算系数。
+  static const double blurRadiusToSigma = 0.45;
+
+  /// 背景模糊的高斯 sigma。
+  static const double blurSigma = blurRadius * blurRadiusToSigma;
+
+  /// 按压时条目内容的放大上限（参考库 `lerp(1f, 1.2f, pressProgress)`）。
+  static const double contentPressScale = 1.2;
+
+  /// 按压时胶囊的放大倍数（参考库 `pressedScale = 78f / 56f`）。
+  static const double pillPressedScale = 78 / 56;
+
+  /// 按压时整条底栏的缩放增量（参考库 `1f + 16.dp / size.width`）。
+  static const double barPressScaleDelta = 16;
+
+  /// 胶囊投影的模糊半径（参考库 `Shadow(radius = 24.dp)`）。
+  static const double pillShadowRadius = 24;
+
+  /// 胶囊投影基础不透明度（参考库 `Color.Black.copy(alpha = 0.1f)`）。
+  static const double pillShadowAlpha = 0.1;
+
+  /// 胶囊投影的纵向偏移（参考库 `DpOffset(0, radius / 6)`）。
+  static const double pillShadowOffsetY = pillShadowRadius / 6;
 
   /// 阴影模糊 sigma：官方 shadow radius 10dp，高斯 sigma ≈ radius / 2。
   static const double shadowSigma = 5;
@@ -67,9 +95,6 @@ class MiuixFloatingBarDefaults {
 
   /// 拖到两端时内容可位移的最大距离（官方 4dp 橡皮筋）。
   static const double panelRubberBand = 4;
-
-  /// 按压时指示器缩放增量（官方 16dp / 栏宽）。
-  static const double pressScaleDelta = 16;
 
   /// 指示器位移弹簧：临界阻尼，快速无过冲（官方 `spring(1f, 1000f)`）。
   static SpringDescription get valueSpring =>
@@ -203,7 +228,6 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
   bool _ignoreController = false;
 
   /// 供按压高光定位的触点位置（相对栏外侧）。
-  Offset _touch = Offset.zero;
 
   /// 正在跟踪的指针（多点触控时只认第一根）。
   int? _activePointer;
@@ -339,10 +363,8 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
       return;
     }
     _springTo(_pressCtrl, 1, MiuixFloatingBarDefaults.pressSpring);
-    final double width =
-        _lastContentWidth + MiuixFloatingBarDefaults.insidePadding.horizontal;
-    final double target =
-        1 + MiuixFloatingBarDefaults.pressScaleDelta / (width <= 0 ? 1 : width);
+    // 参考库：胶囊整体放大到 pressedScale（78/56），与底栏宽度无关。
+    const double target = MiuixFloatingBarDefaults.pillPressedScale;
     _springTo(_scaleXCtrl, target, MiuixFloatingBarDefaults.scaleXSpring);
     _springTo(_scaleYCtrl, target, MiuixFloatingBarDefaults.scaleYSpring);
   }
@@ -415,7 +437,6 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
     _activePointer = event.pointer;
     _dragStarted = false;
     _downX = event.localPosition.dx;
-    _touch = event.localPosition;
     _trackTimes
       ..clear()
       ..add(_nowSeconds);
@@ -436,7 +457,6 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
 
   void _onPointerMove(PointerMoveEvent event, double tabWidth) {
     if (event.pointer != _activePointer) return;
-    _touch = event.localPosition;
 
     final double now = _nowSeconds;
     _trackTimes.add(now);
@@ -564,12 +584,20 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
                 final double panelOffset = ltr
                     ? _rubberBandOffset(_panelCtrl.value, contentWidth)
                     : -_rubberBandOffset(_panelCtrl.value, contentWidth);
+                // 参考库 layerBlock：整条底栏按 `lerp(1, 1 + 16dp / 宽度, press)`
+                // 轻微放大（含背景与内容，投影不参与）。
+                final double barScale =
+                    1 +
+                    MiuixFloatingBarDefaults.barPressScaleDelta /
+                        (contentWidth <= 0 ? 1 : contentWidth) *
+                        press;
 
                 return _GlassBarSurface(
                   height: widget.height,
                   blurEnabled: blurEnabled,
                   glassEnabled: glassEnabled,
                   isDark: isDark,
+                  pressScale: barScale,
                   child: Stack(
                     fit: StackFit.expand,
                     clipBehavior: Clip.none,
@@ -609,15 +637,25 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
                               children: [
                                 for (int i = 0; i < count; i++)
                                   Expanded(
-                                    child: _MiuixFloatingBarItem(
-                                      data: widget.items[i],
-                                      selected: value.round() == i,
-                                      highlight: (1.0 - (value - i).abs())
-                                          .clamp(0.0, 1.0),
-                                      iconSize: widget.iconSize,
-                                      fontSize: widget.fontSize,
-                                      showLabel: widget.showLabels,
-                                      onTap: () => _select(i),
+                                    child: Transform.scale(
+                                      // 参考库 LocalLiquidBottomTabScale：
+                                      // 按压时条目内容放大到 1.2 倍。
+                                      scale:
+                                          1 +
+                                          (MiuixFloatingBarDefaults
+                                                      .contentPressScale -
+                                                  1) *
+                                              press,
+                                      child: _MiuixFloatingBarItem(
+                                        data: widget.items[i],
+                                        selected: value.round() == i,
+                                        highlight: (1.0 - (value - i).abs())
+                                            .clamp(0.0, 1.0),
+                                        iconSize: widget.iconSize,
+                                        fontSize: widget.fontSize,
+                                        showLabel: widget.showLabels,
+                                        onTap: () => _select(i),
+                                      ),
                                     ),
                                   ),
                               ],
@@ -637,17 +675,16 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
                               ),
                               child: CustomPaint(
                                 painter: _InteractiveHighlightPainter(
-                                  // 触点相对栏外侧坐标，换算到已内缩 4dp 的内容区。
-                                  position:
-                                      _touch -
-                                      Offset(
-                                        MiuixFloatingBarDefaults
-                                            .insidePadding
-                                            .left,
-                                        MiuixFloatingBarDefaults
-                                            .insidePadding
-                                            .top,
-                                      ),
+                                  // 参考库 InteractiveHighlight.position：
+                                  // 光晕落在**当前选中条目中心**（跟着指示器走），
+                                  // 而不是手指位置；坐标基于已内缩 4dp 的内容区。
+                                  position: Offset(
+                                    ltr
+                                        ? (value + 0.5) * tabWidth
+                                        : contentWidth -
+                                              (value + 0.5) * tabWidth,
+                                    pillHeight / 2,
+                                  ),
                                   progress: press,
                                 ),
                               ),
@@ -753,7 +790,7 @@ class _PillIndicator extends StatelessWidget {
     // （`lens(10dp * progress, 14dp * progress, chromaticAberration = true)`），
     // 静止时只有面纱，所以这里用按压进度驱动折射参数。
     if (glassEnabled) {
-      return LiquidGlassLayer(
+      final Widget glass = LiquidGlassLayer(
         cornerRadius: radius,
         // 参考库的选中胶囊只做 lens，不额外模糊（模糊由底栏那层负责）。
         refractionHeight: 10 * press,
@@ -783,6 +820,19 @@ class _PillIndicator extends StatelessWidget {
           children: [veil, pressDim, innerShadow],
         ),
         child: const SizedBox.shrink(),
+      );
+      // 参考库 `Shadow(alpha = progress)`：胶囊的投影也由按压驱动
+      // （radius 24dp、黑 10%、纵向偏移 radius/6），只在形状外侧绘制，
+      // 避免半透明玻璃把阴影的黑色透出来。
+      if (press <= 0.01) return glass;
+      return MiuixDropShadow(
+        shape: shape,
+        color: Colors.black.withValues(
+          alpha: MiuixFloatingBarDefaults.pillShadowAlpha * press,
+        ),
+        sigma: MiuixFloatingBarDefaults.pillShadowRadius * 0.45,
+        offset: const Offset(0, MiuixFloatingBarDefaults.pillShadowOffsetY),
+        child: glass,
       );
     }
 
@@ -850,16 +900,13 @@ class _PillInnerShadowPainter extends CustomPainter {
       oldDelegate.alpha != alpha;
 }
 
-/// 玻璃胶囊容器：外侧阴影 + 液态玻璃面（折射 / 模糊 + 填充 + 边缘高光）。
+/// 玻璃胶囊容器：液态玻璃面（折射 / 模糊 + 填充 + 边缘高光 + 按压高光）。
 ///
-/// 阴影通过 [MiuixDropShadow] 只在形状外侧绘制：半透明填充不会露出阴影
-/// 内部的纯黑区域（`BoxShadow` 会把形状内部一并填黑，叠加半透明填充后
-/// 整块底栏都会发暗）。
-///
-/// 玻璃开启时走 [LiquidGlassLayer]：Impeller 上有真折射（见
-/// `liquid_glass_layer.dart`），其余平台退化为纯模糊。折射要求形状周围有
-/// 背景可供取样，所以过滤器区域会比胶囊外扩 `refractionPad`——这段外扩
-/// 由组件向自身盒子外溢出绘制，不参与布局，胶囊位置与尺寸都不变。
+/// 对照参考库 `LiquidBottomTabs` 的那层 `Row`：
+/// - 效果 `vibrancy + blur(8dp) + lens(24dp, 24dp)`；
+/// - `layerBlock` 按 `lerp(1, 1 + 16dp / 宽度, pressProgress)` 整条缩放；
+/// - **底栏本身没有投影**（参考库只给选中胶囊加 `Shadow`），
+///   靠玻璃自身的边缘高光与容器色区分层次。
 class _GlassBarSurface extends StatelessWidget {
   const _GlassBarSurface({
     required this.child,
@@ -867,6 +914,7 @@ class _GlassBarSurface extends StatelessWidget {
     required this.blurEnabled,
     required this.glassEnabled,
     required this.isDark,
+    required this.pressScale,
   });
 
   /// 折射取样外扩距离（逻辑像素）。底栏左右外边距正好是 24dp，
@@ -879,6 +927,9 @@ class _GlassBarSurface extends StatelessWidget {
   final bool glassEnabled;
   final bool isDark;
 
+  /// 整条底栏的按压缩放（参考库 layerBlock）。
+  final double pressScale;
+
   @override
   Widget build(BuildContext context) {
     final MiuixColors mc = MiuixTheme.of(context).colors;
@@ -890,62 +941,50 @@ class _GlassBarSurface extends StatelessWidget {
           )
         : mc.surfaceContainer;
 
-    // 玻璃关闭：保持实色与（可选的）纯模糊，不引入折射与高光。
+    final Widget content = Padding(
+      padding: MiuixFloatingBarDefaults.insidePadding,
+      child: SizedBox.expand(child: child),
+    );
+
+    // 玻璃关闭：实色（可选纯模糊），不做折射与高光。
     if (!glassEnabled) {
-      return MiuixDropShadow(
-        shape: shape,
-        color: Colors.black.withValues(
-          alpha: isDark
-              ? MiuixFloatingBarDefaults.shadowAlphaDark
-              : MiuixFloatingBarDefaults.shadowAlphaLight,
-        ),
-        sigma: MiuixFloatingBarDefaults.shadowSigma,
-        child: SizedBox(
-          height: height,
-          child: ClipPath(
-            clipper: ShapeBorderClipper(shape: shape),
-            child: Stack(
-              children: [
-                if (blurEnabled)
-                  Positioned.fill(
-                    child: BackdropFilter(
-                      filter: _barBlurFilter,
-                      child: const SizedBox.expand(),
+      return SizedBox(
+        height: height,
+        child: ClipPath(
+          clipper: ShapeBorderClipper(shape: shape),
+          child: Stack(
+            children: [
+              if (blurEnabled)
+                Positioned.fill(
+                  child: BackdropFilter(
+                    filter: liquidGlassImageFilter(
+                      blurSigma: MiuixFloatingBarDefaults.blurSigma,
                     ),
+                    child: const SizedBox.expand(),
                   ),
-                Positioned.fill(child: ColoredBox(color: fill)),
-                Padding(
-                  padding: MiuixFloatingBarDefaults.insidePadding,
-                  child: SizedBox.expand(child: child),
                 ),
-              ],
-            ),
+              Positioned.fill(child: ColoredBox(color: fill)),
+              content,
+            ],
           ),
         ),
       );
     }
 
-    return MiuixDropShadow(
-      shape: shape,
-      color: Colors.black.withValues(
-        alpha: isDark
-            ? MiuixFloatingBarDefaults.shadowAlphaDark
-            : MiuixFloatingBarDefaults.shadowAlphaLight,
-      ),
-      sigma: MiuixFloatingBarDefaults.shadowSigma,
-      child: SizedBox(
-        height: height,
+    return SizedBox(
+      height: height,
+      child: Transform.scale(
+        scale: pressScale,
         child: LiquidGlassLayer(
           cornerRadius: height / 2,
-          // 参考库 LiquidBottomTabs：blur 8dp + lens(24dp, 24dp)。
-          // 「模糊」开关只控制模糊本身，玻璃（折射 + 边缘高光）独立生效。
-          blurSigma: blurEnabled ? 4 : 0,
+          // 参考库：blur(8dp) + lens(24dp, 24dp)。
+          blurSigma: blurEnabled ? MiuixFloatingBarDefaults.blurSigma : 0,
           refractionHeight: 24,
           refractionAmount: 24,
           padding: refractionPad,
           fillColor: fill,
           highlightColor: Colors.white.withValues(
-            alpha: 0.5 * MiuixFloatingBarDefaults.highlightAlpha,
+            alpha: MiuixFloatingBarDefaults.highlightAlpha,
           ),
           highlightWidth: 0.5,
           highlightAngle: 45,
@@ -954,14 +993,10 @@ class _GlassBarSurface extends StatelessWidget {
               radius: height / 2,
               isDark: isDark,
               enabled: true,
-              highlightAlpha: MiuixFloatingBarDefaults.highlightAlpha,
+              highlightAlpha: MiuixFloatingBarDefaults.highlightAlpha * 1.5,
             ),
           ),
-          child: Padding(
-            padding: MiuixFloatingBarDefaults.insidePadding,
-            // 撑满内缩后的内容区，让条目在胶囊内垂直居中。
-            child: SizedBox.expand(child: child),
-          ),
+          child: content,
         ),
       ),
     );
@@ -1053,17 +1088,21 @@ class _InteractiveHighlightPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (size.width <= 0 || size.height <= 0 || progress <= 0) return;
 
+    // 参考库 InteractiveHighlight：整体叠加白 8%、触摸处径向白光 15%。
     canvas.drawRect(
       Offset.zero & size,
       Paint()
-        ..color = Colors.white.withValues(alpha: 0.06 * progress)
+        ..color = Colors.white.withValues(alpha: 0.08 * progress)
         ..blendMode = BlendMode.plus,
     );
 
-    final clamped = Offset(
+    final Offset clamped = Offset(
       position.dx.clamp(0.0, size.width),
       position.dy.clamp(0.0, size.height),
     );
+    // 参考库 shader：`smoothstep(radius, radius * 0.5, dist)`，
+    // radius = size.minDimension * 1.5 —— 半程内满强度，之后渐隐到 0。
+    final double glowRadius = size.shortestSide * 1.5;
     canvas.drawRect(
       Offset.zero & size,
       Paint()
@@ -1072,9 +1111,11 @@ class _InteractiveHighlightPainter extends CustomPainter {
             clamped,
             Offset.zero & size,
           ),
-          radius: 1.0,
+          radius: glowRadius / math.max(size.shortestSide, 1),
+          stops: const [0.0, 0.5, 1.0],
           colors: [
-            Colors.white.withValues(alpha: 0.12 * progress),
+            Colors.white.withValues(alpha: 0.15 * progress),
+            Colors.white.withValues(alpha: 0.15 * progress),
             Colors.white.withValues(alpha: 0.0),
           ],
         ).createShader(Offset.zero & size)

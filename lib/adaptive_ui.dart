@@ -135,9 +135,16 @@ class AdaptivePageHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Miuix 用圆形实底返回钮（LSPosed 风格）；MD3 用标准 IconButton，
-          // 状态层与触区由框架负责。
+          // 设计稿：Miuix 用**普通返回箭头**（无底板），MD3 用**圆形实底按钮**。
           if (miuix)
+            IconButton(
+              onPressed: onBack ?? () => Navigator.maybePop(context),
+              icon: const Icon(Icons.arrow_back),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              iconSize: 26,
+            )
+          else
             Material(
               color: scheme.surfaceContainerHigh,
               shape: const CircleBorder(),
@@ -150,11 +157,6 @@ class AdaptivePageHeader extends StatelessWidget {
                   child: Icon(Icons.arrow_back, size: 22),
                 ),
               ),
-            )
-          else
-            IconButton(
-              onPressed: onBack ?? () => Navigator.maybePop(context),
-              icon: const Icon(Icons.arrow_back),
             ),
           SizedBox(height: miuix ? 18 : 8),
           Text(title, style: _headerStyle(context, miuix, scheme)),
