@@ -6,21 +6,26 @@
 // 压缩/放大，而不是单纯模糊。可选 depthEffect 让位移在中心方向也有分量，
 // 可选色散让 R/B 通道错开采样。
 //
-// 用法：作为 ImageFilter.shader 的输入（需 Impeller）。引擎会把背景纹理尺寸
-// 写进第一个 vec2 uniform，因此 u_size 不由 Dart 侧设置。
+// 坐标契约（关键）：作为 **backdrop filter** 使用时，`FlutterFragCoord` 是
+// **屏幕空间**设备像素，`u_size` 是整个背景纹理（≈全屏）的尺寸——Flutter 引擎
+// 自己的 `ClippedBackdropFilterWithShader` 测试就是这么用的（拿 fragCoord 直接
+// 和 u_size 表示的屏幕边界比较）。所以形状必须用外层传入的 u_origin
+// （本区域左上角在屏幕中的位置）换算到局部坐标，不能把 fragCoord 当局部坐标。
 #include <flutter/runtime_effect.glsl>
 
 // 首个 uniform 必须是 vec2 —— ImageFilter.shader 在此写入背景纹理尺寸
-// （物理像素）。引擎每帧覆盖，Dart 侧无需也无法设置。
+// （设备像素）。引擎每帧覆盖，Dart 侧无需也无法设置；这里只用于取样钳制。
 uniform vec2 u_size;
 uniform sampler2D u_texture;
 
-// 逻辑尺寸：片上单位与逻辑像素的比值由 u_size / u_logical_size 推出，
-// 这样折射量不依赖具体 DPR。
-uniform vec2 u_logical_size;
+// 本区域（形状 + 取样外扩）左上角在屏幕中的位置，设备像素。
+uniform vec2 u_origin;
 
-// 形状相对纹理的内缩（逻辑像素）——形状周围要留出背景纹理供边缘取样。
-uniform float u_pad;
+// 本区域尺寸，设备像素。
+uniform vec2 u_region_size;
+
+// 设备像素比：把逻辑像素参数换算成片上单位。
+uniform float u_dpr;
 
 // 圆角半径（逻辑像素）。
 uniform float u_radius;
@@ -57,8 +62,10 @@ float circleMap(float x) {
   return 1.0 - sqrt(max(1.0 - x * x, 0.0));
 }
 
-vec4 sampleContent(vec2 coord) {
-  vec2 uv = coord / u_size;
+vec4 sampleContent(vec2 screenCoord) {
+  // 钳制到纹理内，避免边缘出现钳制像素拉出的色带。
+  vec2 clamped = clamp(screenCoord, vec2(0.0), max(u_size - vec2(1.0), vec2(0.0)));
+  vec2 uv = clamped / u_size;
 #ifdef IMPELLER_TARGET_OPENGLES
   // OpenGL ES 的纹理原点在左下，与 FlutterFragCoord 相反。
   uv.y = 1.0 - uv.y;
@@ -67,16 +74,12 @@ vec4 sampleContent(vec2 coord) {
 }
 
 void main() {
-  vec2 fragCoord = FlutterFragCoord().xy;
+  // 屏幕空间设备像素 → 本区域局部设备像素。
+  vec2 local = FlutterFragCoord().xy - u_origin;
 
-  // 逻辑像素 → 片上单位。
-  float unit = 0.5 *
-      (u_size.x / max(u_logical_size.x, 1.0) +
-       u_size.y / max(u_logical_size.y, 1.0));
-
-  vec2 halfSize = max(u_size * 0.5 - vec2(u_pad * unit), vec2(1.0));
-  vec2 centered = fragCoord - u_size * 0.5;
-  float radius = clamp(u_radius * unit, 0.0, min(halfSize.x, halfSize.y));
+  vec2 halfSize = max(u_region_size * 0.5, vec2(1.0));
+  float radius = clamp(u_radius * u_dpr, 0.0, min(halfSize.x, halfSize.y));
+  vec2 centered = local - halfSize;
 
   float sd = sdRoundedRect(centered, halfSize, radius);
 
@@ -88,11 +91,11 @@ void main() {
     return;
   }
 
-  float refrHeight = u_refraction_height * unit;
+  float refrHeight = u_refraction_height * u_dpr;
   // 与 Kotlin 端一致：位移量取负，边缘表现为向内收拢的透镜。
-  float refrAmount = -u_refraction_amount * unit;
+  float refrAmount = -u_refraction_amount * u_dpr;
 
-  vec2 coord = fragCoord;
+  vec2 coord = local;
   vec2 dispersionVec = vec2(0.0);
 
   if (refrHeight > 0.0 && -sd < refrHeight) {
@@ -110,14 +113,17 @@ void main() {
     dispersionVec = d * grad * dispersionIntensity;
   }
 
+  // 取样坐标换算回屏幕空间（背景纹理坐标即屏幕设备像素）。
+  vec2 screenCoord = coord + u_origin;
+
   vec3 rgb;
   if (u_dispersion > 0.0) {
     // 简化色散：只有 R/B 沿色散方向错开（参考实现用 7 抽样，这里取等效观感）。
-    rgb.r = sampleContent(coord + dispersionVec).r;
-    rgb.g = sampleContent(coord).g;
-    rgb.b = sampleContent(coord - dispersionVec).b;
+    rgb.r = sampleContent(screenCoord + dispersionVec).r;
+    rgb.g = sampleContent(screenCoord).g;
+    rgb.b = sampleContent(screenCoord - dispersionVec).b;
   } else {
-    rgb = sampleContent(coord).rgb;
+    rgb = sampleContent(screenCoord).rgb;
   }
 
   // vibrancy：模糊后的背景提饱和，系数与参考库 VibrantColorFilter 一致。

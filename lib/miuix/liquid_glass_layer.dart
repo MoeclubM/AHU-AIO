@@ -4,6 +4,20 @@ import 'package:flutter/material.dart';
 
 import 'miuix_kit.dart';
 
+/// 计算玻璃区域（形状 + 取样外扩）左上角在**屏幕空间**中的位置，设备像素。
+///
+/// 这是与着色器的坐标契约：作为 backdrop filter 时 `FlutterFragCoord` 是屏幕
+/// 空间设备像素，所以 shader 需要区域在屏幕中的绝对位置才能算出局部坐标。
+/// 单独提成函数是为了能被测试直接覆盖——只按局部坐标算会在屏幕中央糊出一个
+/// 巨大形状（曾经的真实 bug）。
+Offset liquidGlassRegionOrigin(
+  RenderBox box, {
+  required double pad,
+  required double dpr,
+}) {
+  return (box.localToGlobal(Offset.zero) - Offset(pad, pad)) * dpr;
+}
+
 /// 液态玻璃渲染层。
 ///
 /// 效果对照 [AndroidLiquidGlass](https://github.com/Kyant0/AndroidLiquidGlass)
@@ -140,7 +154,7 @@ class _LiquidGlassLayerState extends State<LiquidGlassLayer> {
 
   /// 背景滤镜：模糊在内、折射在外，与参考库 `blur → lens` 的顺序一致
   /// （鲜艳度在折射 shader 内完成）。
-  ui.ImageFilter _buildFilter() {
+  ui.ImageFilter _buildFilter({required bool refract}) {
     final ui.ImageFilter? blur = _usesBlur
         ? ui.ImageFilter.blur(
             sigmaX: widget.blurSigma,
@@ -148,7 +162,7 @@ class _LiquidGlassLayerState extends State<LiquidGlassLayer> {
             tileMode: TileMode.clamp,
           )
         : null;
-    if (!_usesRefraction) return blur!;
+    if (!refract) return blur!;
     return blur == null
         ? ui.ImageFilter.shader(_refractionShader!)
         : ui.ImageFilter.compose(
@@ -157,15 +171,34 @@ class _LiquidGlassLayerState extends State<LiquidGlassLayer> {
           );
   }
 
+  /// 本区域（形状 + 取样外扩）左上角在屏幕中的位置，**设备像素**。
+  ///
+  /// backdrop 滤镜的 `FlutterFragCoord` 是屏幕空间设备像素（见
+  /// `shaders/liquid_glass_refraction.frag` 顶部的坐标契约说明），所以必须把
+  /// 区域位置显式传给 shader，不能假设 fragCoord 是局部的。
+  /// 尚未完成布局时返回 null —— 此时**不做折射**，退化为纯模糊，
+  /// 避免用错误几何画出巨大的形状。
+  Offset? _regionOriginDevice(double pad, double dpr) {
+    final RenderObject? ro = context.findRenderObject();
+    if (ro is! RenderBox || !ro.hasSize) return null;
+    return liquidGlassRegionOrigin(ro, pad: pad, dpr: dpr);
+  }
+
   /// 写入折射参数。
   ///
   /// 用按名字绑定的 uniform 槽位（`getUniformFloat` 等），避免依赖声明顺序。
   /// `u_size` 由引擎每帧写入背景纹理尺寸，这里不碰。
-  void _updateShaderUniforms(ui.FragmentShader shader, Size regionLogical) {
+  void _updateShaderUniforms(
+    ui.FragmentShader shader, {
+    required Offset originDevice,
+    required Size regionDevice,
+    required double dpr,
+  }) {
+    shader.getUniformVec2('u_origin').set(originDevice.dx, originDevice.dy);
     shader
-        .getUniformVec2('u_logical_size')
-        .set(regionLogical.width, regionLogical.height);
-    shader.getUniformFloat('u_pad').set(widget.padding);
+        .getUniformVec2('u_region_size')
+        .set(regionDevice.width, regionDevice.height);
+    shader.getUniformFloat('u_dpr').set(dpr);
     shader.getUniformFloat('u_radius').set(widget.cornerRadius);
     shader.getUniformFloat('u_refraction_height').set(widget.refractionHeight);
     shader.getUniformFloat('u_refraction_amount').set(widget.refractionAmount);
@@ -185,20 +218,32 @@ class _LiquidGlassLayerState extends State<LiquidGlassLayer> {
           constraints.hasBoundedWidth ? constraints.maxWidth : 0,
           constraints.hasBoundedHeight ? constraints.maxHeight : 0,
         );
-        // 只有走折射时才外扩：形状周围需要背景纹理供边缘取样。
-        final double pad = _usesRefraction ? widget.padding : 0;
-        final Size region = Size(box.width + pad * 2, box.height + pad * 2);
-        if (_usesRefraction) _updateShaderUniforms(_refractionShader!, region);
+        final double dpr = MediaQuery.devicePixelRatioOf(context);
+        // 只有真正走折射时才外扩：形状周围需要背景纹理供边缘取样，且必须
+        // 先拿到区域在屏幕中的位置（否则几何不可信，宁可退回纯模糊）。
+        final Offset? originDevice = _usesRefraction
+            ? _regionOriginDevice(widget.padding, dpr)
+            : null;
+        final bool refract = originDevice != null;
+        final double pad = refract ? widget.padding : 0;
+        if (refract) {
+          _updateShaderUniforms(
+            _refractionShader!,
+            originDevice: originDevice,
+            regionDevice: Size(
+              (box.width + pad * 2) * dpr,
+              (box.height + pad * 2) * dpr,
+            ),
+            dpr: dpr,
+          );
+        }
 
         final Widget backdrop = !_needsBackdrop
             ? const SizedBox.shrink()
             : _GlassBackdrop(
-                filter: _buildFilter(),
+                filter: _buildFilter(refract: refract),
                 shape: shape,
                 pad: pad,
-                // 折射 shader 自己用 SDF 裁形状并抗锯齿，多套一层 ClipPath
-                // 会把外扩出来的取样区域一起裁掉。
-                maskByShader: _usesRefraction,
               );
 
         final Widget highlight = widget.showHighlight
@@ -261,20 +306,19 @@ class _LiquidGlassLayerState extends State<LiquidGlassLayer> {
 
 /// 把背景（经 [filter] 处理）画进 [shape] 内。
 ///
-/// [maskByShader] 为 true 时折射 shader 已经用 SDF 裁好形状，
-/// 不需要再套 [ClipPath]（[pad] 已由外层的 Positioned 提供）。
+/// **始终裁剪到形状**：这是最后一道保险——取样外扩区域（[pad]）只用来让
+/// shader 取到形状外的背景，输出必须严格限制在形状内，否则一旦几何或着色器
+/// 出问题，就会在屏幕上糊出一大块形状。
 class _GlassBackdrop extends StatelessWidget {
   const _GlassBackdrop({
     required this.filter,
     required this.shape,
     required this.pad,
-    required this.maskByShader,
   });
 
   final ui.ImageFilter filter;
   final ShapeBorder shape;
   final double pad;
-  final bool maskByShader;
 
   @override
   Widget build(BuildContext context) {
@@ -282,22 +326,13 @@ class _GlassBackdrop extends StatelessWidget {
       filter: filter,
       child: const SizedBox.expand(),
     );
-    if (maskByShader || pad <= 0) {
-      return maskByShader
-          ? filtered
-          : ClipPath(
-              clipper: ShapeBorderClipper(shape: shape),
-              child: filtered,
-            );
-    }
-    // 回退路径没有形状信息，只能在外扩区域里自己裁出形状。
-    return Padding(
-      padding: EdgeInsets.all(pad),
-      child: ClipPath(
-        clipper: ShapeBorderClipper(shape: shape),
-        child: filtered,
-      ),
+    final Widget clipped = ClipPath(
+      clipper: ShapeBorderClipper(shape: shape),
+      child: filtered,
     );
+    return pad > 0
+        ? Padding(padding: EdgeInsets.all(pad), child: clipped)
+        : clipped;
   }
 }
 

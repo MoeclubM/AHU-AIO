@@ -44,8 +44,9 @@ void main() {
       // u_size 由 ImageFilter.shader 的引擎侧写入，Dart 侧不设置。
       expect(
         () {
-          shader.getUniformVec2('u_logical_size').set(200, 64);
-          shader.getUniformFloat('u_pad').set(24);
+          shader.getUniformVec2('u_origin').set(48, 1800);
+          shader.getUniformVec2('u_region_size').set(680, 300);
+          shader.getUniformFloat('u_dpr').set(2.75);
           shader.getUniformFloat('u_radius').set(32);
           shader.getUniformFloat('u_refraction_height').set(24);
           shader.getUniformFloat('u_refraction_amount').set(24);
@@ -78,6 +79,84 @@ void main() {
           await loadLiquidGlassRefractionProgram();
       // 能取到采样器槽位即说明声明存在；ImageFilter.shader 缺采样器会抛错。
       expect(program.fragmentShader(), isNotNull);
+    });
+  });
+
+  group('折射区域的屏幕空间几何', () {
+    testWidgets('区域原点取屏幕绝对位置（设备像素），而不是局部坐标', (tester) async {
+      const double dpr = 2.5;
+      const double pad = 24;
+      // 把玻璃层放在一个已知的屏幕位置：左侧 40、顶部 100（逻辑像素）。
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(devicePixelRatio: dpr),
+          child: Directionality(
+            textDirection: TextDirection.ltr,
+            child: Stack(
+              children: [
+                Positioned(
+                  left: 40,
+                  top: 100,
+                  width: 300,
+                  height: 64,
+                  child: Builder(
+                    builder: (context) => SizedBox.expand(
+                      child: LiquidGlassLayer(
+                        cornerRadius: 32,
+                        padding: pad,
+                        child: const SizedBox.shrink(),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final RenderBox box =
+          tester.renderObject(find.byType(LiquidGlassLayer)) as RenderBox;
+      final Offset origin = liquidGlassRegionOrigin(box, pad: pad, dpr: dpr);
+
+      // 区域 = 形状左上角往左上各偏 pad，再换算成设备像素。
+      expect(origin.dx, closeTo((40 - pad) * dpr, 0.01));
+      expect(origin.dy, closeTo((100 - pad) * dpr, 0.01));
+      // 关键：不是 (0,0) 或局部坐标——那正是导致形状画到屏幕中央的错误。
+      expect(origin.dx, isNot(closeTo(0, 0.01)));
+      expect(origin, isNot(const Offset(0, 0)));
+    });
+
+    testWidgets('非 Impeller 平台不做折射，退化为纯模糊', (tester) async {
+      // 测试环境是软件后端，ImageFilter.shader 不可用。
+      expect(LiquidGlassLayer.isRefractionSupported, isFalse);
+      await tester.pumpWidget(
+        const Directionality(
+          textDirection: TextDirection.ltr,
+          child: Center(
+            child: SizedBox(
+              width: 200,
+              height: 64,
+              child: LiquidGlassLayer(
+                cornerRadius: 32,
+                blurSigma: 4,
+                refractionHeight: 24,
+                refractionAmount: 24,
+                padding: 24,
+                child: SizedBox.shrink(),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // 只能有模糊滤镜，绝不能挂上 shader（不支持时会直接抛错）。
+      final BackdropFilter backdrop = tester.widget<BackdropFilter>(
+        find.byType(BackdropFilter),
+      );
+      expect(backdrop.filter.toString(), contains('blur'));
+      expect(backdrop.filter.toString(), isNot(contains('shader')));
     });
   });
 
