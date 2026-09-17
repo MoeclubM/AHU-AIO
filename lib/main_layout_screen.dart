@@ -473,7 +473,6 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
 
   /// MD3 模式：标准贴底 NavigationBar + 标准 TabBar，无悬浮、无模糊、无阴影自定义。
   Widget _buildMaterial3() {
-    final theme = Theme.of(context);
     final int section = _currentBottomIndex.clamp(0, 3);
     final bool showSubTabs = section <= 2;
     final List<MiuixFloatingBarItemData> subTabs = _subTabsOf(section);
@@ -483,22 +482,21 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
       bottomNavigationBar: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // 二级标签用 M3 的次级标签栏（`TabBar.secondary`）：颜色、指示器
+          // 与高度全部取 TabBarTheme 默认值，不再手写 surface 容器。
           if (showSubTabs)
-            Material(
-              color: theme.colorScheme.surface,
-              child: TabBar(
-                controller: _subTabControllers[section],
-                tabs: [for (final tab in subTabs) Tab(text: tab.label)],
-                onTap: (index) {
-                  final controller = _subPageControllers[section];
-                  if (!controller.hasClients) return;
-                  controller.animateToPage(
-                    index,
-                    duration: const Duration(milliseconds: 250),
-                    curve: Curves.easeOut,
-                  );
-                },
-              ),
+            TabBar.secondary(
+              controller: _subTabControllers[section],
+              tabs: [for (final tab in subTabs) Tab(text: tab.label)],
+              onTap: (index) {
+                final controller = _subPageControllers[section];
+                if (!controller.hasClients) return;
+                controller.animateToPage(
+                  index,
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeOut,
+                );
+              },
             ),
           NavigationBar(
             selectedIndex: section,

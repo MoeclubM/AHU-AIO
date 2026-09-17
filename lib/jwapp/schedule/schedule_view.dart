@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../adaptive_ui.dart';
 import '../api/getallsemesters.dart';
 import '../utils/time_utils.dart';
 import 'schedule_logic.dart';
@@ -104,60 +105,61 @@ class _SchedulePageState extends State<SchedulePage>
     return 58.0;
   }
 
+  /// Miuix 规格的悬浮胶囊毛玻璃顶栏（官方 iOS 风格）。
+  PreferredSizeWidget _buildMiuixGlassAppBar(BuildContext context) {
+    return AppBar(
+      toolbarHeight: 52,
+      centerTitle: true,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      flexibleSpace: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(99),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(
+                sigmaX: MediaQuery.highContrastOf(context) ? 0 : 12,
+                sigmaY: MediaQuery.highContrastOf(context) ? 0 : 12,
+              ),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface.withValues(
+                    alpha: MediaQuery.highContrastOf(context) ? 0.96 : 0.68,
+                  ),
+                  borderRadius: BorderRadius.circular(99),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant
+                        .withValues(
+                          alpha: MediaQuery.highContrastOf(context) ? 0.9 : 0.5,
+                        ),
+                    width: 0.8,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+      title: const Text(
+        '课程表',
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
+      // 悬浮胶囊毛玻璃顶栏是 Miuix 规格；MD3 下用标准 AppBar，
+      // 不套自定义高度、圆角与模糊。
       appBar: widget.embed
           ? null
-          : AppBar(
-              toolbarHeight: 52,
-              centerTitle: true,
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              scrolledUnderElevation: 0,
-              flexibleSpace: SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 4,
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(99),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(
-                        sigmaX: MediaQuery.highContrastOf(context) ? 0 : 12,
-                        sigmaY: MediaQuery.highContrastOf(context) ? 0 : 12,
-                      ),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface
-                              .withOpacity(
-                                MediaQuery.highContrastOf(context)
-                                    ? 0.96
-                                    : 0.68,
-                              ),
-                          borderRadius: BorderRadius.circular(99),
-                          border: Border.all(
-                            color: Theme.of(context).colorScheme.outlineVariant
-                                .withOpacity(
-                                  MediaQuery.highContrastOf(context)
-                                      ? 0.9
-                                      : 0.5,
-                                ),
-                            width: 0.8,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              title: const Text(
-                '课程表',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-              ),
-            ),
+          : (isMiuixUi()
+                ? _buildMiuixGlassAppBar(context)
+                : AppBar(title: const Text('课程表'))),
       body: Obx(() {
         final isLoading = _logic.isLoading.value;
         final errorText = _logic.errorMessage.value;

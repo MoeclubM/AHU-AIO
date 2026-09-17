@@ -48,14 +48,14 @@ class AdaptiveSectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isMiuixUi()) return MiuixSmallTitle(title);
+    // M3 分组标题 = titleSmall + onSurfaceVariant（primary 不是标题角色）。
     final theme = Theme.of(context);
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 10, 4, 8),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       child: Text(
         title,
         style: theme.textTheme.titleSmall?.copyWith(
-          color: theme.colorScheme.primary,
-          fontWeight: FontWeight.w600,
+          color: theme.colorScheme.onSurfaceVariant,
         ),
       ),
     );
@@ -101,16 +101,18 @@ class AdaptiveCard extends StatelessWidget {
         ),
       );
     }
+    // M3：圆角、elevation、颜色全部交给 CardTheme / Card 默认值，
+    // 不再套用 Miuix 的 20 圆角；调用方显式传 borderRadius 时才覆盖。
     return Card(
       margin: margin ?? EdgeInsets.zero,
       color: color,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(borderRadius),
-      ),
-      child: Padding(
-        padding: padding ?? const EdgeInsets.symmetric(vertical: 4),
-        child: child,
-      ),
+      shape: borderRadius == 20
+          ? null
+          : RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(borderRadius),
+            ),
+      clipBehavior: Clip.antiAlias,
+      child: Padding(padding: padding ?? EdgeInsets.zero, child: child),
     );
   }
 }
@@ -133,20 +135,28 @@ class AdaptivePageHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Material(
-            color: scheme.surfaceContainerHigh,
-            shape: const CircleBorder(),
-            clipBehavior: Clip.antiAlias,
-            child: InkWell(
-              onTap: onBack ?? () => Navigator.maybePop(context),
-              child: const SizedBox(
-                width: 48,
-                height: 48,
-                child: Icon(Icons.arrow_back, size: 22),
+          // Miuix 用圆形实底返回钮（LSPosed 风格）；MD3 用标准 IconButton，
+          // 状态层与触区由框架负责。
+          if (miuix)
+            Material(
+              color: scheme.surfaceContainerHigh,
+              shape: const CircleBorder(),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                onTap: onBack ?? () => Navigator.maybePop(context),
+                child: const SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: Icon(Icons.arrow_back, size: 22),
+                ),
               ),
+            )
+          else
+            IconButton(
+              onPressed: onBack ?? () => Navigator.maybePop(context),
+              icon: const Icon(Icons.arrow_back),
             ),
-          ),
-          const SizedBox(height: 18),
+          SizedBox(height: miuix ? 18 : 8),
           Text(title, style: _headerStyle(context, miuix, scheme)),
         ],
       ),
@@ -164,12 +174,68 @@ class AdaptiveDivider extends StatelessWidget {
     if (isMiuixUi()) {
       return const Divider(height: 0.5, indent: 20, endIndent: 20);
     }
+    // M3：分隔线直接用 outlineVariant 全不透明，不再叠 alpha。
     return Divider(
       height: 1,
       thickness: 1,
       indent: 16,
       endIndent: 16,
-      color: scheme.outlineVariant.withValues(alpha: 0.5),
+      color: scheme.outlineVariant,
+    );
+  }
+}
+
+/// 设置分组容器。
+///
+/// - Miuix：`surfaceContainer` 卡片包住整组，组内用 0.5dp 分隔线——与 HyperOS
+///   设置页一致（一组一张卡）。
+/// - Material 3：单个标准 [Card]（主题默认圆角 12）+ 连续 [ListTile]，
+///   组内用 [Divider] 分隔。**不再逐项套卡片**，那是 iOS / Miuix 形态。
+class AdaptiveSettingsGroup extends StatelessWidget {
+  const AdaptiveSettingsGroup({
+    super.key,
+    required this.children,
+    this.dividerIndent = 56,
+  });
+
+  final List<Widget> children;
+
+  /// MD3 下分隔线的左侧缩进（对齐 M3 列表的图标列）。
+  final double dividerIndent;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool miuix = isMiuixUi();
+    final List<Widget> rows = [];
+    for (int i = 0; i < children.length; i++) {
+      if (i > 0) {
+        rows.add(
+          miuix
+              ? const AdaptiveDivider()
+              : Divider(
+                  height: 1,
+                  thickness: 1,
+                  indent: dividerIndent,
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
+        );
+      }
+      rows.add(children[i]);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: miuix
+          ? MiuixCard(
+              cornerRadius: 20,
+              insideMargin: EdgeInsets.zero,
+              child: Column(mainAxisSize: MainAxisSize.min, children: rows),
+            )
+          : Card(
+              margin: EdgeInsets.zero,
+              clipBehavior: Clip.antiAlias,
+              child: Column(mainAxisSize: MainAxisSize.min, children: rows),
+            ),
     );
   }
 }
@@ -278,16 +344,11 @@ class AdaptivePrimaryButton extends StatelessWidget {
         child: child,
       );
     }
-    final style = FilledButton.styleFrom(minimumSize: minimumSize);
+    // M3：几何用 FilledButton 默认值（高 40），不套 48/52 这类自定义高度。
     if (icon != null) {
-      return FilledButton.icon(
-        onPressed: onPressed,
-        style: style,
-        icon: icon!,
-        label: child,
-      );
+      return FilledButton.icon(onPressed: onPressed, icon: icon!, label: child);
     }
-    return FilledButton(onPressed: onPressed, style: style, child: child);
+    return FilledButton(onPressed: onPressed, child: child);
   }
 }
 
@@ -316,21 +377,21 @@ class AdaptiveDangerButton extends StatelessWidget {
         child: child,
       );
     }
+    // M3 没有「danger filled」概念：破坏性操作用 error 前景的 tonal 按钮，
+    // 几何与配色角色都走主题默认值。
     final scheme = Theme.of(context).colorScheme;
-    final style = FilledButton.styleFrom(
-      backgroundColor: scheme.error,
-      foregroundColor: scheme.onError,
-      minimumSize: minimumSize,
-    );
+    final TextStyle labelStyle = TextStyle(color: scheme.error);
     if (icon != null) {
-      return FilledButton.icon(
+      return FilledButton.tonalIcon(
         onPressed: onPressed,
-        style: style,
         icon: icon!,
-        label: child,
+        label: DefaultTextStyle.merge(style: labelStyle, child: child),
       );
     }
-    return FilledButton(onPressed: onPressed, style: style, child: child);
+    return FilledButton.tonal(
+      onPressed: onPressed,
+      child: DefaultTextStyle.merge(style: labelStyle, child: child),
+    );
   }
 }
 
@@ -441,12 +502,10 @@ Future<T?> showAdaptiveChoiceDialog<T>({
 /// （对应官方 `MiuixTopAppBar` 的 largeTitle）；MD3 用框架 headlineLarge。
 TextStyle _headerStyle(BuildContext context, bool miuix, ColorScheme scheme) {
   if (!miuix) {
-    return TextStyle(
-      fontSize: 32,
-      fontWeight: FontWeight.w700,
-      letterSpacing: -0.5,
-      color: scheme.onSurface,
-    );
+    // M3：大标题取 headlineMedium，字号/字重/字距全由主题决定。
+    final theme = Theme.of(context);
+    return theme.textTheme.headlineMedium?.copyWith(color: scheme.onSurface) ??
+        TextStyle(fontSize: 28, color: scheme.onSurface);
   }
   final theme = MiuixTheme.of(context);
   return theme.textStyles.title1

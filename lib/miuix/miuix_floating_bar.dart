@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
@@ -597,6 +598,7 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
                                   ),
                                   radius: pillHeight / 2,
                                   press: press,
+                                  blurEnabled: blurEnabled,
                                   glassEnabled: glassEnabled,
                                   isDark: isDark,
                                 ),
@@ -672,52 +674,144 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
   }
 }
 
-/// 选中胶囊：底色 + 按压时的边缘高光与轻微压暗。
+/// 选中胶囊：静止时是「玻璃面纱」，按压时亮起边缘高光并收掉面纱。
+///
+/// 对照 Compose 版 `LiquidGlassNavigationBar.kt` 的 `drawBackdrop`：
+/// - 静止：`onDrawSurface` 画 `black@0.1`（深色 `white@0.1`），`alpha = 1 - press`，
+///   所以胶囊在静止时**就有**一块可见的玻璃（此前我们误用了「关闭模糊」回退分支的
+///   `accent@0.15` 平涂，叠加在半透明栏上几乎透明，看起来像没有指示器）；
+/// - 按压：面纱淡出、叠 `black@0.03 * press`、内阴影 `radius 8dp * press`，
+///   边缘高光 alpha 直接取按压进度。
+/// - 关闭模糊时才是回退分支：扁平 `accent@0.15`，无高光。
 class _PillIndicator extends StatelessWidget {
   const _PillIndicator({
     required this.color,
     required this.radius,
     required this.press,
+    required this.blurEnabled,
     required this.glassEnabled,
     required this.isDark,
   });
 
+  /// 回退分支（关闭模糊）的胶囊底色：官方 `accentColor @ 0.15`。
   final Color color;
+
   final double radius;
   final double press;
+  final bool blurEnabled;
   final bool glassEnabled;
   final bool isDark;
 
+  /// 静止面纱不透明度（官方 `Color.Black/White.copy(alpha = 0.1f)`）。
+  static const double _veilAlpha = 0.1;
+
+  /// 按压时叠加的压暗（官方 `Color.Black.copy(alpha = 0.03f * progress)`）。
+  static const double _pressDimAlpha = 0.03;
+
+  /// 内阴影模糊半径上限（官方 `radius = 8.dp * progress`）。
+  static const double _innerShadowBlur = 8;
+
+  /// 内阴影不透明度上限（官方 `Color.Black.copy(alpha = 0.15f)`）。
+  static const double _innerShadowAlpha = 0.15;
+
   @override
   Widget build(BuildContext context) {
-    final shape = MiuixSquircleBorder(cornerRadius: radius);
-    final child = DecoratedBox(
-      decoration: ShapeDecoration(color: color, shape: shape),
-      child: press <= 0.01
-          ? null
-          : ColoredBox(
-              color: Colors.black.withValues(alpha: 0.03 * press),
-              child: const SizedBox.expand(),
-            ),
-    );
-    if (!glassEnabled) return child;
-    // 按压高光复用 miuix-blur 的 BloomStroke 渲染（自研 shader 层）。
-    return Stack(
-      children: [
-        child,
-        Positioned.fill(
-          child: IgnorePointer(
-            child: BloomStrokeLayer(
-              radius: radius,
-              isDark: isDark,
-              enabled: press > 0.01,
-              highlightAlpha: press,
+    final ShapeBorder shape = MiuixSquircleBorder(cornerRadius: radius);
+
+    // 关闭模糊：官方回退分支，扁平 accent 底色，没有高光与面纱。
+    if (!blurEnabled) {
+      return DecoratedBox(
+        decoration: ShapeDecoration(color: color, shape: shape),
+      );
+    }
+
+    final bool pressing = press > 0.01;
+    return ClipPath(
+      clipper: ShapeBorderClipper(shape: shape),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 透镜：官方 drawBackdrop 会在胶囊区域内再模糊一次背景（`blur(4dp)`），
+          // 所以胶囊是"更虚"的一块玻璃，而不是单纯压深。
+          BackdropFilter(
+            filter: _barBlurFilter,
+            child: const SizedBox.expand(),
+          ),
+          // 静止面纱：浅色主题压 10% 黑、深色压 10% 白，按下时淡出。
+          ColoredBox(
+            color: (isDark ? Colors.white : Colors.black).withValues(
+              alpha: _veilAlpha * (1 - press),
             ),
           ),
-        ),
-      ],
+          if (pressing)
+            ColoredBox(
+              color: Colors.black.withValues(alpha: _pressDimAlpha * press),
+            ),
+          if (pressing)
+            CustomPaint(
+              painter: _PillInnerShadowPainter(
+                radius: radius,
+                blurRadius: _innerShadowBlur * press,
+                alpha: _innerShadowAlpha * press,
+              ),
+            ),
+          if (glassEnabled && pressing)
+            IgnorePointer(
+              child: BloomStrokeLayer(
+                radius: radius,
+                isDark: isDark,
+                enabled: true,
+                highlightAlpha: press,
+              ),
+            ),
+        ],
+      ),
     );
   }
+}
+
+/// 胶囊内阴影：沿形状内侧描一圈模糊黑影，按压时才有（官方 `innerShadow`）。
+class _PillInnerShadowPainter extends CustomPainter {
+  const _PillInnerShadowPainter({
+    required this.radius,
+    required this.blurRadius,
+    required this.alpha,
+  });
+
+  final double radius;
+  final double blurRadius;
+  final double alpha;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (alpha <= 0 || blurRadius <= 0 || size.isEmpty) return;
+    final Rect rect = Offset.zero & size;
+    final Path outer = MiuixSquircleBorder(
+      cornerRadius: radius,
+    ).getOuterPath(rect);
+
+    // 只保留贴近边缘的一条带：外轮廓减去内缩轮廓，再整体高斯模糊。
+    final double band = math.min(blurRadius * 2, rect.shortestSide / 2);
+    final Path inner = MiuixSquircleBorder(
+      cornerRadius: math.max(0, radius - band),
+    ).getOuterPath(rect.deflate(band));
+
+    canvas.save();
+    canvas.clipPath(outer, doAntiAlias: true);
+    canvas.drawPath(
+      Path.combine(PathOperation.difference, outer, inner),
+      Paint()
+        ..color = Colors.black.withValues(alpha: alpha)
+        ..maskFilter = MaskFilter.blur(BlurStyle.normal, blurRadius),
+    );
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_PillInnerShadowPainter oldDelegate) =>
+      oldDelegate.radius != radius ||
+      oldDelegate.blurRadius != blurRadius ||
+      oldDelegate.alpha != alpha;
 }
 
 /// 玻璃胶囊容器：外侧阴影 + 填充 + 模糊 + 边缘高光。

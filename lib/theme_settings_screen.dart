@@ -49,94 +49,106 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
         children: [
           const AdaptivePageHeader(title: '主题设置'),
 
-          // 主题模式
-          _OptionCard(
-            icon: Icons.dark_mode_outlined,
-            iconColor: leadingColor,
-            title: '主题',
-            subtitle: '选择应用的主题模式',
-            trailing: _ValueTrailing(text: tm.currentColorModeName),
-            onTap: _pickColorMode,
-          ),
-          // 强调色
-          _OptionCard(
-            icon: Icons.palette_outlined,
-            iconColor: leadingColor,
-            title: '强调色',
-            subtitle: '自定义主题的强调色与色板',
-            trailing: _ValueTrailing(
-              text: tm.colorMode == ColorMode.monet ? '动态取色' : '默认',
-              leading: _ColorDot(
-                color: tm.keyColor,
-                monet: tm.colorMode == ColorMode.monet,
+          // 外观：主题 / 强调色 / 界面风格 / 调色板风格
+          AdaptiveSettingsGroup(
+            children: [
+              _OptionCard(
+                icon: Icons.dark_mode_outlined,
+                iconColor: leadingColor,
+                title: '主题',
+                subtitle: '选择应用的主题模式',
+                trailing: _ValueTrailing(text: tm.currentColorModeName),
+                onTap: _pickColorMode,
               ),
-            ),
-            onTap: _pickKeyColor,
+              _OptionCard(
+                icon: Icons.palette_outlined,
+                iconColor: leadingColor,
+                title: '强调色',
+                subtitle: '自定义主题的强调色与色板',
+                trailing: _ValueTrailing(
+                  text: tm.colorMode == ColorMode.monet ? '动态取色' : '默认',
+                  leading: _ColorDot(
+                    color: tm.keyColor,
+                    monet: tm.colorMode == ColorMode.monet,
+                  ),
+                ),
+                onTap: _pickKeyColor,
+              ),
+              _OptionCard(
+                icon: Icons.auto_awesome_outlined,
+                iconColor: leadingColor,
+                title: '界面风格',
+                subtitle: '在 Miuix 与 Material 3 之间切换',
+                trailing: _ValueTrailing(text: tm.currentUiModeName),
+                onTap: _pickUiMode,
+              ),
+              // 调色板风格：Material 3 专属的配色推导算法
+              if (tm.isMaterial3)
+                _OptionCard(
+                  icon: Icons.color_lens_outlined,
+                  iconColor: leadingColor,
+                  title: '调色板风格',
+                  subtitle: '用于推导 Material 3 配色的算法',
+                  trailing: _ValueTrailing(text: tm.paletteStyle.displayName),
+                  onTap: _pickPaletteStyle,
+                ),
+            ],
           ),
-          // 界面风格
-          _OptionCard(
-            icon: Icons.auto_awesome_outlined,
-            iconColor: leadingColor,
-            title: '界面风格',
-            subtitle: '在 Miuix 与 Material 3 之间切换',
-            trailing: _ValueTrailing(text: tm.currentUiModeName),
-            onTap: _pickUiMode,
-          ),
-          // 调色板风格：Material 3 专属的配色推导算法
-          if (tm.isMaterial3)
-            _OptionCard(
-              icon: Icons.color_lens_outlined,
-              iconColor: leadingColor,
-              title: '调色板风格',
-              subtitle: '用于推导 Material 3 配色的算法',
-              trailing: _ValueTrailing(text: tm.paletteStyle.displayName),
-              onTap: _pickPaletteStyle,
-            ),
 
-          if (tm.isMiuix) ...[
-            _SwitchCard(
-              icon: Icons.blur_on_outlined,
-              iconColor: leadingColor,
-              title: '模糊',
-              subtitle: '启用顶栏和底栏的模糊效果',
-              value: tm.enableBlur,
-              onChanged: tm.setEnableBlur,
+          // 显示效果：Miuix 专属的模糊 / 悬浮底栏 / 液态玻璃
+          if (tm.isMiuix)
+            AdaptiveSettingsGroup(
+              children: [
+                _SwitchCard(
+                  icon: Icons.blur_on_outlined,
+                  iconColor: leadingColor,
+                  title: '模糊',
+                  subtitle: '启用顶栏和底栏的模糊效果',
+                  value: tm.enableBlur,
+                  onChanged: tm.setEnableBlur,
+                ),
+                _SwitchCard(
+                  icon: Icons.view_agenda_outlined,
+                  iconColor: leadingColor,
+                  title: '悬浮底栏',
+                  subtitle: '使用类 Apple 风格的悬浮底栏',
+                  value: tm.enableBottomBarTransparent,
+                  onChanged: tm.setEnableBottomBarTransparent,
+                ),
+                _SwitchCard(
+                  icon: Icons.water_drop_outlined,
+                  iconColor: leadingColor,
+                  title: '液态玻璃',
+                  subtitle: '启用悬浮底栏的液态玻璃效果',
+                  value: tm.enableLiquidGlass,
+                  enabled: tm.enableBlur,
+                  onChanged: tm.setEnableLiquidGlass,
+                ),
+              ],
             ),
-            _SwitchCard(
-              icon: Icons.view_agenda_outlined,
-              iconColor: leadingColor,
-              title: '悬浮底栏',
-              subtitle: '使用类 Apple 风格的悬浮底栏',
-              value: tm.enableBottomBarTransparent,
-              onChanged: tm.setEnableBottomBarTransparent,
-            ),
-            _SwitchCard(
-              icon: Icons.water_drop_outlined,
-              iconColor: leadingColor,
-              title: '液态玻璃',
-              subtitle: '启用悬浮底栏的液态玻璃效果',
-              value: tm.enableLiquidGlass,
-              enabled: tm.enableBlur,
-              onChanged: tm.setEnableLiquidGlass,
-            ),
-          ],
 
           // 通用：与界面风格无关的系统级样式调整
-          _SwitchCard(
-            icon: Icons.swipe_outlined,
-            iconColor: leadingColor,
-            title: '预测性返回手势',
-            subtitle: '启用对预测性返回手势的支持（仅 Android）',
-            value: tm.predictiveBack,
-            onChanged: tm.setPredictiveBack,
-          ),
-          _OptionCard(
-            icon: Icons.format_size_outlined,
-            iconColor: leadingColor,
-            title: '界面缩放',
-            subtitle: '调整全局显示比例',
-            trailing: _ValueTrailing(text: '${(tm.uiScale * 100).round()}%'),
-            onTap: _pickUiScale,
+          AdaptiveSettingsGroup(
+            children: [
+              _SwitchCard(
+                icon: Icons.swipe_outlined,
+                iconColor: leadingColor,
+                title: '预测性返回手势',
+                subtitle: '启用对预测性返回手势的支持（仅 Android）',
+                value: tm.predictiveBack,
+                onChanged: tm.setPredictiveBack,
+              ),
+              _OptionCard(
+                icon: Icons.format_size_outlined,
+                iconColor: leadingColor,
+                title: '界面缩放',
+                subtitle: '调整全局显示比例',
+                trailing: _ValueTrailing(
+                  text: '${(tm.uiScale * 100).round()}%',
+                ),
+                onTap: _pickUiScale,
+              ),
+            ],
           ),
         ],
       ),
@@ -180,11 +192,9 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
                   children: [
                     Text(
                       '${(current * 100).round()}%',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: scheme.primary,
-                      ),
+                      style: Theme.of(
+                        ctx,
+                      ).textTheme.titleMedium?.copyWith(color: scheme.primary),
                     ),
                     Slider(
                       value: current,
@@ -277,7 +287,10 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
   }
 }
 
-/// 单行选项卡片：图标 + 标题/副标题 + 右侧当前取值。
+/// 单行选项：图标 + 标题/副标题 + 右侧当前取值。
+///
+/// 不再自己套卡片：卡片由外层 [AdaptiveSettingsGroup] 提供（Miuix 与 MD3
+/// 都是「一组一张卡」），这里只负责行内容。
 class _OptionCard extends StatelessWidget {
   const _OptionCard({
     required this.icon,
@@ -297,23 +310,17 @@ class _OptionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: AdaptiveCard(
-        padding: EdgeInsets.zero,
-        child: AdaptiveSettingsTile(
-          title: title,
-          summary: subtitle,
-          leading: Icon(icon, size: 24, color: iconColor),
-          trailing: trailing,
-          onTap: onTap,
-        ),
-      ),
+    return AdaptiveSettingsTile(
+      title: title,
+      summary: subtitle,
+      leading: Icon(icon, size: 24, color: iconColor),
+      trailing: trailing,
+      onTap: onTap,
     );
   }
 }
 
-/// 开关行卡片：图标 + 标题/副标题 + 内嵌开关。
+/// 开关行：图标 + 标题/副标题 + 内嵌开关。
 class _SwitchCard extends StatelessWidget {
   const _SwitchCard({
     required this.icon,
@@ -335,19 +342,13 @@ class _SwitchCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      child: AdaptiveCard(
-        padding: EdgeInsets.zero,
-        child: AdaptiveSwitchTile(
-          title: title,
-          summary: subtitle,
-          leading: Icon(icon, size: 24, color: iconColor),
-          value: value,
-          enabled: enabled,
-          onChanged: onChanged,
-        ),
-      ),
+    return AdaptiveSwitchTile(
+      title: title,
+      summary: subtitle,
+      leading: Icon(icon, size: 24, color: iconColor),
+      value: value,
+      enabled: enabled,
+      onChanged: onChanged,
     );
   }
 }
@@ -596,7 +597,12 @@ class _HsvColorDialogState extends State<_HsvColorDialog> {
 /// 当前取值文本样式：Miuix 用官方 body1(16sp) + 弱化前景色，MD3 用 bodyMedium。
 TextStyle _valueStyle(BuildContext context, ColorScheme scheme) {
   if (!isMiuixUi()) {
-    return TextStyle(fontSize: 15, color: scheme.onSurfaceVariant);
+    // M3：取值文本用 bodyMedium（14sp），不再写死 15。
+    final theme = Theme.of(context);
+    return theme.textTheme.bodyMedium?.copyWith(
+          color: scheme.onSurfaceVariant,
+        ) ??
+        TextStyle(color: scheme.onSurfaceVariant);
   }
   final theme = MiuixTheme.of(context);
   return theme.textStyles.body1

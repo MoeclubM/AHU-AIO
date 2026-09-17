@@ -68,16 +68,11 @@ class MyApp extends StatelessWidget {
               if (themeManager.colorMode == ColorMode.monet &&
                   lightDynamic != null &&
                   darkDynamic != null) {
-                light = ThemeData(
-                  colorScheme: lightDynamic,
-                  appBarTheme: const AppBarTheme(centerTitle: true),
-                );
+                // 动态取色：只换 ColorScheme，其余全部走框架默认。
+                light = ThemeData(colorScheme: lightDynamic);
                 dark = themeManager.isAmoled
                     ? material3AmoledTheme(keyColor: effectiveKeyColor)
-                    : ThemeData(
-                        colorScheme: darkDynamic,
-                        appBarTheme: const AppBarTheme(centerTitle: true),
-                      );
+                    : ThemeData(colorScheme: darkDynamic);
               } else {
                 light = material3LightTheme(
                   keyColor: effectiveKeyColor,

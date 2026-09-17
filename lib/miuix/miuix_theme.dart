@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart' show CupertinoPageTransitionsBuilder;
 import 'package:flutter/material.dart';
 
 import 'miuix_kit.dart';
@@ -155,6 +154,10 @@ ThemeData _buildMiuixTheme(MiuixColors c, Brightness brightness) {
 }
 
 /// Material 3 浅色主题：完全使用框架默认值，仅固定种子色、调色板风格与居中标题。
+/// Material 3 浅色主题：**完全交给框架默认值**。
+///
+/// 只固定种子色与调色板推导算法；顶栏标题对齐、高度、转场等一律不覆盖，
+/// 由 Flutter 按平台与 M3 规范决定（Android 上标题左对齐、工具栏高 64）。
 ThemeData material3LightTheme({
   Color? keyColor,
   DynamicSchemeVariant variant = DynamicSchemeVariant.tonalSpot,
@@ -165,11 +168,10 @@ ThemeData material3LightTheme({
       brightness: Brightness.light,
       dynamicSchemeVariant: variant,
     ),
-    appBarTheme: const AppBarTheme(centerTitle: true),
   );
 }
 
-/// Material 3 深色主题。
+/// Material 3 深色主题：同浅色，只用框架默认值。
 ThemeData material3DarkTheme({
   Color? keyColor,
   DynamicSchemeVariant variant = DynamicSchemeVariant.tonalSpot,
@@ -180,52 +182,44 @@ ThemeData material3DarkTheme({
       brightness: Brightness.dark,
       dynamicSchemeVariant: variant,
     ),
-    appBarTheme: const AppBarTheme(centerTitle: true),
   );
 }
 
-/// Material 3 AMOLED 纯黑主题：仅把 surface 系列压到纯黑，其余保持默认。
+/// Material 3 AMOLED 纯黑主题：把 surface 族压到纯黑，其余令牌从原方案派生。
+///
+/// 只动「容器有多黑」，不动前景色与语义色——`onSurface` 等仍取原 scheme，
+/// 保证对比度语义不被绕过。
 ThemeData material3AmoledTheme({
   Color? keyColor,
   DynamicSchemeVariant variant = DynamicSchemeVariant.tonalSpot,
 }) {
   final base = material3DarkTheme(keyColor: keyColor, variant: variant);
   return base.copyWith(
-    scaffoldBackgroundColor: Colors.black,
+    scaffoldBackgroundColor: base.colorScheme.surfaceContainerLowest,
     colorScheme: base.colorScheme.copyWith(
-      surface: Colors.black,
-      surfaceContainerLowest: Colors.black,
-      surfaceContainer: const Color(0xFF0A0A0A),
-      surfaceContainerHigh: const Color(0xFF111111),
-      surfaceContainerHighest: const Color(0xFF181818),
-    ),
-    appBarTheme: const AppBarTheme(
-      centerTitle: true,
-      backgroundColor: Colors.black,
-      foregroundColor: Color(0xE6FFFFFF),
+      surface: const Color(0xFF000000),
+      surfaceContainerLowest: const Color(0xFF000000),
+      surfaceContainerLow: const Color(0xFF0A0A0A),
+      surfaceContainer: const Color(0xFF0F0F0F),
+      surfaceContainerHigh: const Color(0xFF161616),
+      surfaceContainerHighest: const Color(0xFF1D1D1D),
     ),
   );
 }
 
-/// 按设置选择 Android 的页面转场。
+/// 控制 Android 的页面转场风格。
 ///
-/// 开启时使用预测性返回转场（需配合 manifest 的 `enableOnBackInvokedCallback`，
-/// 这也是 Flutter 3.44 的 Android 默认值）；关闭时退回传统缩放转场。
-/// 其余平台显式保持框架默认，避免 iOS / 桌面端转场退化。
+/// 开启预测性返回时用框架默认（Flutter 3.44 的 Android 默认即
+/// `FadeForwardsPageTransitionsBuilder` + 返回手势联动，需配合 manifest 的
+/// `enableOnBackInvokedCallback`）；关闭时也保持 M3 的淡入前进转场，
+/// **不再退回 Material 2 时代的 Zoom**。其余平台不设置，保持各自原生转场。
 ThemeData withPredictiveBack(ThemeData base, bool enabled) {
-  if (!enabled) {
-    return base.copyWith(
-      pageTransitionsTheme: PageTransitionsTheme(
-        builders: <TargetPlatform, PageTransitionsBuilder>{
-          TargetPlatform.android: const ZoomPageTransitionsBuilder(),
-          TargetPlatform.iOS: const CupertinoPageTransitionsBuilder(),
-          TargetPlatform.macOS: const CupertinoPageTransitionsBuilder(),
-          TargetPlatform.windows: const ZoomPageTransitionsBuilder(),
-          TargetPlatform.linux: const ZoomPageTransitionsBuilder(),
-        },
-      ),
-    );
-  }
-  // 开启时即框架默认，无需改动。
-  return base;
+  if (enabled) return base;
+  return base.copyWith(
+    pageTransitionsTheme: PageTransitionsTheme(
+      builders: <TargetPlatform, PageTransitionsBuilder>{
+        TargetPlatform.android: const FadeForwardsPageTransitionsBuilder(),
+      },
+    ),
+  );
 }
