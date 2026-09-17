@@ -2,6 +2,8 @@
 import 'package:flutter/material.dart';
 import '../api/getplan.dart';
 import '../../globals.dart' as globals;
+import '../../adaptive_ui.dart';
+import '../../miuix/liquid_glass_app_bar.dart';
 
 /// 培养方案完成情况页面（原版教务系统风格）
 class AcademicWarningPage extends StatefulWidget {
@@ -50,36 +52,16 @@ class _AcademicWarningPageState extends State<AcademicWarningPage>
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: isDark ? Colors.grey.shade900 : Colors.grey.shade50,
-      appBar: AppBar(
-        title: const Text(
-          '培养方案完成情况',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 20,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Colors.blue.shade600, Colors.blue.shade700],
-            ),
-          ),
-        ),
+      appBar: LiquidGlassAppBar(
+        title: const Text('培养方案完成情况'),
         actions: [
-          IconButton(onPressed: _loadPlanData, icon: const Icon(Icons.refresh)),
+          AdaptiveIconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadPlanData,
+          ),
         ],
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
           tabs: const [
             Tab(text: '计划完成情况'),
             Tab(text: '计划外完成情况'),

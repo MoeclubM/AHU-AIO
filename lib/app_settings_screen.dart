@@ -82,7 +82,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     final chevron = Icon(Icons.chevron_right, color: scheme.onSurfaceVariant);
 
     return Scaffold(
-      appBar: const LiquidGlassAppBar(title: '系统设置'),
+      appBar: const LiquidGlassAppBar(title: Text('系统设置')),
       body: ListView(
         padding: adaptivePagePadding(
           context,

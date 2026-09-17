@@ -16,6 +16,7 @@ import '../pages/jw_precaution_page.dart';
 import '../pages/jw_course_select_page.dart';
 import '../pages/jw_notice_page.dart';
 import '../../adaptive_ui.dart';
+import '../../miuix/liquid_glass_app_bar.dart';
 
 /// 新教务系统首页
 class JwHomePage extends StatefulWidget {
@@ -149,7 +150,7 @@ class _JwHomePageState extends State<JwHomePage>
     return Scaffold(
       appBar: widget.embed
           ? null
-          : AppBar(
+          : LiquidGlassAppBar(
               title: const Text('安大教务'),
               actions: [
                 IconButton(

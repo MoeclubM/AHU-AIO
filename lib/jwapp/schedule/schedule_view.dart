@@ -1,10 +1,10 @@
 import 'dart:math' as math;
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../adaptive_ui.dart';
+import '../../adaptive_dropdown.dart';
+import '../../miuix/liquid_glass_app_bar.dart';
 import '../api/getallsemesters.dart';
 import '../utils/time_utils.dart';
 import 'schedule_logic.dart';
@@ -105,61 +105,13 @@ class _SchedulePageState extends State<SchedulePage>
     return 58.0;
   }
 
-  /// Miuix 规格的悬浮胶囊毛玻璃顶栏（官方 iOS 风格）。
-  PreferredSizeWidget _buildMiuixGlassAppBar(BuildContext context) {
-    return AppBar(
-      toolbarHeight: 52,
-      centerTitle: true,
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      flexibleSpace: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(99),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(
-                sigmaX: MediaQuery.highContrastOf(context) ? 0 : 12,
-                sigmaY: MediaQuery.highContrastOf(context) ? 0 : 12,
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface.withValues(
-                    alpha: MediaQuery.highContrastOf(context) ? 0.96 : 0.68,
-                  ),
-                  borderRadius: BorderRadius.circular(99),
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.outlineVariant
-                        .withValues(
-                          alpha: MediaQuery.highContrastOf(context) ? 0.9 : 0.5,
-                        ),
-                    width: 0.8,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-      title: const Text(
-        '课程表',
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
-      // 悬浮胶囊毛玻璃顶栏是 Miuix 规格；MD3 下用标准 AppBar，
-      // 不套自定义高度、圆角与模糊。
-      appBar: widget.embed
-          ? null
-          : (isMiuixUi()
-                ? _buildMiuixGlassAppBar(context)
-                : AppBar(title: const Text('课程表'))),
+      // Miuix 用自研 SmallTopAppBar 规格（实色 surface + 居中标题）；
+      // MD3 完全走框架 AppBar 默认值。
+      appBar: widget.embed ? null : const LiquidGlassAppBar(title: Text('课程表')),
       body: Obx(() {
         final isLoading = _logic.isLoading.value;
         final errorText = _logic.errorMessage.value;
@@ -300,46 +252,30 @@ class _SchedulePageState extends State<SchedulePage>
                   width: 0.6,
                 ),
               ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<SemesterInfo>(
-                  value: semesterValue,
-                  isExpanded: true,
-                  icon: Icon(
-                    Icons.arrow_drop_down_rounded,
-                    color: colorScheme.onSurfaceVariant,
-                    size: 22,
-                  ),
-                  hint: Text(
-                    '请选择学期',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                  onChanged: isLoading
-                      ? null
-                      : (value) {
-                          if (value != null) {
-                            _logic.selectSemester(value);
-                          }
-                        },
-                  items: semesters
-                      .map(
-                        (semester) => DropdownMenuItem<SemesterInfo>(
-                          value: semester,
-                          child: Text(
-                            semester.nameZh,
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: colorScheme.onSurface,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      )
-                      .toList(),
+              child: AdaptiveDropdown<SemesterInfo>(
+                value: semesterValue,
+                isExpanded: true,
+                hint: '请选择学期',
+                textStyle: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: colorScheme.onSurface,
                 ),
+                onChanged: isLoading
+                    ? null
+                    : (value) {
+                        if (value != null) {
+                          _logic.selectSemester(value);
+                        }
+                      },
+                items: semesters
+                    .map(
+                      (semester) => AdaptiveDropdownItem<SemesterInfo>(
+                        value: semester,
+                        label: semester.nameZh,
+                      ),
+                    )
+                    .toList(),
               ),
             ),
           ),
@@ -360,51 +296,41 @@ class _SchedulePageState extends State<SchedulePage>
                   width: 0.6,
                 ),
               ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<int>(
-                  value: (currentWeek >= 1 && currentWeek <= maxWeeks)
-                      ? currentWeek
-                      : 1,
-                  isExpanded: true,
-                  icon: Icon(
-                    Icons.arrow_drop_down_rounded,
-                    color: colorScheme.primary,
-                    size: 22,
-                  ),
-                  onChanged: isLoading
-                      ? null
-                      : (newWeek) {
-                          if (newWeek != null && newWeek != currentWeek) {
-                            _animateToWeek(newWeek);
-                          }
-                        },
-                  items: List.generate(maxWeeks, (index) {
-                    final week = index + 1;
-                    final isReal = week == realCurrent;
-                    return DropdownMenuItem<int>(
-                      value: week,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              isReal ? '第 $week 周(本周)' : '第 $week 周',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: isReal
-                                    ? FontWeight.bold
-                                    : FontWeight.w500,
-                                color: isReal
-                                    ? colorScheme.primary
-                                    : colorScheme.onSurface,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
+              child: AdaptiveDropdown<int>(
+                value: (currentWeek >= 1 && currentWeek <= maxWeeks)
+                    ? currentWeek
+                    : 1,
+                isExpanded: true,
+                chevronColor: colorScheme.primary,
+                textStyle: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: colorScheme.onSurface,
                 ),
+                onChanged: isLoading
+                    ? null
+                    : (newWeek) {
+                        if (newWeek != null && newWeek != currentWeek) {
+                          _animateToWeek(newWeek);
+                        }
+                      },
+                items: List<AdaptiveDropdownItem<int>>.generate(maxWeeks, (
+                  index,
+                ) {
+                  final week = index + 1;
+                  final isReal = week == realCurrent;
+                  return AdaptiveDropdownItem<int>(
+                    value: week,
+                    label: isReal ? '第 $week 周(本周)' : '第 $week 周',
+                    labelStyle: TextStyle(
+                      fontSize: 13,
+                      fontWeight: isReal ? FontWeight.bold : FontWeight.w500,
+                      color: isReal
+                          ? colorScheme.primary
+                          : colorScheme.onSurface,
+                    ),
+                  );
+                }),
               ),
             ),
           ),

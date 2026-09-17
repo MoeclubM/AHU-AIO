@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../adaptive_ui.dart';
 import '../../miuix/liquid_glass_app_bar.dart';
 import '../../theme_manager.dart';
 import 'finance_home_view.dart';
@@ -65,26 +66,22 @@ class _FinanceMainTabsState extends State<FinanceMainTabs>
     return Scaffold(
       appBar: showTitle
           ? LiquidGlassAppBar(
-              title: '一卡通系统',
+              title: const Text('一卡通系统'),
               actions: [
                 if (_currentPage == 2)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 16),
-                    child: ValueListenableBuilder<bool>(
-                      valueListenable: financeRechargeIsListViewNotifier,
-                      builder: (context, isListView, _) {
-                        return IconButton(
-                          icon: Icon(
-                            isListView
-                                ? Icons.grid_view_rounded
-                                : Icons.view_list_rounded,
-                            size: 20,
-                          ),
-                          onPressed: FinanceRechargePage.toggleViewMode,
-                          tooltip: isListView ? '切换为网格视图' : '切换为列表视图',
-                        );
-                      },
-                    ),
+                  ValueListenableBuilder<bool>(
+                    valueListenable: financeRechargeIsListViewNotifier,
+                    builder: (context, isListView, _) {
+                      return AdaptiveIconButton(
+                        icon: Icon(
+                          isListView
+                              ? Icons.grid_view_rounded
+                              : Icons.view_list_rounded,
+                        ),
+                        onPressed: FinanceRechargePage.toggleViewMode,
+                        tooltip: isListView ? '切换为网格视图' : '切换为列表视图',
+                      );
+                    },
                   ),
               ],
             )

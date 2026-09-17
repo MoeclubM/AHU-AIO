@@ -7,6 +7,7 @@ import '../api/synjones_client.dart';
 import '../../auth/unified_login_page.dart';
 import '../pages/finance_cards_page.dart';
 import '../../adaptive_ui.dart';
+import '../../miuix/liquid_glass_app_bar.dart';
 
 /// 一卡通首页 — 原生展示余额、一码通入口、电子卡与更多功能。
 class FinanceHomePage extends StatefulWidget {
@@ -98,7 +99,7 @@ class _FinanceHomePageState extends State<FinanceHomePage>
     return Scaffold(
       appBar: widget.embed
           ? null
-          : AppBar(
+          : LiquidGlassAppBar(
               title: const Text('一卡通系统'),
               actions: [
                 IconButton(

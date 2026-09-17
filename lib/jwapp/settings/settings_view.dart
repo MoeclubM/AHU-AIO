@@ -7,6 +7,7 @@ import '../api/unauthorized_exception.dart';
 import '../../globals.dart' as globals;
 import '../../theme_manager.dart';
 import '../../miuix/miuix_components.dart';
+import '../../miuix/liquid_glass_app_bar.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -105,7 +106,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('设置')),
+      appBar: LiquidGlassAppBar(title: const Text('设置')),
       body: FutureBuilder(
         future: _loadUserInfo(),
         builder: (context, snapshot) {

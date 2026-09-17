@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../api/synjones_client.dart';
 import '../widgets/code128_barcode.dart';
 import '../../adaptive_ui.dart';
+import '../../miuix/liquid_glass_app_bar.dart';
 
 class FinanceCardsPage extends StatefulWidget {
   final List<dynamic> initialCards;
@@ -126,7 +127,7 @@ class _FinanceCardsPageState extends State<FinanceCardsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: widget.embed ? null : AppBar(title: const Text('电子卡')),
+      appBar: widget.embed ? null : LiquidGlassAppBar(title: const Text('电子卡')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../api/jw_api.dart';
 import '../models/jw_models.dart';
 import '../../adaptive_ui.dart';
+import '../../adaptive_dropdown.dart';
+import '../../miuix/liquid_glass_app_bar.dart';
 
 class JwGradesPage extends StatefulWidget {
   final bool embed;
@@ -125,7 +127,9 @@ class _JwGradesPageState extends State<JwGradesPage>
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
-      appBar: widget.embed ? null : AppBar(title: const Text('成绩查询')),
+      appBar: widget.embed
+          ? null
+          : LiquidGlassAppBar(title: const Text('成绩查询')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -147,7 +151,7 @@ class _JwGradesPageState extends State<JwGradesPage>
                 if (_semesters.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.all(12),
-                    child: DropdownButtonFormField<int>(
+                    child: AdaptiveDropdownFormField<int>(
                       value: _selectedSemesterId,
                       decoration: const InputDecoration(
                         labelText: '选择学期',
@@ -157,12 +161,14 @@ class _JwGradesPageState extends State<JwGradesPage>
                           vertical: 10,
                         ),
                       ),
-                      items: _semesters.map((s) {
-                        return DropdownMenuItem(
-                          value: s.id,
-                          child: Text(s.displayName),
-                        );
-                      }).toList(),
+                      items: _semesters
+                          .map(
+                            (s) => AdaptiveDropdownItem<int>(
+                              value: s.id,
+                              label: s.displayName,
+                            ),
+                          )
+                          .toList(),
                       onChanged: (v) {
                         if (v != null) _loadSemesterGrades(v);
                       },

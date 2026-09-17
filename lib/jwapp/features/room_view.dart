@@ -3,6 +3,8 @@ import '../api/getroom.dart';
 import '../models/room_model.dart';
 import '../../globals.dart' as globals;
 import '../../adaptive_ui.dart';
+import '../../adaptive_dropdown.dart';
+import '../../miuix/liquid_glass_app_bar.dart';
 
 class RoomPage extends StatefulWidget {
   final bool embed;
@@ -127,7 +129,9 @@ class _RoomPageState extends State<RoomPage>
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
-      appBar: widget.embed ? null : AppBar(title: const Text('空闲教室查询')),
+      appBar: widget.embed
+          ? null
+          : LiquidGlassAppBar(title: const Text('空闲教室查询')),
       body: Column(
         children: [
           _buildFilterSection(),
@@ -174,17 +178,18 @@ class _RoomPageState extends State<RoomPage>
               const Text('校区：', style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(width: 8),
               Expanded(
-                child: DropdownButton<CampusModel>(
+                child: AdaptiveDropdown<CampusModel>(
                   value: _selectedCampus,
-                  hint: const Text('选择校区'),
+                  hint: '选择校区',
                   isExpanded: true,
-                  underline: const SizedBox(),
-                  items: _campuses.map((campus) {
-                    return DropdownMenuItem<CampusModel>(
-                      value: campus,
-                      child: Text(campus.name),
-                    );
-                  }).toList(),
+                  items: _campuses
+                      .map(
+                        (campus) => AdaptiveDropdownItem<CampusModel>(
+                          value: campus,
+                          label: campus.name,
+                        ),
+                      )
+                      .toList(),
                   onChanged: (campus) {
                     if (campus != null) {
                       setState(() {
@@ -206,17 +211,18 @@ class _RoomPageState extends State<RoomPage>
               const Text('建筑：', style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(width: 8),
               Expanded(
-                child: DropdownButton<BuildingModel>(
+                child: AdaptiveDropdown<BuildingModel>(
                   value: _selectedBuilding,
-                  hint: const Text('选择建筑'),
+                  hint: '选择建筑',
                   isExpanded: true,
-                  underline: const SizedBox(),
-                  items: _buildings.map((building) {
-                    return DropdownMenuItem<BuildingModel>(
-                      value: building,
-                      child: Text(building.name),
-                    );
-                  }).toList(),
+                  items: _buildings
+                      .map(
+                        (building) => AdaptiveDropdownItem<BuildingModel>(
+                          value: building,
+                          label: building.name,
+                        ),
+                      )
+                      .toList(),
                   onChanged: (building) {
                     if (building != null) {
                       setState(() {

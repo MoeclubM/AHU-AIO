@@ -7,6 +7,7 @@ import '../features/classroom_schedule_view.dart';
 import '../features/course_selection_view.dart';
 import '../features/academic_warning_view.dart';
 import '../features/notice_view.dart';
+import '../../miuix/liquid_glass_app_bar.dart';
 
 class FuncPage extends StatelessWidget {
   final bool embed;
@@ -15,7 +16,7 @@ class FuncPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: embed ? null : AppBar(title: const Text('更多功能')),
+      appBar: embed ? null : LiquidGlassAppBar(title: const Text('更多功能')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: GridView.builder(

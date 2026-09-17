@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import '../utils/jw_webview_auth.dart';
+import '../../miuix/liquid_glass_app_bar.dart';
 
 /// 通用 WebView 页面，共享 Dio 的认证 cookies
 class JwWebViewPage extends StatefulWidget {
@@ -89,7 +90,7 @@ class _JwWebViewPageState extends State<JwWebViewPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: LiquidGlassAppBar(
         title: Text(widget.title),
         actions: [
           IconButton(

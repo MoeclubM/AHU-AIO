@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../globals.dart' as globals;
+import '../../miuix/liquid_glass_app_bar.dart';
 
 /// 培养方案查询页面（原版网页内嵌）
 class PlanQueryPage extends StatefulWidget {
@@ -64,7 +65,7 @@ class _PlanQueryPageState extends State<PlanQueryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: LiquidGlassAppBar(
         title: const Text('培养方案查询'),
         actions: [
           IconButton(

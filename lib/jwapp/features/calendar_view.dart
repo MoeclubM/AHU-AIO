@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../api/getcalendar.dart';
 import '../models/calendar_model.dart';
 import '../../globals.dart' as globals;
+import '../../adaptive_dropdown.dart';
+import '../../miuix/liquid_glass_app_bar.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -112,37 +114,8 @@ class _CalendarPageState extends State<CalendarPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return Scaffold(
-      backgroundColor: isDark ? Colors.grey.shade900 : Colors.grey.shade50,
-      appBar: AppBar(
-        title: const Text(
-          '校历查询',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 20,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.teal.shade600,
-                Colors.teal.shade700,
-                Colors.cyan.shade600,
-              ],
-            ),
-          ),
-        ),
-      ),
+      appBar: const LiquidGlassAppBar(title: Text('校历查询')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -241,17 +214,18 @@ class _CalendarPageState extends State<CalendarPage> {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: DropdownButton<SemesterModel>(
+            child: AdaptiveDropdown<SemesterModel>(
               value: _selectedSemester,
-              hint: const Text('请选择学期'),
+              hint: '请选择学期',
               isExpanded: true,
-              underline: const SizedBox(),
-              items: _semesters.map((semester) {
-                return DropdownMenuItem<SemesterModel>(
-                  value: semester,
-                  child: Text(semester.name),
-                );
-              }).toList(),
+              items: _semesters
+                  .map(
+                    (semester) => AdaptiveDropdownItem<SemesterModel>(
+                      value: semester,
+                      label: semester.name,
+                    ),
+                  )
+                  .toList(),
               onChanged: _onSemesterChanged,
             ),
           ),

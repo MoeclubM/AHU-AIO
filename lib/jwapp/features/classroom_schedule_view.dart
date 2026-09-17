@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../globals.dart' as globals;
 import '../api/sendrequest.dart';
+import '../../miuix/liquid_glass_app_bar.dart';
+import '../../adaptive_dropdown.dart';
 
 /// 教室课表查询页面（原版系统风格）
 class ClassroomSchedulePage extends StatefulWidget {
@@ -113,7 +115,7 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: LiquidGlassAppBar(
         title: const Text('教室课表'),
         actions: [
           IconButton(
@@ -482,7 +484,7 @@ class _ClassroomScheduleDetailPageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('${widget.roomName} - 课表')),
+      appBar: LiquidGlassAppBar(title: Text('${widget.roomName} - 课表')),
       body: RefreshIndicator(
         onRefresh: _loadScheduleData,
         child: Column(
@@ -498,12 +500,14 @@ class _ClassroomScheduleDetailPageState
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(width: 8),
-                  DropdownButton<String>(
+                  AdaptiveDropdown<String>(
                     value: _selectedWeek,
                     items: List.generate(20, (index) => '第${index + 1}周')
                         .map(
-                          (week) =>
-                              DropdownMenuItem(value: week, child: Text(week)),
+                          (week) => AdaptiveDropdownItem<String>(
+                            value: week,
+                            label: week,
+                          ),
                         )
                         .toList(),
                     onChanged: (value) {

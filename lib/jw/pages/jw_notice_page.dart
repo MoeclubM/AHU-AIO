@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../api/jw_api.dart';
+import '../../miuix/liquid_glass_app_bar.dart';
 
 class JwNoticePage extends StatefulWidget {
   final bool embed;
@@ -76,7 +77,7 @@ class _JwNoticePageState extends State<JwNoticePage>
     return Scaffold(
       appBar: widget.embed
           ? null
-          : AppBar(
+          : LiquidGlassAppBar(
               title: const Text('通知公告'),
               actions: [
                 IconButton(

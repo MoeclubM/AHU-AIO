@@ -8,6 +8,8 @@ import '../../auth/cas_auth_cache.dart';
 import '../api/synjones_client.dart';
 import '../api/synjones_offline_code.dart';
 import '../../adaptive_ui.dart';
+import '../../adaptive_dropdown.dart';
+import '../../miuix/liquid_glass_app_bar.dart';
 
 class FinancePayCodePage extends StatefulWidget {
   final bool embed;
@@ -206,7 +208,7 @@ class _FinancePayCodePageState extends State<FinancePayCodePage>
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
-      appBar: widget.embed ? null : AppBar(title: const Text('一码通')),
+      appBar: widget.embed ? null : LiquidGlassAppBar(title: const Text('一码通')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -232,17 +234,17 @@ class _FinancePayCodePageState extends State<FinancePayCodePage>
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: DropdownButtonFormField<int>(
+        child: AdaptiveDropdownFormField<int>(
           value: selectedIndex < 0 ? 0 : selectedIndex,
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
             labelText: '付款方式',
           ),
-          items: [
+          items: <AdaptiveDropdownItem<int>>[
             for (var i = 0; i < _payments.length; i++)
-              DropdownMenuItem(
+              AdaptiveDropdownItem<int>(
                 value: i,
-                child: Text(_paymentTitle(_payments[i])),
+                label: _paymentTitle(_payments[i]),
               ),
           ],
           onChanged: _refreshing

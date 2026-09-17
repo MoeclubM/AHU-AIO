@@ -4,6 +4,7 @@ import '../api/course_selection.dart';
 import '../api/api_manager.dart';
 import '../api/api_models.dart';
 import '../../globals.dart' as globals;
+import '../../miuix/liquid_glass_app_bar.dart';
 
 /// 选课页面
 class CourseSelectionPage extends StatefulWidget {
@@ -201,7 +202,7 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: LiquidGlassAppBar(
         title: const Text('选课系统'),
         bottom: TabBar(
           controller: _tabController,

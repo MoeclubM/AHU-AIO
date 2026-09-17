@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import '../api/api_manager.dart';
 import '../api/api_models.dart';
 import '../../globals.dart' as globals;
+import '../../adaptive_dropdown.dart';
+import '../../miuix/liquid_glass_app_bar.dart';
 
 /// 考试安排页面
 class ExamSchedulePage extends StatefulWidget {
@@ -127,41 +129,11 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return Scaffold(
-      backgroundColor: isDark ? Colors.grey.shade900 : Colors.grey.shade50,
-      appBar: AppBar(
-        title: const Text(
-          '考试安排',
-          style: TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 20,
-            color: Colors.white,
-          ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.red.shade600,
-                Colors.red.shade700,
-                Colors.pink.shade600,
-              ],
-            ),
-          ),
-        ),
+      appBar: LiquidGlassAppBar(
+        title: const Text('考试安排'),
         bottom: TabBar(
           controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
           tabs: const [
             Tab(text: '全部考试', icon: Icon(Icons.list)),
             Tab(text: '即将考试', icon: Icon(Icons.upcoming)),
@@ -240,8 +212,8 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
           Row(
             children: [
               Expanded(
-                child: DropdownButtonFormField<String>(
-                  initialValue: _selectedStatus,
+                child: AdaptiveDropdownFormField<String>(
+                  value: _selectedStatus,
                   decoration: const InputDecoration(
                     labelText: '考试状态',
                     border: OutlineInputBorder(),
@@ -250,12 +222,14 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
                       vertical: 8,
                     ),
                   ),
-                  items: ['全部', '未开始', '进行中', '已结束'].map((status) {
-                    return DropdownMenuItem<String>(
-                      value: status,
-                      child: Text(status),
-                    );
-                  }).toList(),
+                  items: ['全部', '未开始', '进行中', '已结束']
+                      .map(
+                        (status) => AdaptiveDropdownItem<String>(
+                          value: status,
+                          label: status,
+                        ),
+                      )
+                      .toList(),
                   onChanged: (value) {
                     setState(() {
                       _selectedStatus = value!;

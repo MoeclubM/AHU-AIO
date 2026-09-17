@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 
 import '../theme_manager.dart';
+import 'miuix_kit.dart';
 import 'miuix_theme.dart';
 
-/// 应用顶栏。
+/// 自适应应用顶栏。
 ///
-/// - Miuix 模式：对齐官方 `SmallTopAppBar` 规格——高度 50、标题用
-///   `textStyles.title3`(20sp) + `FontWeight.w500` 并应用 Miuix 字重偏移、
-///   实色 `surface` 背景；
-/// - Material 3 模式：**完全交给标准 [AppBar] 与主题默认值**——高度用
+/// - **Miuix 模式**：用自研的 [MiuixTopAppBar]（对应 Compose
+///   `SmallTopAppBar`）——高 50、实色 `surface` 背景、标题 `title3` + `w500`
+///   居中；返回键是 [MiuixIconButton] + 自绘箭头，不带 Material 水波纹。
+/// - **Material 3 模式**：**完全交给标准 [AppBar] 与主题默认值**——高度
 ///   `kToolbarHeight`(64)、标题按平台对齐（Android 左对齐）、颜色取
 ///   `colorScheme`，不套用任何 Miuix 尺寸。
+///
+/// [title] 收 [Widget] 而不是 `String`，这样调用处可以直接写
+/// `title: const Text('设置')`，两种模式各自套用自己的文字规格。
 class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
   const LiquidGlassAppBar({
     super.key,
@@ -22,7 +26,7 @@ class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.toolbarHeight,
   });
 
-  final String title;
+  final Widget title;
   final Widget? leading;
   final List<Widget>? actions;
   final bool? centerTitle;
@@ -49,36 +53,31 @@ class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
     if (_isMaterial3) {
       return AppBar(
         leading: leading,
-        title: Text(title),
+        title: title,
         actions: actions,
         bottom: bottom,
       );
     }
 
-    final MiuixThemeData miuixTheme = MiuixTheme.of(context);
-    final mc = miuixTheme.colors;
-    // 官方 SmallTopAppBar 的标题规格：title3(20sp) + w500 + 字重偏移。
-    final TextStyle titleStyle = miuixTheme.textStyles.title3
-        .copyWith(color: mc.onSurface, fontWeight: FontWeight.w500)
-        .withMiuixWeight(miuixTheme.fontWeightAdjustment);
+    // Miuix 的导航图标不自动推导，这里按可返回性补一个自绘返回箭头。
+    Widget? navigationIcon = leading;
+    if (navigationIcon == null) {
+      final NavigatorState? navigator = Navigator.maybeOf(context);
+      if (navigator != null && navigator.canPop()) {
+        navigationIcon = MiuixIconButton(
+          icon: MiuixIcons.arrowBack(),
+          onPressed: () => Navigator.maybePop(context),
+        );
+      }
+    }
 
-    return AppBar(
-      toolbarHeight:
-          toolbarHeight ?? MiuixTopAppBarDefaults.smallTopAppBarCenterHeight,
-      backgroundColor: mc.surface,
-      foregroundColor: mc.onSurface,
-      elevation: 0,
-      scrolledUnderElevation: 0,
-      leading: leading,
-      centerTitle: centerTitle ?? true,
-      title: Text(
-        title,
-        style: titleStyle,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      actions: actions,
+    return MiuixTopAppBar(
+      title: title,
+      navigationIcon: navigationIcon,
+      actions: actions ?? const <Widget>[],
       bottom: bottom,
+      height:
+          toolbarHeight ?? MiuixTopAppBarDefaults.smallTopAppBarCenterHeight,
     );
   }
 }

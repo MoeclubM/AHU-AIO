@@ -3,6 +3,7 @@ import 'theme_manager.dart';
 import 'adaptive_ui.dart';
 
 import 'finance/pages/finance_recharge_page.dart';
+import 'miuix/liquid_glass_app_bar.dart';
 
 class WidgetSettingsScreen extends StatefulWidget {
   const WidgetSettingsScreen({super.key});
@@ -36,7 +37,7 @@ class _WidgetSettingsScreenState extends State<WidgetSettingsScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('控件')),
+      appBar: LiquidGlassAppBar(title: const Text('控件')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 48),
         children: [

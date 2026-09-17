@@ -4,6 +4,7 @@ import '../api/synjones_client.dart';
 import 'finance_cards_page.dart';
 import 'finance_pay_code_page.dart';
 import 'finance_recharge_detail_page.dart';
+import '../../miuix/liquid_glass_app_bar.dart';
 
 class FinanceAppsPage extends StatefulWidget {
   final List<dynamic> initialCards;
@@ -65,7 +66,7 @@ class _FinanceAppsPageState extends State<FinanceAppsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('一卡通功能')),
+      appBar: LiquidGlassAppBar(title: const Text('一卡通功能')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

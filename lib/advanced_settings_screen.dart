@@ -5,6 +5,7 @@ import 'finance/api/synjones_client.dart';
 import 'globals.dart' as globals;
 import 'jwapp/api/getuserinfo_extended.dart';
 import 'adaptive_ui.dart';
+import 'miuix/liquid_glass_app_bar.dart';
 
 class AdvancedSettingsScreen extends StatefulWidget {
   const AdvancedSettingsScreen({super.key});
@@ -275,7 +276,7 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
     final scheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('高级')),
+      appBar: LiquidGlassAppBar(title: const Text('高级')),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 48),
         children: [

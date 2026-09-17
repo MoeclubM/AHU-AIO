@@ -23,14 +23,10 @@ export 'miuix_tokens.dart';
 ///
 /// 用超椭圆 `|x/r|^n + |y/r|^n = 1`（n = 4）逼近 HyperOS 的连续圆角，
 /// 半径达到短边一半时退化为胶囊。对应 Compose 的 `squircleBackground`。
-class MiuixSquircleBorder extends ShapeBorder {
-  const MiuixSquircleBorder({
-    this.cornerRadius = 16,
-    this.side = BorderSide.none,
-  });
+class MiuixSquircleBorder extends OutlinedBorder {
+  const MiuixSquircleBorder({this.cornerRadius = 16, super.side});
 
   final double cornerRadius;
-  final BorderSide side;
 
   /// 超椭圆指数：越大越接近直角矩形，4 是连续圆角的常用近似。
   static const double _exponent = 4;
@@ -57,6 +53,10 @@ class MiuixSquircleBorder extends ShapeBorder {
   @override
   ShapeBorder scale(double t) =>
       MiuixSquircleBorder(cornerRadius: cornerRadius * t, side: side.scale(t));
+
+  @override
+  OutlinedBorder copyWith({BorderSide? side}) =>
+      MiuixSquircleBorder(cornerRadius: cornerRadius, side: side ?? this.side);
 
   @override
   bool operator ==(Object other) =>
@@ -1150,6 +1150,326 @@ class _MiuixInsetBorderPainter extends CustomPainter {
 abstract final class MiuixTopAppBarDefaults {
   /// 小顶栏（居中标题）的高度。
   static const double smallTopAppBarCenterHeight = 50;
+
+  /// 标题的水平内边距。
+  static const double titlePadding = 26;
+
+  /// 导航图标距左边缘的内边距。
+  static const double navigationIconPadding = 16;
+
+  /// 操作图标距右边缘的内边距。
+  static const double actionIconPadding = 16;
+
+  /// 图标按钮的触摸区边长。
+  static const double iconButtonSize = 40;
+
+  /// 图标本身尺寸。
+  static const double iconSize = 24;
+}
+
+/// 小顶栏。对应 Compose `SmallTopAppBar`。
+///
+/// 规格对齐 Kotlin 源码：高 50、实色 `surface` 背景、无高度感也不随滚动染色；
+/// 导航图标左内边距 16，操作图标右内边距 16，标题左右各 26 且居中、
+/// `title3` 字号 + `w500`、最多一行省略。
+///
+/// 与 Material 的 [AppBar] 不同，这里左侧返回键由 [MiuixIconButton] 提供
+/// （无水波纹、按下缩放），所以不会带出 Material 的触摸反馈。
+class MiuixTopAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const MiuixTopAppBar({
+    super.key,
+    this.title,
+    this.navigationIcon,
+    this.actions = const <Widget>[],
+    this.bottom,
+    this.height = MiuixTopAppBarDefaults.smallTopAppBarCenterHeight,
+    this.backgroundColor,
+    this.titleColor,
+  });
+
+  final Widget? title;
+  final Widget? navigationIcon;
+  final List<Widget> actions;
+  final PreferredSizeWidget? bottom;
+  final double height;
+  final Color? backgroundColor;
+  final Color? titleColor;
+
+  @override
+  Size get preferredSize =>
+      Size.fromHeight(height + (bottom?.preferredSize.height ?? 0));
+
+  @override
+  Widget build(BuildContext context) {
+    final MiuixThemeData theme = MiuixTheme.of(context);
+    final MiuixColors c = theme.colors;
+
+    // 官方 SmallTopAppBar 的标题规格：title3 + w500 + 字重偏移。
+    final TextStyle titleStyle = theme.textStyles.title3
+        .copyWith(color: titleColor ?? c.onSurface, fontWeight: FontWeight.w500)
+        .withMiuixWeight(theme.fontWeightAdjustment);
+
+    // 两侧槽位按「图标按钮 + 内边距」预留，使标题在视觉上居中且永不与图标重叠。
+    const double navSlot =
+        MiuixTopAppBarDefaults.navigationIconPadding +
+        MiuixTopAppBarDefaults.iconButtonSize;
+    const double actionSlot =
+        MiuixTopAppBarDefaults.actionIconPadding +
+        MiuixTopAppBarDefaults.iconButtonSize;
+
+    final Widget bar = Row(
+      children: <Widget>[
+        SizedBox(
+          width: navSlot,
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Padding(
+              padding: const EdgeInsetsDirectional.only(
+                start: MiuixTopAppBarDefaults.navigationIconPadding,
+              ),
+              child: navigationIcon ?? const SizedBox.shrink(),
+            ),
+          ),
+        ),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: MiuixTopAppBarDefaults.titlePadding,
+            ),
+            child: DefaultTextStyle(
+              style: titleStyle,
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              child: title ?? const SizedBox.shrink(),
+            ),
+          ),
+        ),
+        SizedBox(
+          // 无论有没有操作图标都占满槽位，否则标题会偏离中心。
+          width: actionSlot,
+          child: Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: Padding(
+              padding: const EdgeInsetsDirectional.only(
+                end: MiuixTopAppBarDefaults.actionIconPadding,
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: actions),
+            ),
+          ),
+        ),
+      ],
+    );
+
+    // 与 Material AppBar 的 primary 行为一致：状态栏高度由顶栏自己吃掉，
+    // preferredSize 里不含它（Scaffold 会按实际高度布局）。
+    final double topPadding = MediaQuery.paddingOf(context).top;
+    return MediaQuery.removePadding(
+      context: context,
+      removeTop: true,
+      child: Material(
+        color: backgroundColor ?? c.surface,
+        elevation: 0,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            SizedBox(height: topPadding),
+            SizedBox(height: height, child: bar),
+            ?bottom,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Miuix 图标按钮：40×40 触摸区、无水波纹，按下时图标缩到 0.88。
+class MiuixIconButton extends StatefulWidget {
+  const MiuixIconButton({
+    super.key,
+    required this.icon,
+    this.onPressed,
+    this.size = MiuixTopAppBarDefaults.iconSize,
+    this.color,
+  });
+
+  final Widget icon;
+  final VoidCallback? onPressed;
+  final double size;
+  final Color? color;
+
+  @override
+  State<MiuixIconButton> createState() => _MiuixIconButtonState();
+}
+
+class _MiuixIconButtonState extends State<MiuixIconButton> {
+  bool _pressed = false;
+
+  void _set(bool v) {
+    if (_pressed == v) return;
+    setState(() => _pressed = v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final MiuixColors c = MiuixTheme.of(context).colors;
+    final Color color = widget.color ?? c.onSurface;
+    final bool enabled = widget.onPressed != null;
+    final Widget content = IconTheme.merge(
+      data: IconThemeData(
+        size: widget.size,
+        color: enabled ? color : color.withValues(alpha: 0.38),
+      ),
+      child: SizedBox(
+        width: MiuixTopAppBarDefaults.iconButtonSize,
+        height: MiuixTopAppBarDefaults.iconButtonSize,
+        child: Center(child: widget.icon),
+      ),
+    );
+
+    if (!enabled) return content;
+
+    return Semantics(
+      button: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapDown: (_) => _set(true),
+        onTapUp: (_) => _set(false),
+        onTapCancel: () => _set(false),
+        onTap: widget.onPressed,
+        child: AnimatedScale(
+          scale: _pressed ? 0.88 : 1,
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          child: content,
+        ),
+      ),
+    );
+  }
+}
+
+/// Miuix 图标：按 HyperOS 的字形自绘，避免带出 Material 图标风格。
+abstract final class MiuixIcons {
+  /// 返回箭头：一根横杆 + 左向箭头。
+  static Widget arrowBack({double size = MiuixTopAppBarDefaults.iconSize}) =>
+      _MiuixArrowBackPainter(size: size);
+
+  /// 展开指示：上下两个细 chevron（HyperOS 下拉行的尾部标记）。
+  static Widget chevronExpand({
+    double size = 14,
+    Color? color,
+    double strokeWidth = 1.6,
+  }) => _MiuixChevronExpandPainter(
+    size: size,
+    color: color,
+    strokeWidth: strokeWidth,
+  );
+}
+
+class _MiuixChevronExpandPainter extends StatelessWidget {
+  const _MiuixChevronExpandPainter({
+    required this.size,
+    required this.color,
+    required this.strokeWidth,
+  });
+
+  final double size;
+  final Color? color;
+  final double strokeWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: Size(size, size * 1.5),
+      painter: _ChevronExpandPainter(
+        color: color ?? IconTheme.of(context).color ?? const Color(0xFF000000),
+        strokeWidth: strokeWidth,
+      ),
+    );
+  }
+}
+
+class _ChevronExpandPainter extends CustomPainter {
+  const _ChevronExpandPainter({required this.color, required this.strokeWidth});
+
+  final Color color;
+  final double strokeWidth;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final double w = size.width;
+    final double h = size.height;
+    final double mid = w / 2;
+    // 上半：^
+    final Path up = Path()
+      ..moveTo(w * 0.08, h * 0.42)
+      ..lineTo(mid, h * 0.20)
+      ..lineTo(w * 0.92, h * 0.42);
+    // 下半：v
+    final Path down = Path()
+      ..moveTo(w * 0.08, h * 0.58)
+      ..lineTo(mid, h * 0.80)
+      ..lineTo(w * 0.92, h * 0.58);
+    canvas.drawPath(up, paint);
+    canvas.drawPath(down, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ChevronExpandPainter oldDelegate) =>
+      oldDelegate.color != color || oldDelegate.strokeWidth != strokeWidth;
+}
+
+class _MiuixArrowBackPainter extends StatelessWidget {
+  const _MiuixArrowBackPainter({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: Size.square(size),
+      painter: _ArrowBackPainter(
+        color: IconTheme.of(context).color ?? const Color(0xFF000000),
+      ),
+    );
+  }
+}
+
+class _ArrowBackPainter extends CustomPainter {
+  const _ArrowBackPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final Paint paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final double w = size.width;
+    final double h = size.height;
+    final Offset tip = Offset(w * 0.20, h * 0.5);
+    canvas.drawLine(
+      Offset(w * 0.20, h * 0.5),
+      Offset(w * 0.82, h * 0.5),
+      paint,
+    );
+    canvas.drawLine(tip, Offset(w * 0.46, h * 0.24), paint);
+    canvas.drawLine(tip, Offset(w * 0.46, h * 0.76), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ArrowBackPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 // ---------------------------------------------------------------------------

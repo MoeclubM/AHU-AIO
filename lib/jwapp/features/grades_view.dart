@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import '../api/getgrades.dart';
 import '../models/grade_model.dart';
 import '../../globals.dart' as globals;
+import '../../adaptive_dropdown.dart';
 import '../../adaptive_ui.dart';
+import '../../miuix/liquid_glass_app_bar.dart';
 
 class GradesPage extends StatefulWidget {
   final bool embed;
@@ -97,7 +99,9 @@ class _GradesPageState extends State<GradesPage>
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: widget.embed ? null : AppBar(title: const Text('成绩查询')),
+      appBar: widget.embed
+          ? null
+          : LiquidGlassAppBar(title: const Text('成绩查询')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -168,24 +172,20 @@ class _GradesPageState extends State<GradesPage>
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: DropdownButton<String>(
+            child: AdaptiveDropdown<String>(
               value: _selectedSemester,
-              hint: const Text('全部学期'),
+              hint: '全部学期',
               isExpanded: true,
-              underline: const SizedBox(),
-              items: [
-                const DropdownMenuItem<String>(
-                  value: null,
-                  child: Text('全部学期'),
-                ),
-                ..._semesters.map((semester) {
-                  return DropdownMenuItem<String>(
-                    value: semester,
-                    child: Text(semester),
-                  );
-                }),
-              ],
               onChanged: _filterBySemester,
+              items: <AdaptiveDropdownItem<String>>[
+                const AdaptiveDropdownItem<String>(value: null, label: '全部学期'),
+                ..._semesters.map(
+                  (semester) => AdaptiveDropdownItem<String>(
+                    value: semester,
+                    label: semester,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

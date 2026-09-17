@@ -7,6 +7,7 @@ import '../finance/api/synjones_client.dart';
 import 'cas_auth_cache.dart';
 import 'auth_manager.dart';
 import '../adaptive_ui.dart';
+import '../miuix/liquid_glass_app_bar.dart';
 
 class UnifiedLoginPage extends StatefulWidget {
   final VoidCallback? onLoginSuccess;
@@ -236,7 +237,7 @@ class _UnifiedLoginPageState extends State<UnifiedLoginPage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('安徽大学统一身份认证')),
+      appBar: LiquidGlassAppBar(title: const Text('安徽大学统一身份认证')),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),

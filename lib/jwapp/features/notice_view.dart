@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import '../api/api_manager.dart';
 import '../../globals.dart' as globals;
+import '../../miuix/liquid_glass_app_bar.dart';
 
 /// 通知公告页面
 class NoticePage extends StatefulWidget {
@@ -87,7 +88,7 @@ class _NoticePageState extends State<NoticePage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
+      appBar: LiquidGlassAppBar(
         title: const Text('通知公告'),
         actions: [
           IconButton(onPressed: _loadNotices, icon: const Icon(Icons.refresh)),

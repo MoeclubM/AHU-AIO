@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../adaptive_ui.dart';
 import '../../miuix/liquid_glass_app_bar.dart';
 import '../../theme_manager.dart';
 import '../home/home_view.dart';
@@ -69,25 +70,19 @@ class _MainPageState extends State<MainPage>
     return Scaffold(
       appBar: showTitle
           ? LiquidGlassAppBar(
-              title: '安大微教务',
+              title: const Text('安大微教务'),
               actions: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 16),
-                  child: IconButton(
-                    icon: const Icon(
-                      Icons.notifications_none_outlined,
-                      size: 20,
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const NoticePage(),
-                        ),
-                      );
-                    },
-                    tooltip: '通知公告',
-                  ),
+                AdaptiveIconButton(
+                  icon: const Icon(Icons.notifications_none_outlined),
+                  tooltip: '通知公告',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const NoticePage(),
+                      ),
+                    );
+                  },
                 ),
               ],
             )

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../api/synjones_client.dart';
+import '../../adaptive_dropdown.dart';
+import '../../miuix/liquid_glass_app_bar.dart';
 
 class FinanceRechargeDetailPage extends StatefulWidget {
   final Map<String, dynamic> entry;
@@ -822,7 +824,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
   Widget build(BuildContext context) {
     final title = _title(widget.entry);
     return Scaffold(
-      appBar: AppBar(title: Text(title)),
+      appBar: LiquidGlassAppBar(title: Text(title)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
@@ -907,7 +909,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
             const Text('将为当前校园卡创建充值订单，支付完成后到账。'),
             if (_accounts.isNotEmpty) ...[
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
+              AdaptiveDropdownFormField<String>(
                 value: _accountValue,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
@@ -915,9 +917,9 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
                 ),
                 items: _accounts
                     .map(
-                      (e) => DropdownMenuItem<String>(
+                      (e) => AdaptiveDropdownItem<String>(
                         value: e['myID'].toString(),
-                        child: Text(_accountTitle(e)),
+                        label: _accountTitle(e),
                       ),
                     )
                     .toList(),
@@ -1283,14 +1285,14 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
     if (_accountNoList.isNotEmpty) {
       widgets.addAll([
         const SizedBox(height: 12),
-        DropdownButtonFormField<String>(
+        AdaptiveDropdownFormField<String>(
           value: _selectedAccountNo,
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
             labelText: '支付账户',
           ),
           items: _accountNoList
-              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+              .map((e) => AdaptiveDropdownItem<String>(value: e, label: e))
               .toList(),
           onChanged: (value) async {
             setState(() {
@@ -1310,7 +1312,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
     if (_accountTypeList.isNotEmpty) {
       widgets.addAll([
         const SizedBox(height: 12),
-        DropdownButtonFormField<String>(
+        AdaptiveDropdownFormField<String>(
           value: _selectedCccType,
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
@@ -1318,9 +1320,9 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
           ),
           items: _accountTypeList
               .map(
-                (e) => DropdownMenuItem<String>(
+                (e) => AdaptiveDropdownItem<String>(
                   value: e['ccctype']?.toString(),
-                  child: Text(_accountTypeTitle(e)),
+                  label: _accountTypeTitle(e),
                 ),
               )
               .toList(),
@@ -1553,7 +1555,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
               const Divider(height: 24),
               const Text('可用支付方式'),
               const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
+              AdaptiveDropdownFormField<String>(
                 value: _selectedPayId,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
@@ -1561,11 +1563,10 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
                 ),
                 items: payList
                     .map(
-                      (pay) => DropdownMenuItem<String>(
+                      (pay) => AdaptiveDropdownItem<String>(
                         value: pay['payid'].toString(),
-                        child: Text(
-                          pay['name']?.toString() ?? pay['code'].toString(),
-                        ),
+                        label:
+                            pay['name']?.toString() ?? pay['code'].toString(),
                       ),
                     )
                     .toList(),

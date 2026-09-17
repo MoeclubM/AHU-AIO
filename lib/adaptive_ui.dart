@@ -425,6 +425,49 @@ class AdaptiveTextButton extends StatelessWidget {
   }
 }
 
+/// 图标按钮：Miuix 用无水波纹、按下缩放的原生按钮，MD3 用标准 IconButton。
+///
+/// 顶栏和卡片里的操作图标都应走这个组件，否则 Miuix 模式会带出 Material 的
+/// 水波纹与 48dp 触摸圈，看起来就不是 HyperOS 了。
+class AdaptiveIconButton extends StatelessWidget {
+  const AdaptiveIconButton({
+    super.key,
+    required this.icon,
+    this.onPressed,
+    this.tooltip,
+    this.size,
+    this.color,
+  });
+
+  final Widget icon;
+  final VoidCallback? onPressed;
+  final String? tooltip;
+  final double? size;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isMiuixUi()) {
+      final Widget button = MiuixIconButton(
+        icon: icon,
+        onPressed: onPressed,
+        size: size ?? MiuixTopAppBarDefaults.iconSize,
+        color: color,
+      );
+      return tooltip == null
+          ? button
+          : Tooltip(message: tooltip!, child: button);
+    }
+    return IconButton(
+      icon: icon,
+      onPressed: onPressed,
+      tooltip: tooltip,
+      iconSize: size,
+      color: color,
+    );
+  }
+}
+
 /// 选项弹窗中的一项。
 @immutable
 class AdaptiveChoice<T> {
