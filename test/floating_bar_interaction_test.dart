@@ -7,9 +7,14 @@ import 'package:ahu_aio/miuix/miuix_theme.dart';
 
 /// 悬浮底栏的交互回归测试。
 ///
-/// 重点是「跟手」：旧实现从**当前动画值**累积拖动增量，弹簧的滞后会逐帧
-/// 累加成永久落后——手势结束时页面几乎没动。这里直接断言「手指位移多少，
-/// 页面就位移多少」，防止该问题回归。
+/// 这里刻意复刻生产结构（底栏作为 Stack 的上一层、悬浮在 PageView 之上），
+/// 因为手势冲突只在真实层级下才会暴露：
+/// - 旧实现用「外层横滑 GestureDetector + 条目各自点按 GestureDetector」，
+///   两个识别器在手势竞技场里互相等待，实机上表现为**按住拖动完全没反应**；
+/// - 现实现由单个 Listener 处理原始指针，同时判定点按与拖动（对齐 Compose
+///   的 inspectDragGestures）。
+///
+/// 断言「手指位移多少，页面就位移多少」，防止再次回归为不动或不跟手。
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
@@ -41,19 +46,25 @@ void main() {
         ),
         child: MaterialApp(
           home: Scaffold(
-            body: Column(
+            // 与生产一致：页面在下、悬浮底栏作为上层。
+            body: Stack(
               children: [
-                Expanded(
-                  child: PageView(
+                PageView(
+                  controller: controller,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: [
+                    for (int i = 0; i < count; i++) Center(child: Text('页$i')),
+                  ],
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: MiuixFloatingTabBar(
                     controller: controller,
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: [
-                      for (int i = 0; i < count; i++)
-                        Center(child: Text('页$i')),
-                    ],
+                    items: items,
                   ),
                 ),
-                MiuixFloatingTabBar(controller: controller, items: items),
               ],
             ),
           ),
@@ -83,27 +94,43 @@ void main() {
     expect(find.byIcon(Icons.circle), findsOneWidget);
   });
 
-  testWidgets('拖动跟手：手指位移多少，页面就位移多少', (tester) async {
+  testWidgets('拖动有效且跟手：位移等于手指位移，逐段单调推进', (tester) async {
     final controller = await pumpBar(tester);
     final Rect barRect = tester.getRect(find.byType(MiuixFloatingTabBar));
     final double tabWidth = tabWidthOf(tester, 4);
+    final double left =
+        barRect.left + MiuixFloatingBarDefaults.horizontalMargin;
 
-    final gesture = await tester.startGesture(barRect.center);
+    // 从第一个条目按下，保证右侧有足够行程（避免撞到末页被正确钳制）。
+    final gesture = await tester.startGesture(
+      Offset(left + tabWidth * 0.5, barRect.center.dy),
+    );
     await tester.pump(const Duration(milliseconds: 16));
-    // 越过触摸 slop 让手势被识别（这段位移按 Flutter 约定不计入拖动）。
+    // 越过触摸阈值，让手势进入拖动状态。
     await gesture.moveBy(const Offset(30, 0));
     await tester.pump(const Duration(milliseconds: 16));
-    final double pageBefore = controller.page!;
+    final double start = controller.page!;
+    expect(start, greaterThan(0.0), reason: '越过阈值后应立即产生位移（旧实现这里完全没有反应）');
 
-    // 再移动恰好一个条目宽度 → 页面应位移恰好一页。
-    await gesture.moveBy(Offset(tabWidth, 0));
-    await tester.pump(const Duration(milliseconds: 16));
-    final double pageAfter = controller.page!;
+    // 分成 4 段连续推进，每段位移都应真实生效且单调递增。
+    double previous = start;
+    for (int i = 0; i < 4; i++) {
+      await gesture.moveBy(Offset(tabWidth / 4, 0));
+      await tester.pump(const Duration(milliseconds: 16));
+      final double current = controller.page!;
+      expect(
+        current,
+        greaterThan(previous + 0.1),
+        reason: '每一段拖动都必须带动页面，不能出现"拖着不动"',
+      );
+      previous = current;
+    }
 
+    // 累计约一个条目宽度 → 累计位移约一页。
     expect(
-      pageAfter - pageBefore,
-      closeTo(1.0, 0.2),
-      reason: '拖动一个条目宽度后页面位移应约为 1 页（不得落后）',
+      previous - start,
+      closeTo(1.0, 0.25),
+      reason: '拖动一个条目宽度后页面位移应约为一页（不得落后）',
     );
 
     await gesture.up();
@@ -111,7 +138,7 @@ void main() {
     expect(controller.page!, closeTo(1.0, 0.2), reason: '松手后应停在最近的一页');
   });
 
-  testWidgets('拖动过程中指示器与页面同步（同源）', (tester) async {
+  testWidgets('拖动中途指示器与页面同步（同源）', (tester) async {
     final controller = await pumpBar(tester);
     final Rect barRect = tester.getRect(find.byType(MiuixFloatingTabBar));
     final double tabWidth = tabWidthOf(tester, 4);
@@ -125,14 +152,13 @@ void main() {
     await tester.pump(const Duration(milliseconds: 16));
 
     // 指示器位置即页面位置：两者共用同一个值，中途也不应出现偏差。
-    final double page = controller.page!;
-    expect(page, greaterThan(0.2), reason: '半页拖动后页面应有可见位移');
+    expect(controller.page!, greaterThan(0.2), reason: '半页拖动后页面应有可见位移');
 
     await gesture.up();
     await tester.pumpAndSettle();
   });
 
-  testWidgets('点击条目切换到对应页面', (tester) async {
+  testWidgets('轻点条目切换到对应页面（点按与拖动共存）', (tester) async {
     final controller = await pumpBar(tester);
     final Rect barRect = tester.getRect(find.byType(MiuixFloatingTabBar));
     final double tabWidth = tabWidthOf(tester, 4);
@@ -143,5 +169,21 @@ void main() {
     await tester.tapAt(Offset(left + tabWidth * 2.5, barRect.center.dy));
     await tester.pumpAndSettle();
     expect(controller.page!, closeTo(2.0, 0.05));
+  });
+
+  testWidgets('按住不动再松手视为点击（不误判为拖动）', (tester) async {
+    final controller = await pumpBar(tester);
+    final Rect barRect = tester.getRect(find.byType(MiuixFloatingTabBar));
+    final double tabWidth = tabWidthOf(tester, 4);
+    final double left =
+        barRect.left + MiuixFloatingBarDefaults.horizontalMargin;
+
+    final gesture = await tester.startGesture(
+      Offset(left + tabWidth * 2.5, barRect.center.dy),
+    );
+    await tester.pump(const Duration(milliseconds: 200));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(controller.page!, closeTo(2.0, 0.05), reason: '长按应视为点击该条目');
   });
 }

@@ -1,6 +1,7 @@
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
+import 'package:flutter/gestures.dart' show kTouchSlop;
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 
@@ -201,8 +202,23 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
   /// 供按压高光定位的触点位置（相对栏外侧）。
   Offset _touch = Offset.zero;
 
-  final List<double> _sampleTimes = <double>[];
-  final List<double> _sampleValues = <double>[];
+  /// 正在跟踪的指针（多点触控时只认第一根）。
+  int? _activePointer;
+
+  /// 本次手势是否已经越过触摸阈值、进入拖动。
+  bool _dragStarted = false;
+
+  /// 按下点（用于判定点按 / 拖动）。
+  double _downX = 0;
+
+  /// 指针轨迹采样，用于松手时的速度（像素/秒）。
+  final List<double> _trackTimes = <double>[];
+  final List<double> _trackPositions = <double>[];
+
+  /// 最近一次布局的内容区宽度（条目换算与 RTL 镜像都要用）。
+  double _lastContentWidth = 0;
+
+  double get _nowSeconds => DateTime.now().microsecondsSinceEpoch / 1e6;
 
   @override
   void initState() {
@@ -279,7 +295,7 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
   }
 
   void _onValueTick() {
-    _sampleVelocity();
+    // 指示器是唯一的真值来源：它每动一次就把页面同步到同一位置。
     if (_driving) _pushToController();
   }
 
@@ -320,8 +336,10 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
       return;
     }
     _springTo(_pressCtrl, 1, MiuixFloatingBarDefaults.pressSpring);
+    final double width =
+        _lastContentWidth + MiuixFloatingBarDefaults.insidePadding.horizontal;
     final double target =
-        1 + MiuixFloatingBarDefaults.pressScaleDelta / _barWidth;
+        1 + MiuixFloatingBarDefaults.pressScaleDelta / (width <= 0 ? 1 : width);
     _springTo(_scaleXCtrl, target, MiuixFloatingBarDefaults.scaleXSpring);
     _springTo(_scaleYCtrl, target, MiuixFloatingBarDefaults.scaleYSpring);
   }
@@ -343,8 +361,10 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
 
   /// 结束一次「底栏驱动」：指示器回位、橡皮筋与速度归零，
   /// 并在指示器就位后收起按压反馈（官方 release() 的时序）。
-  void _finishDriving(double target, {double? velocity}) {
-    _animateValueTo(target, velocity: velocity ?? _velocityCtrl.value);
+  void _finishDriving(double target, {double velocity = 0}) {
+    // 把松手瞬间的速度交给指示器，拉伸/压缩会随之自然回落。
+    _velocityCtrl.value = velocity.clamp(-40.0, 40.0);
+    _animateValueTo(target, velocity: velocity);
     _springTo(_panelCtrl, 0, MiuixFloatingBarDefaults.panelSpring);
     _springTo(_velocityCtrl, 0, MiuixFloatingBarDefaults.velocitySpring);
     _whenSettled().then((_) {
@@ -358,69 +378,15 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
   /// 指示器是否已到达弹簧目的地。
   bool get _settled => (_valueCtrl.value - _springTarget).abs() < 0.002;
 
+  /// 等待指示器就位。
+  ///
+  /// 带上限：若动画被抢占导致始终不收敛，也不能让 [_driving] 永久卡住
+  /// （那会让后续拖动与外部翻页都失去同步）。
   Future<void> _whenSettled() async {
-    while (mounted && !_settled) {
+    final Stopwatch watch = Stopwatch()..start();
+    while (mounted && !_settled && watch.elapsedMilliseconds < 1200) {
       await Future<void>.delayed(const Duration(milliseconds: 16));
     }
-  }
-
-  /// 采样指示器速度（官方 VelocityTracker 的等价实现，窗口 ~80ms）。
-  void _sampleVelocity() {
-    final double now = DateTime.now().microsecondsSinceEpoch / 1e6;
-    _sampleTimes.add(now);
-    _sampleValues.add(_valueCtrl.value);
-    while (_sampleTimes.length > 2 && now - _sampleTimes.first > 0.08) {
-      _sampleTimes.removeAt(0);
-      _sampleValues.removeAt(0);
-    }
-    if (_sampleTimes.length < 2) return;
-    final double dt = _sampleTimes.last - _sampleTimes.first;
-    if (dt > 1e-4) {
-      _velocityCtrl.value = (_sampleValues.last - _sampleValues.first) / dt;
-    }
-  }
-
-  double get _barWidth {
-    final RenderBox? box = context.findRenderObject() as RenderBox?;
-    return (box != null && box.hasSize && box.size.width > 0)
-        ? box.size.width
-        : 1;
-  }
-
-  // ---- 手势 ----
-
-  void _onDragStart(DragStartDetails details, double tabWidth) {
-    _driving = true;
-    _touch = details.localPosition;
-    _dragTarget = _valueCtrl.value;
-    _panelCtrl.value = 0;
-    if (widget.controller.hasClients) {
-      (widget.controller.position as ScrollPositionWithSingleContext).goIdle();
-    }
-    _press();
-  }
-
-  /// 拖动：指示器与页面都 1:1 跟手，弹簧只负责松手后的回位。
-  void _onDragUpdate(DragUpdateDetails details, double tabWidth) {
-    _touch = details.localPosition;
-    if (tabWidth <= 0) return;
-    final double dx = details.delta.dx;
-    if (dx == 0) return;
-
-    // 从目标累积，并允许少量越界，便于回拖时立刻响应。
-    _dragTarget = (_dragTarget + dx / tabWidth).clamp(-0.4, _maxIndex + 0.4);
-    _valueCtrl.value = _dragTarget.clamp(0.0, _maxIndex);
-    _springTarget = _valueCtrl.value;
-    _panelCtrl.value += dx;
-    _pushToController();
-  }
-
-  void _onDragEnd(DragEndDetails details, double tabWidth) {
-    _finishDriving(_nearestIndex);
-  }
-
-  void _onDragCancel(double tabWidth) {
-    _finishDriving(_nearestIndex);
   }
 
   /// 松手后落到的条目。
@@ -432,6 +398,109 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
     _press();
     _dragTarget = index.toDouble();
     _finishDriving(index.toDouble(), velocity: 0);
+  }
+
+  // ---- 手势：直接处理原始指针事件 ----
+  //
+  // 不用 GestureDetector：外层的横向拖动识别器与每个条目的点按识别器会在手势
+  // 竞技场里互相等待（拖动要等按下后位移、点按要等抬起且对手放弃），实际表现
+  // 就是「按住拖动完全没反应」。Compose 版是同一套指针逻辑同时判定点按与拖动
+  // （inspectDragGestures），这里用 Listener 复刻同样的语义。
+
+  void _onPointerDown(PointerDownEvent event, double tabWidth) {
+    if (_activePointer != null) return;
+    _activePointer = event.pointer;
+    _dragStarted = false;
+    _downX = event.localPosition.dx;
+    _touch = event.localPosition;
+    _trackTimes
+      ..clear()
+      ..add(_nowSeconds);
+    _trackPositions
+      ..clear()
+      ..add(event.localPosition.dx);
+
+    _driving = true;
+    _panelCtrl.value = 0;
+    if (widget.controller.hasClients) {
+      (widget.controller.position as ScrollPositionWithSingleContext).goIdle();
+    }
+    _press();
+    // 官方：按下即把指示器弹向触点所在条目（弹簧过去，而不是硬跳）。
+    _dragTarget = _indexAt(event.localPosition.dx, tabWidth).toDouble();
+    _animateValueTo(_dragTarget);
+  }
+
+  void _onPointerMove(PointerMoveEvent event, double tabWidth) {
+    if (event.pointer != _activePointer) return;
+    _touch = event.localPosition;
+
+    final double now = _nowSeconds;
+    _trackTimes.add(now);
+    _trackPositions.add(event.localPosition.dx);
+    while (_trackTimes.length > 2 && now - _trackTimes.first > 0.1) {
+      _trackTimes.removeAt(0);
+      _trackPositions.removeAt(0);
+    }
+
+    // 越过来回抖动阈值之前视为点按，避免手指微动被当成拖动。
+    if (!_dragStarted) {
+      if ((event.localPosition.dx - _downX).abs() <= kTouchSlop) return;
+      _dragStarted = true;
+    }
+
+    final double dx = event.delta.dx;
+    if (dx == 0 || tabWidth <= 0) return;
+
+    // 从**目标**累积：总位移恒等于手指位移，不会因弹簧滞后而落后。
+    _dragTarget = (_dragTarget + dx / tabWidth).clamp(-0.4, _maxIndex + 0.4);
+    _valueCtrl.value = _dragTarget.clamp(0.0, _maxIndex);
+    _springTarget = _valueCtrl.value;
+    _panelCtrl.value += dx;
+    _pushToController();
+  }
+
+  void _onPointerUp(PointerUpEvent event, double tabWidth) {
+    if (event.pointer != _activePointer) return;
+    final bool wasTap = !_dragStarted;
+    final double velocity = _trackVelocity / (tabWidth <= 0 ? 1 : tabWidth);
+    _resetTracking();
+    if (wasTap) {
+      _select(_indexAt(event.localPosition.dx, tabWidth));
+    } else {
+      _finishDriving(_nearestIndex, velocity: velocity);
+    }
+  }
+
+  void _onPointerCancel(PointerCancelEvent event) {
+    if (event.pointer != _activePointer) return;
+    _resetTracking();
+    _finishDriving(_nearestIndex);
+  }
+
+  void _resetTracking() {
+    _activePointer = null;
+    _dragStarted = false;
+    _trackTimes.clear();
+    _trackPositions.clear();
+  }
+
+  /// 指针位移速度（像素/秒），用于松手后的拉伸与吸附。
+  double get _trackVelocity {
+    if (_trackTimes.length < 2) return 0;
+    final double dt = _trackTimes.last - _trackTimes.first;
+    if (dt <= 1e-4) return 0;
+    return (_trackPositions.last - _trackPositions.first) / dt;
+  }
+
+  /// 触点落在哪个条目上（已折算内容区内边距与 RTL 镜像）。
+  int _indexAt(double localX, double tabWidth) {
+    if (tabWidth <= 0 || widget.items.isEmpty) return 0;
+    final double inner = localX - MiuixFloatingBarDefaults.insidePadding.left;
+    final bool ltr = Directionality.of(context) == TextDirection.ltr;
+    final double x = ltr ? inner : _lastContentWidth - inner;
+    final int raw = (x / tabWidth).floor();
+    return raw.clamp(0, widget.items.length - 1);
   }
 
   @override
@@ -463,13 +532,15 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
           final double tabWidth = count == 0
               ? contentWidth
               : contentWidth / count;
+          // 供指针回调换算条目与 RTL 镜像。
+          _lastContentWidth = contentWidth;
 
-          return GestureDetector(
+          return Listener(
             behavior: HitTestBehavior.opaque,
-            onHorizontalDragStart: (d) => _onDragStart(d, tabWidth),
-            onHorizontalDragUpdate: (d) => _onDragUpdate(d, tabWidth),
-            onHorizontalDragEnd: (d) => _onDragEnd(d, tabWidth),
-            onHorizontalDragCancel: () => _onDragCancel(tabWidth),
+            onPointerDown: (e) => _onPointerDown(e, tabWidth),
+            onPointerMove: (e) => _onPointerMove(e, tabWidth),
+            onPointerUp: (e) => _onPointerUp(e, tabWidth),
+            onPointerCancel: _onPointerCancel,
             child: AnimatedBuilder(
               animation: Listenable.merge([
                 _valueCtrl,
@@ -507,9 +578,12 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
                         child: Stack(
                           fit: StackFit.expand,
                           children: [
-                            // 选中胶囊指示器（坐标基于已内缩 4dp 的内容区）。
+                            // 选中胶囊指示器（坐标基于已内缩 4dp 的内容区，
+                            // RTL 下按内容宽度镜像）。
                             Positioned(
-                              left: value * tabWidth,
+                              left: ltr
+                                  ? value * tabWidth
+                                  : contentWidth - (value + 1) * tabWidth,
                               top: 0,
                               width: tabWidth.clamp(0.0, double.infinity),
                               height: pillHeight,
@@ -540,16 +614,7 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
                                       iconSize: widget.iconSize,
                                       fontSize: widget.fontSize,
                                       showLabel: widget.showLabels,
-                                      onPressed: () => _select(i),
-                                      onPressChanged: (pressed) {
-                                        // 拖动/回位期间统一交给 _finishDriving 收尾，
-                                        // 避免"按下-抬起"与"点击"两次收放互相打断。
-                                        if (pressed) {
-                                          _press();
-                                        } else if (!_driving) {
-                                          _collapsePress();
-                                        }
-                                      },
+                                      onTap: () => _select(i),
                                     ),
                                   ),
                               ],
@@ -732,6 +797,10 @@ class _GlassBarSurface extends StatelessWidget {
 final ImageFilter _barBlurFilter = liquidGlassImageFilter(blurSigma: 4);
 
 /// 单个底栏项：图标 + 可选标签，选中态按指示器位置连续着色。
+///
+/// 纯展示组件，**不挂自己的手势识别器**：点按与拖动统一由外层 Listener 判定，
+/// 避免两个识别器在手势竞技场里互相等待（那会让按住拖动完全没反应）。
+/// 无障碍点击仍通过 [Semantics.onTap] 提供。
 class _MiuixFloatingBarItem extends StatelessWidget {
   const _MiuixFloatingBarItem({
     required this.data,
@@ -740,8 +809,7 @@ class _MiuixFloatingBarItem extends StatelessWidget {
     required this.iconSize,
     required this.fontSize,
     required this.showLabel,
-    required this.onPressed,
-    required this.onPressChanged,
+    required this.onTap,
   });
 
   final MiuixFloatingBarItemData data;
@@ -750,8 +818,7 @@ class _MiuixFloatingBarItem extends StatelessWidget {
   final double iconSize;
   final double fontSize;
   final bool showLabel;
-  final VoidCallback onPressed;
-  final ValueChanged<bool> onPressChanged;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -766,37 +833,31 @@ class _MiuixFloatingBarItem extends StatelessWidget {
       button: true,
       selected: selected,
       label: data.label,
+      onTap: onTap,
       child: ExcludeSemantics(
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTapDown: (_) => onPressChanged(true),
-          onTapUp: (_) => onPressChanged(false),
-          onTapCancel: () => onPressChanged(false),
-          onTap: onPressed,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                selected ? data.activeIcon : data.icon,
-                color: tint,
-                size: iconSize,
-              ),
-              if (showLabel) ...[
-                const SizedBox(height: 1),
-                Text(
-                  data.label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: fontSize,
-                    fontWeight: FontWeight.normal,
-                    color: labelTint,
-                  ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              selected ? data.activeIcon : data.icon,
+              color: tint,
+              size: iconSize,
+            ),
+            if (showLabel) ...[
+              const SizedBox(height: 1),
+              Text(
+                data.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: fontSize,
+                  fontWeight: FontWeight.normal,
+                  color: labelTint,
                 ),
-              ],
+              ),
             ],
-          ),
+          ],
         ),
       ),
     );
