@@ -441,6 +441,50 @@ void main() {
     );
     expect(clip.height, MiuixFloatingSubBarSlot.slotHeight);
   });
+  testWidgets('按压高光只出现在选中项附近，不会点亮整条底栏', (tester) async {
+    final probe = await pumpProbe(tester);
+    final Rect barRect = tester.getRect(find.byType(MiuixFloatingTabBar));
+
+    final _Pixels rest = await probe.capture();
+
+    // 按住第二个条目（不是第一个，这样两侧都有观察空间）。
+    final double tabWidth = tabWidthOf(tester, 4);
+    final double contentLeft =
+        barRect.left +
+        MiuixFloatingBarDefaults.horizontalMargin +
+        MiuixFloatingBarDefaults.insidePadding.left;
+    final gesture = await tester.startGesture(
+      Offset(contentLeft + tabWidth * 1.5, barRect.center.dy),
+    );
+    for (int i = 0; i < 8; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+    final _Pixels pressed = await probe.capture();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    /// 某个 x 处按压前后的亮度变化（0–1）。
+    double delta(double x) {
+      final int y = barRect.center.dy.round();
+      return pressed.luminance(x.round(), y) - rest.luminance(x.round(), y);
+    }
+
+    // 远端：离选中项最远的位置不能变亮。
+    // 曾经的 bug：参考库 `drawWithContent` 里那层 8% 全幅白扫被照搬过来，
+    // 导致整条底栏均匀 +20/255，看起来就是「按一下整条都亮了」。
+    expect(
+      delta(barRect.right - MiuixFloatingBarDefaults.horizontalMargin - 8),
+      lessThan(0.02),
+      reason: '远离选中项的地方不应被点亮（高光必须是局部的）',
+    );
+
+    // 选中项附近应当明显变亮，否则说明高光整个丢了。
+    expect(
+      delta(contentLeft + tabWidth * 1.5),
+      greaterThan(0.05),
+      reason: '选中项处应有明显高光',
+    );
+  });
 }
 
 /// 悬浮底栏测试用的像素探针。

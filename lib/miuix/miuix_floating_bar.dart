@@ -102,9 +102,17 @@ class MiuixFloatingBarDefaults {
   static SpringDescription get valueSpring =>
       SpringDescription.withDampingRatio(mass: 1, stiffness: 1000, ratio: 1);
 
-  /// 按压进度弹簧（官方 `spring(1f, 1000f)`）。
+  /// 胶囊按压进度弹簧（官方 `spring(1f, 1000f)`）。
   static SpringDescription get pressSpring =>
       SpringDescription.withDampingRatio(mass: 1, stiffness: 1000, ratio: 1);
+
+  /// 底栏交互高光的弹簧。
+  ///
+  /// 与胶囊不同：参考库 `InteractiveHighlight.pressProgress` 用的是
+  /// `spring(0.5f, 300f)` —— 欠阻尼，所以高光是「亮起时有轻微过冲」的，
+  /// 而不是跟着胶囊一起干脆地弹到位。
+  static SpringDescription get highlightSpring =>
+      SpringDescription.withDampingRatio(mass: 1, stiffness: 300, ratio: 0.5);
 
   /// 横向缩放弹簧（官方 `spring(0.6f, 250f)`）。
   static SpringDescription get scaleXSpring =>
@@ -256,6 +264,7 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
 
   /// 按压进度 0→1。
   late final AnimationController _pressCtrl;
+  late final AnimationController _highlightCtrl;
 
   /// 指示器缩放（受按压与速度共同影响）。
   late final AnimationController _scaleXCtrl;
@@ -310,6 +319,7 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
     _valueCtrl = AnimationController.unbounded(vsync: this, value: initial)
       ..addListener(_onValueTick);
     _pressCtrl = AnimationController.unbounded(vsync: this, value: 0);
+    _highlightCtrl = AnimationController.unbounded(vsync: this, value: 0);
     _scaleXCtrl = AnimationController.unbounded(vsync: this, value: 1);
     _scaleYCtrl = AnimationController.unbounded(vsync: this, value: 1);
     _panelCtrl = AnimationController.unbounded(vsync: this, value: 0);
@@ -328,6 +338,7 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
     widget.controller.removeListener(_onControllerChanged);
     _valueCtrl.dispose();
     _pressCtrl.dispose();
+    _highlightCtrl.dispose();
     _scaleXCtrl.dispose();
     _scaleYCtrl.dispose();
     _panelCtrl.dispose();
@@ -416,9 +427,12 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
     _pressing = true;
     if (_reduceMotion) {
       _pressCtrl.value = 1;
+      _highlightCtrl.value = 1;
       return;
     }
     _springTo(_pressCtrl, 1, MiuixFloatingBarDefaults.pressSpring);
+    // 高光用更软的弹簧（参考库 InteractiveHighlight 的 spring(0.5, 300)）。
+    _springTo(_highlightCtrl, 1, MiuixFloatingBarDefaults.highlightSpring);
     // 参考库：胶囊整体放大到 pressedScale（78/56），与底栏宽度无关。
     const double target = MiuixFloatingBarDefaults.pillPressedScale;
     _springTo(_scaleXCtrl, target, MiuixFloatingBarDefaults.scaleXSpring);
@@ -431,11 +445,13 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
     _pressing = false;
     if (_reduceMotion) {
       _pressCtrl.value = 0;
+      _highlightCtrl.value = 0;
       _scaleXCtrl.value = 1;
       _scaleYCtrl.value = 1;
       return;
     }
     _springTo(_pressCtrl, 0, MiuixFloatingBarDefaults.pressSpring);
+    _springTo(_highlightCtrl, 0, MiuixFloatingBarDefaults.highlightSpring);
     _springTo(_scaleXCtrl, 1, MiuixFloatingBarDefaults.scaleXSpring);
     _springTo(_scaleYCtrl, 1, MiuixFloatingBarDefaults.scaleYSpring);
   }
@@ -536,6 +552,19 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
     _valueCtrl.value = _dragTarget.clamp(0.0, _maxIndex);
     _springTarget = _valueCtrl.value;
     _panelCtrl.value += dx;
+
+    // 拖动过程中实时喂速度：参考库每帧都在跟踪指示器速度并让 velocity 弹簧
+    // 追过去（`spring(0.5f, 300f)`），胶囊据此横向拉伸、纵向压缩。
+    // 只在松手时给速度的话，整个拖动过程都是「硬」的、没有液态感。
+    final double tabsPerSecond = _trackVelocity / tabWidth;
+    if (tabsPerSecond != 0 && !_reduceMotion) {
+      _springTo(
+        _velocityCtrl,
+        tabsPerSecond.clamp(-40.0, 40.0),
+        MiuixFloatingBarDefaults.velocitySpring,
+      );
+    }
+
     _pushToController();
   }
 
@@ -623,6 +652,7 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
               animation: Listenable.merge([
                 _valueCtrl,
                 _pressCtrl,
+                _highlightCtrl,
                 _scaleXCtrl,
                 _scaleYCtrl,
                 _panelCtrl,
@@ -702,8 +732,8 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
                           ],
                         ),
                       ),
-                      // 按压高光（官方 InteractiveHighlight：整体白扫 + 触点径向光）。
-                      if (blurEnabled && press > 0.01)
+                      // 按压高光（参考库 InteractiveHighlight：选中项处的一团柔光）。
+                      if (blurEnabled && _highlightCtrl.value > 0.01)
                         Positioned.fill(
                           child: IgnorePointer(
                             child: ClipPath(
@@ -724,7 +754,7 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
                                               (value + 0.5) * tabWidth,
                                     pillHeight / 2,
                                   ),
-                                  progress: press,
+                                  progress: _highlightCtrl.value,
                                 ),
                               ),
                             ),
@@ -1115,20 +1145,18 @@ class _InteractiveHighlightPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (size.width <= 0 || size.height <= 0 || progress <= 0) return;
 
-    // 参考库 InteractiveHighlight：整体叠加白 8%、触摸处径向白光 15%。
-    canvas.drawRect(
-      Offset.zero & size,
-      Paint()
-        ..color = Colors.white.withValues(alpha: 0.08 * progress)
-        ..blendMode = BlendMode.plus,
-    );
-
     final Offset clamped = Offset(
       position.dx.clamp(0.0, size.width),
       position.dy.clamp(0.0, size.height),
     );
-    // 参考库 shader：`smoothstep(radius, radius * 0.5, dist)`，
-    // radius = size.minDimension * 1.5 —— 半程内满强度，之后渐隐到 0。
+
+    // 参考库 InteractiveHighlight 的 shader：
+    //   `smoothstep(radius, radius * 0.5, dist)`，radius = minDimension * 1.5。
+    // 即选中项中心半程内满强度，之后平滑衰减到 0 —— 是一团**局部**柔光。
+    //
+    // 注意这里**不能**再叠一层整条白扫：那是参考库 `drawWithContent` 里的
+    // 8% 全幅叠加，落在我们的场景会让整条底栏一起发亮（实测离选中项最远处
+    // 也会 +20/255），看起来就像「按一下整条都亮了」。
     final double glowRadius = size.shortestSide * 1.5;
     canvas.drawRect(
       Offset.zero & size,
@@ -1139,16 +1167,24 @@ class _InteractiveHighlightPainter extends CustomPainter {
             Offset.zero & size,
           ),
           radius: glowRadius / math.max(size.shortestSide, 1),
-          stops: const [0.0, 0.5, 1.0],
-          colors: [
-            Colors.white.withValues(alpha: 0.15 * progress),
-            Colors.white.withValues(alpha: 0.15 * progress),
-            Colors.white.withValues(alpha: 0.0),
+          // smoothstep 采样出来的衰减曲线（p=0.5 前满强度）。
+          stops: const <double>[0.0, 0.5, 0.625, 0.75, 0.875, 1.0],
+          colors: <Color>[
+            _glowColor,
+            _glowColor,
+            _glowColor.withValues(alpha: _glowColor.a * 0.84),
+            _glowColor.withValues(alpha: _glowColor.a * 0.5),
+            _glowColor.withValues(alpha: _glowColor.a * 0.156),
+            _glowColor.withValues(alpha: 0.0),
           ],
         ).createShader(Offset.zero & size)
         ..blendMode = BlendMode.plus,
     );
   }
+
+  /// 辉光颜色（参考库 `Color.White.copy(alpha = 0.15f * progress)`）。
+  Color get _glowColor =>
+      Colors.white.withValues(alpha: (0.15 * progress).clamp(0.0, 0.15));
 
   @override
   bool shouldRepaint(covariant _InteractiveHighlightPainter oldDelegate) =>
