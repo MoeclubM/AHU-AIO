@@ -6,6 +6,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:ahu_aio/miuix/liquid_glass_layer.dart';
 import 'package:ahu_aio/miuix/miuix_floating_bar.dart';
 import 'package:ahu_aio/miuix/miuix_theme.dart';
 
@@ -281,65 +282,58 @@ void main() {
     );
   });
 
-  testWidgets('按压时胶囊边缘亮起玻璃高光', (tester) async {
-    final probe = await pumpProbe(tester);
+  testWidgets('按压驱动胶囊折射（静止无折射，按下才有透镜）', (tester) async {
+    await pumpProbe(tester);
     final Rect barRect = tester.getRect(find.byType(MiuixFloatingTabBar));
-    final double tabWidth = tabWidthOf(tester, 4);
     final double contentLeft =
         barRect.left +
         MiuixFloatingBarDefaults.horizontalMargin +
         MiuixFloatingBarDefaults.insidePadding.left;
-    final Rect pill = Rect.fromLTWH(
-      contentLeft,
-      barRect.top + MiuixFloatingBarDefaults.insidePadding.top,
-      tabWidth,
-      barRect.height - MiuixFloatingBarDefaults.insidePadding.vertical,
+
+    // 胶囊那层玻璃的 padding 是 8，底栏那层是 24，以此区分。
+    LiquidGlassLayer pillLayer() {
+      final Iterable<LiquidGlassLayer> layers = tester
+          .widgetList<LiquidGlassLayer>(find.byType(LiquidGlassLayer))
+          .where((l) => l.padding == 8);
+      expect(layers, isNotEmpty, reason: '胶囊应使用液态玻璃层');
+      return layers.first;
+    }
+
+    // 静止：参考库只在按压时给胶囊加透镜，所以此时折射应几乎为 0
+    // （按压弹簧是渐近收敛的，允许极小残值）。
+    expect(
+      pillLayer().refractionAmount,
+      lessThan(0.5),
+      reason: '静止态胶囊不应有折射（参考库的 lens 由 pressProgress 驱动）',
     );
 
-    // 只取胶囊顶部平直的一段：两端是半圆，采样会把栏面算进来。
-    final double capRadius = pill.height / 2;
-    final Rect topBand = Rect.fromLTWH(
-      pill.left + capRadius + 2,
-      pill.top,
-      pill.width - capRadius * 2 - 4,
-      3,
-    );
-
-    final _Pixels rest = await probe.capture();
-    final double restEdge = rest.maxLuminance(topBand);
-    final double restBar = rest.luminance(
-      (contentLeft + tabWidth + 8).round(),
-      barRect.center.dy.round(),
-    );
-
-    // 按住第一个条目左端（远离顶部采样带），等按压弹簧收敛。
     final gesture = await tester.startGesture(
-      Offset(contentLeft + 10, pill.center.dy),
+      Offset(contentLeft + 10, barRect.center.dy),
     );
     for (int i = 0; i < 8; i++) {
       await tester.pump(const Duration(milliseconds: 50));
     }
 
-    final _Pixels pressed = await probe.capture();
-    final double pressedEdge = pressed.maxLuminance(topBand);
-    debugPrint('边缘亮度：静止=$restEdge（栏面=$restBar）→ 按压=$pressedEdge');
-
+    final LiquidGlassLayer pressed = pillLayer();
+    expect(pressed.refractionAmount, greaterThan(0), reason: '按压应给胶囊加上透镜');
     expect(
-      pressedEdge,
-      greaterThan(restBar),
-      reason: '按压时胶囊边缘应亮过栏面（玻璃高光），静止时则比栏面暗',
+      pressed.dispersion,
+      greaterThan(0),
+      reason: '参考库按压态带色散（chromaticAberration = 0.5）',
     );
-    expect(pressedEdge, greaterThan(restEdge + 0.05), reason: '按压必须明显提亮胶囊边缘');
 
     await gesture.up();
     await tester.pumpAndSettle();
-    // 松手后回到静止态：高光消失，胶囊重新变暗。
-    final _Pixels released = await probe.capture();
-    expect(
-      released.maxLuminance(topBand),
-      lessThan(pressedEdge - 0.05),
-      reason: '松手后应回到静止的玻璃面纱状态',
-    );
+    expect(pillLayer().refractionAmount, lessThan(0.5), reason: '松手后折射应回到 0');
+  });
+
+  testWidgets('底栏常开 24dp 折射（玻璃质感的主体）', (tester) async {
+    await pumpProbe(tester);
+    final Iterable<LiquidGlassLayer> bars = tester
+        .widgetList<LiquidGlassLayer>(find.byType(LiquidGlassLayer))
+        .where((l) => l.refractionHeight == 24);
+    expect(bars, isNotEmpty, reason: '底栏应常开 lens(24dp, 24dp)，这是玻璃质感的主体');
+    expect(bars.first.blurSigma, greaterThan(0), reason: '底栏背景应带模糊');
   });
 }
 

@@ -9,6 +9,7 @@ import 'package:flutter/physics.dart';
 import '../theme_manager.dart';
 import 'bloom_stroke_painter.dart';
 import 'liquid_glass_filter.dart';
+import 'liquid_glass_layer.dart';
 import 'miuix_drop_shadow.dart';
 import 'miuix_theme.dart';
 
@@ -718,14 +719,73 @@ class _PillIndicator extends StatelessWidget {
   Widget build(BuildContext context) {
     final ShapeBorder shape = MiuixSquircleBorder(cornerRadius: radius);
 
-    // 关闭模糊：官方回退分支，扁平 accent 底色，没有高光与面纱。
-    if (!blurEnabled) {
+    final bool pressing = press > 0.01;
+
+    // 关闭模糊且没开玻璃：官方回退分支，扁平 accent 底色，没有高光与面纱。
+    if (!blurEnabled && !glassEnabled) {
       return DecoratedBox(
         decoration: ShapeDecoration(color: color, shape: shape),
       );
     }
 
-    final bool pressing = press > 0.01;
+    // 静止面纱（浅色压 10% 黑 / 深色压 10% 白），随按压淡出。
+    final Widget veil = ColoredBox(
+      color: (isDark ? Colors.white : Colors.black).withValues(
+        alpha: _veilAlpha * (1 - press),
+      ),
+    );
+    final Widget pressDim = pressing
+        ? ColoredBox(
+            color: Colors.black.withValues(alpha: _pressDimAlpha * press),
+          )
+        : const SizedBox.shrink();
+    final Widget innerShadow = pressing
+        ? CustomPaint(
+            painter: _PillInnerShadowPainter(
+              radius: radius,
+              blurRadius: _innerShadowBlur * press,
+              alpha: _innerShadowAlpha * press,
+            ),
+          )
+        : const SizedBox.shrink();
+
+    // 液态玻璃：参考库在**按压时**才给胶囊加透镜
+    // （`lens(10dp * progress, 14dp * progress, chromaticAberration = true)`），
+    // 静止时只有面纱，所以这里用按压进度驱动折射参数。
+    if (glassEnabled) {
+      return LiquidGlassLayer(
+        cornerRadius: radius,
+        // 参考库的选中胶囊只做 lens，不额外模糊（模糊由底栏那层负责）。
+        refractionHeight: 10 * press,
+        refractionAmount: 14 * press,
+        dispersion: 0.5 * press,
+        // 胶囊嵌在底栏内，可用取样外扩有限，取小一点避免越界。
+        padding: 8,
+        // 不铺强调色：参考库的选中态是「面纱 + 透镜 + 边缘高光」，
+        // 选中信息由图标/文字的主题色承担（见 _MiuixFloatingBarItem）。
+        highlightColor: Colors.white.withValues(alpha: 0.5 * press),
+        highlightWidth: 0.5,
+        highlightAngle: 45,
+        fallbackHighlight: pressing
+            ? IgnorePointer(
+                child: BloomStrokeLayer(
+                  radius: radius,
+                  isDark: isDark,
+                  enabled: true,
+                  highlightAlpha: press,
+                ),
+              )
+            : null,
+        // 面纱/压暗/内阴影属于"表面"，必须画在高光之下，
+        // 否则半透明遮罩会把边缘高光压暗（参考库的层序即如此）。
+        surface: Stack(
+          fit: StackFit.expand,
+          children: [veil, pressDim, innerShadow],
+        ),
+        child: const SizedBox.shrink(),
+      );
+    }
+
     return ClipPath(
       clipper: ShapeBorderClipper(shape: shape),
       child: Stack(
@@ -737,33 +797,9 @@ class _PillIndicator extends StatelessWidget {
             filter: _barBlurFilter,
             child: const SizedBox.expand(),
           ),
-          // 静止面纱：浅色主题压 10% 黑、深色压 10% 白，按下时淡出。
-          ColoredBox(
-            color: (isDark ? Colors.white : Colors.black).withValues(
-              alpha: _veilAlpha * (1 - press),
-            ),
-          ),
-          if (pressing)
-            ColoredBox(
-              color: Colors.black.withValues(alpha: _pressDimAlpha * press),
-            ),
-          if (pressing)
-            CustomPaint(
-              painter: _PillInnerShadowPainter(
-                radius: radius,
-                blurRadius: _innerShadowBlur * press,
-                alpha: _innerShadowAlpha * press,
-              ),
-            ),
-          if (glassEnabled && pressing)
-            IgnorePointer(
-              child: BloomStrokeLayer(
-                radius: radius,
-                isDark: isDark,
-                enabled: true,
-                highlightAlpha: press,
-              ),
-            ),
+          veil,
+          pressDim,
+          innerShadow,
         ],
       ),
     );
@@ -814,11 +850,16 @@ class _PillInnerShadowPainter extends CustomPainter {
       oldDelegate.alpha != alpha;
 }
 
-/// 玻璃胶囊容器：外侧阴影 + 填充 + 模糊 + 边缘高光。
+/// 玻璃胶囊容器：外侧阴影 + 液态玻璃面（折射 / 模糊 + 填充 + 边缘高光）。
 ///
 /// 阴影通过 [MiuixDropShadow] 只在形状外侧绘制：半透明填充不会露出阴影
 /// 内部的纯黑区域（`BoxShadow` 会把形状内部一并填黑，叠加半透明填充后
 /// 整块底栏都会发暗）。
+///
+/// 玻璃开启时走 [LiquidGlassLayer]：Impeller 上有真折射（见
+/// `liquid_glass_layer.dart`），其余平台退化为纯模糊。折射要求形状周围有
+/// 背景可供取样，所以过滤器区域会比胶囊外扩 `refractionPad`——这段外扩
+/// 由组件向自身盒子外溢出绘制，不参与布局，胶囊位置与尺寸都不变。
 class _GlassBarSurface extends StatelessWidget {
   const _GlassBarSurface({
     required this.child,
@@ -828,6 +869,10 @@ class _GlassBarSurface extends StatelessWidget {
     required this.isDark,
   });
 
+  /// 折射取样外扩距离（逻辑像素）。底栏左右外边距正好是 24dp，
+  /// 取同样的值意味着外扩区域完全落在原本的留白里，不会盖到屏幕边缘。
+  static const double refractionPad = 24;
+
   final Widget child;
   final double height;
   final bool blurEnabled;
@@ -836,13 +881,49 @@ class _GlassBarSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mc = MiuixTheme.of(context).colors;
-    final shape = MiuixSquircleBorder(cornerRadius: height / 2);
-    final fill = blurEnabled
+    final MiuixColors mc = MiuixTheme.of(context).colors;
+    final ShapeBorder shape = MiuixSquircleBorder(cornerRadius: height / 2);
+    // 玻璃模式下底色必须保持半透明，否则会盖住折射出来的背景。
+    final Color fill = (blurEnabled || glassEnabled)
         ? mc.surfaceContainer.withValues(
             alpha: MiuixFloatingBarDefaults.fillAlpha,
           )
         : mc.surfaceContainer;
+
+    // 玻璃关闭：保持实色与（可选的）纯模糊，不引入折射与高光。
+    if (!glassEnabled) {
+      return MiuixDropShadow(
+        shape: shape,
+        color: Colors.black.withValues(
+          alpha: isDark
+              ? MiuixFloatingBarDefaults.shadowAlphaDark
+              : MiuixFloatingBarDefaults.shadowAlphaLight,
+        ),
+        sigma: MiuixFloatingBarDefaults.shadowSigma,
+        child: SizedBox(
+          height: height,
+          child: ClipPath(
+            clipper: ShapeBorderClipper(shape: shape),
+            child: Stack(
+              children: [
+                if (blurEnabled)
+                  Positioned.fill(
+                    child: BackdropFilter(
+                      filter: _barBlurFilter,
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
+                Positioned.fill(child: ColoredBox(color: fill)),
+                Padding(
+                  padding: MiuixFloatingBarDefaults.insidePadding,
+                  child: SizedBox.expand(child: child),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
 
     return MiuixDropShadow(
       shape: shape,
@@ -854,35 +935,32 @@ class _GlassBarSurface extends StatelessWidget {
       sigma: MiuixFloatingBarDefaults.shadowSigma,
       child: SizedBox(
         height: height,
-        child: ClipPath(
-          clipper: ShapeBorderClipper(shape: shape),
-          child: Stack(
-            children: [
-              if (blurEnabled)
-                Positioned.fill(
-                  child: BackdropFilter(
-                    filter: _barBlurFilter,
-                    child: const SizedBox.expand(),
-                  ),
-                ),
-              Positioned.fill(child: ColoredBox(color: fill)),
-              if (glassEnabled)
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: BloomStrokeLayer(
-                      radius: height / 2,
-                      isDark: isDark,
-                      enabled: true,
-                      highlightAlpha: MiuixFloatingBarDefaults.highlightAlpha,
-                    ),
-                  ),
-                ),
-              Padding(
-                padding: MiuixFloatingBarDefaults.insidePadding,
-                // 撑满内缩后的内容区，让条目在胶囊内垂直居中。
-                child: SizedBox.expand(child: child),
-              ),
-            ],
+        child: LiquidGlassLayer(
+          cornerRadius: height / 2,
+          // 参考库 LiquidBottomTabs：blur 8dp + lens(24dp, 24dp)。
+          // 「模糊」开关只控制模糊本身，玻璃（折射 + 边缘高光）独立生效。
+          blurSigma: blurEnabled ? 4 : 0,
+          refractionHeight: 24,
+          refractionAmount: 24,
+          padding: refractionPad,
+          fillColor: fill,
+          highlightColor: Colors.white.withValues(
+            alpha: 0.5 * MiuixFloatingBarDefaults.highlightAlpha,
+          ),
+          highlightWidth: 0.5,
+          highlightAngle: 45,
+          fallbackHighlight: IgnorePointer(
+            child: BloomStrokeLayer(
+              radius: height / 2,
+              isDark: isDark,
+              enabled: true,
+              highlightAlpha: MiuixFloatingBarDefaults.highlightAlpha,
+            ),
+          ),
+          child: Padding(
+            padding: MiuixFloatingBarDefaults.insidePadding,
+            // 撑满内缩后的内容区，让条目在胶囊内垂直居中。
+            child: SizedBox.expand(child: child),
           ),
         ),
       ),

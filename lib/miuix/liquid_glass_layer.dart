@@ -1,0 +1,430 @@
+import 'dart:ui' as ui;
+
+import 'package:flutter/material.dart';
+
+import 'miuix_kit.dart';
+
+/// 液态玻璃渲染层。
+///
+/// 效果对照 [AndroidLiquidGlass](https://github.com/Kyant0/AndroidLiquidGlass)
+/// （Apache-2.0）的 `drawBackdrop`：
+///
+/// 1. **折射**（`lens`）：靠近边缘的一圈按 SDF 法线方向重采样背景，
+///    让边缘像真实玻璃一样弯折背景，而不是单纯模糊；
+/// 2. **模糊 + 鲜艳度**：背景先高斯模糊、再提饱和（×1.5）；
+/// 3. **填充**：`surfaceContainer@0.4` 一类的半透明底色；
+/// 4. **边缘高光**（`Highlight.Default`）：沿轮廓的细亮线，强度随边缘法线与
+///    45° 光方向变化，白 50% 加成混合。
+///
+/// 折射依赖 `ImageFilter.shader`（**仅 Impeller 可用**）。不可用时退化为纯模糊
+/// 玻璃：观感是均匀磨砂而非透镜，但不会崩、也不会画错。
+class LiquidGlassLayer extends StatefulWidget {
+  const LiquidGlassLayer({
+    super.key,
+    required this.child,
+    required this.cornerRadius,
+    this.refractionHeight = 0,
+    this.refractionAmount = 0,
+    this.blurSigma = 0,
+    this.dispersion = 0,
+    this.depthEffect = 0,
+    this.fillColor,
+    this.highlightColor = const Color(0x80FFFFFF),
+    this.highlightWidth = 0.5,
+    this.highlightAngle = 45,
+    this.highlightFalloff = 1,
+    this.padding = 0,
+    this.showHighlight = true,
+    this.surface,
+    this.fallbackHighlight,
+  });
+
+  /// 玻璃面上方的内容（画在最后一层，会盖住高光）。
+  final Widget child;
+
+  /// 玻璃表面层：画在填充之上、高光之下。
+  ///
+  /// 参考库的层序是「背景 → 表面（面纱 / 压暗）→ 边缘高光」；高光必须在表面
+  /// 之上，否则会被半透明遮罩压暗。所以这里单独留一个槽位。
+  final Widget? surface;
+
+  /// 形状圆角（逻辑像素）；等于高度一半时为胶囊。
+  final double cornerRadius;
+
+  /// 折射高度（逻辑像素）：从边缘向内多少距离内发生弯折。
+  final double refractionHeight;
+
+  /// 折射强度（逻辑像素）：边缘处最大重采样位移。
+  final double refractionAmount;
+
+  /// 背景模糊 sigma；<= 0 表示不模糊（参考库的选中胶囊就不模糊）。
+  final double blurSigma;
+
+  /// 色散强度；>0 时 R/B 通道错位（参考库按压态用 0.5）。
+  final double dispersion;
+
+  /// >0 时折射位移额外带上指向中心的分量。
+  final double depthEffect;
+
+  /// 玻璃填充色；null 表示不铺底色。
+  final Color? fillColor;
+
+  /// 高光颜色（含 alpha）。
+  final Color highlightColor;
+
+  /// 高光宽度（逻辑像素）——只画在形状内侧。
+  final double highlightWidth;
+
+  /// 光方向（度）。
+  final double highlightAngle;
+
+  /// 高光衰减指数。
+  final double highlightFalloff;
+
+  /// 折射取样额外外扩的距离（逻辑像素）。
+  ///
+  /// 形状周围必须留出背景纹理，否则边缘折射只能取到被钳制的边界像素，
+  /// 表现为一圈糊掉的色带。该区域向组件盒子外溢出绘制，不参与布局。
+  final double padding;
+
+  final bool showHighlight;
+
+  /// 非 Impeller 平台使用的高光实现（如 BloomStroke 光晕）；
+  /// 为 null 时不画高光。
+  final Widget? fallbackHighlight;
+
+  /// 当前后端是否支持真折射（Impeller）。
+  static bool get isRefractionSupported =>
+      ui.ImageFilter.isShaderFilterSupported;
+
+  @override
+  State<LiquidGlassLayer> createState() => _LiquidGlassLayerState();
+}
+
+class _LiquidGlassLayerState extends State<LiquidGlassLayer> {
+  ui.FragmentShader? _refractionShader;
+  bool _shaderReady = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (LiquidGlassLayer.isRefractionSupported) _loadShader();
+  }
+
+  Future<void> _loadShader() async {
+    final ui.FragmentProgram program = await loadLiquidGlassRefractionProgram();
+    if (!mounted) return;
+    setState(() {
+      // 每个玻璃面各持一个 FragmentShader：uniform 缓冲区随实例走，
+      // 复用同一个实例会让多个玻璃面互相覆盖参数。
+      _refractionShader = program.fragmentShader();
+      _shaderReady = true;
+    });
+  }
+
+  @override
+  void dispose() {
+    _refractionShader?.dispose();
+    super.dispose();
+  }
+
+  /// 本次是否真的走折射（需要后端支持且折射量非零）。
+  bool get _usesRefraction =>
+      _shaderReady &&
+      (widget.refractionHeight > 0 || widget.refractionAmount > 0);
+
+  bool get _usesBlur => widget.blurSigma > 0;
+
+  /// 是否需要背景滤镜；两者都没有时完全不挂 [BackdropFilter]。
+  bool get _needsBackdrop => _usesRefraction || _usesBlur;
+
+  /// 背景滤镜：模糊在内、折射在外，与参考库 `blur → lens` 的顺序一致
+  /// （鲜艳度在折射 shader 内完成）。
+  ui.ImageFilter _buildFilter() {
+    final ui.ImageFilter? blur = _usesBlur
+        ? ui.ImageFilter.blur(
+            sigmaX: widget.blurSigma,
+            sigmaY: widget.blurSigma,
+            tileMode: TileMode.clamp,
+          )
+        : null;
+    if (!_usesRefraction) return blur!;
+    return blur == null
+        ? ui.ImageFilter.shader(_refractionShader!)
+        : ui.ImageFilter.compose(
+            inner: blur,
+            outer: ui.ImageFilter.shader(_refractionShader!),
+          );
+  }
+
+  /// 写入折射参数。
+  ///
+  /// 用按名字绑定的 uniform 槽位（`getUniformFloat` 等），避免依赖声明顺序。
+  /// `u_size` 由引擎每帧写入背景纹理尺寸，这里不碰。
+  void _updateShaderUniforms(ui.FragmentShader shader, Size regionLogical) {
+    shader
+        .getUniformVec2('u_logical_size')
+        .set(regionLogical.width, regionLogical.height);
+    shader.getUniformFloat('u_pad').set(widget.padding);
+    shader.getUniformFloat('u_radius').set(widget.cornerRadius);
+    shader.getUniformFloat('u_refraction_height').set(widget.refractionHeight);
+    shader.getUniformFloat('u_refraction_amount').set(widget.refractionAmount);
+    shader.getUniformFloat('u_depth_effect').set(widget.depthEffect);
+    shader.getUniformFloat('u_dispersion').set(widget.dispersion);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final ShapeBorder shape = MiuixSquircleBorder(
+      cornerRadius: widget.cornerRadius,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final Size box = Size(
+          constraints.hasBoundedWidth ? constraints.maxWidth : 0,
+          constraints.hasBoundedHeight ? constraints.maxHeight : 0,
+        );
+        // 只有走折射时才外扩：形状周围需要背景纹理供边缘取样。
+        final double pad = _usesRefraction ? widget.padding : 0;
+        final Size region = Size(box.width + pad * 2, box.height + pad * 2);
+        if (_usesRefraction) _updateShaderUniforms(_refractionShader!, region);
+
+        final Widget backdrop = !_needsBackdrop
+            ? const SizedBox.shrink()
+            : _GlassBackdrop(
+                filter: _buildFilter(),
+                shape: shape,
+                pad: pad,
+                // 折射 shader 自己用 SDF 裁形状并抗锯齿，多套一层 ClipPath
+                // 会把外扩出来的取样区域一起裁掉。
+                maskByShader: _usesRefraction,
+              );
+
+        final Widget highlight = widget.showHighlight
+            ? CustomPaint(
+                painter: _LiquidGlassHighlightPainter(
+                  radius: widget.cornerRadius,
+                  width: widget.highlightWidth,
+                  angleDegrees: widget.highlightAngle,
+                  falloff: widget.highlightFalloff,
+                  color: widget.highlightColor,
+                ),
+              )
+            : const SizedBox.shrink();
+
+        // 真折射可用时用 SDF 边缘高光，否则退回调用方给的光晕实现。
+        final Widget effectiveHighlight = widget.showHighlight
+            ? (_usesRefraction
+                  ? highlight
+                  : (widget.fallbackHighlight ?? highlight))
+            : const SizedBox.shrink();
+
+        final Widget inner = Stack(
+          fit: StackFit.expand,
+          children: [
+            if (widget.fillColor != null) ColoredBox(color: widget.fillColor!),
+            if (widget.surface != null) widget.surface!,
+            effectiveHighlight,
+          ],
+        );
+
+        return SizedBox(
+          width: box.width,
+          height: box.height,
+          child: Stack(
+            fit: StackFit.expand,
+            clipBehavior: Clip.none,
+            children: [
+              if (pad > 0)
+                Positioned(
+                  left: -pad,
+                  top: -pad,
+                  right: -pad,
+                  bottom: -pad,
+                  child: backdrop,
+                )
+              else
+                backdrop,
+              ClipPath(
+                clipper: ShapeBorderClipper(shape: shape),
+                child: inner,
+              ),
+              widget.child,
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// 把背景（经 [filter] 处理）画进 [shape] 内。
+///
+/// [maskByShader] 为 true 时折射 shader 已经用 SDF 裁好形状，
+/// 不需要再套 [ClipPath]（[pad] 已由外层的 Positioned 提供）。
+class _GlassBackdrop extends StatelessWidget {
+  const _GlassBackdrop({
+    required this.filter,
+    required this.shape,
+    required this.pad,
+    required this.maskByShader,
+  });
+
+  final ui.ImageFilter filter;
+  final ShapeBorder shape;
+  final double pad;
+  final bool maskByShader;
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget filtered = BackdropFilter(
+      filter: filter,
+      child: const SizedBox.expand(),
+    );
+    if (maskByShader || pad <= 0) {
+      return maskByShader
+          ? filtered
+          : ClipPath(
+              clipper: ShapeBorderClipper(shape: shape),
+              child: filtered,
+            );
+    }
+    // 回退路径没有形状信息，只能在外扩区域里自己裁出形状。
+    return Padding(
+      padding: EdgeInsets.all(pad),
+      child: ClipPath(
+        clipper: ShapeBorderClipper(shape: shape),
+        child: filtered,
+      ),
+    );
+  }
+}
+
+/// 绘制液态玻璃的边缘高光。
+///
+/// 参考库的做法是「沿轮廓描边（`strokeWidth = width * 2`）再裁到形状内」，但
+/// Skia 的描边路径不按 shader 的逐像素 alpha 合成（实测强度被整体吃掉，
+/// falloff 完全不起作用），所以这里改成**填充一圈内缩环带**：形状减去内缩
+/// [width] 的形状。视觉等价，合成结果正确。
+///
+/// [falloff] 越大，高光沿法线方向的衰减越快、整体越暗。
+void paintLiquidGlassHighlight(
+  Canvas canvas,
+  Size size, {
+  required double radius,
+  required double width,
+  required double angleDegrees,
+  required double falloff,
+  required Color color,
+}) {
+  if (color.a <= 0.01 || width <= 0 || size.isEmpty) return;
+  final ui.FragmentProgram? program = liquidGlassHighlightProgram;
+  if (program == null) return;
+
+  final ui.FragmentShader shader = program.fragmentShader();
+  shader.getUniformVec2('u_size').set(size.width, size.height);
+  shader.getUniformFloat('u_pad').set(0);
+  shader.getUniformFloat('u_radius').set(radius);
+  shader
+      .getUniformFloat('u_angle')
+      .set(angleDegrees * 3.1415926535897932 / 180);
+  shader.getUniformFloat('u_falloff').set(falloff);
+  shader.getUniformVec4('u_color').set(color.r, color.g, color.b, color.a);
+
+  final Rect rect = Offset.zero & size;
+  final ShapeBorder shape = MiuixSquircleBorder(cornerRadius: radius);
+  final Path band = Path.combine(
+    PathOperation.difference,
+    shape.getOuterPath(rect),
+    shape.getOuterPath(rect.deflate(width)),
+  );
+
+  canvas.drawPath(
+    band,
+    Paint()
+      ..blendMode = BlendMode.plus
+      ..shader = shader,
+  );
+}
+
+/// 边缘高光：用 shader 沿形状描一圈细线，只保留内侧一半。
+///
+/// 对应参考库 `HighlightModifier` 的做法——`strokeWidth = width * 2`，再把
+/// 结果裁剪到形状内，于是可见的只有内侧宽度为 [width] 的一圈，强度随该处
+/// 边缘法线与光方向的夹角变化。
+class _LiquidGlassHighlightPainter extends CustomPainter {
+  const _LiquidGlassHighlightPainter({
+    required this.radius,
+    required this.width,
+    required this.angleDegrees,
+    required this.falloff,
+    required this.color,
+  });
+
+  final double radius;
+  final double width;
+  final double angleDegrees;
+  final double falloff;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    paintLiquidGlassHighlight(
+      canvas,
+      size,
+      radius: radius,
+      width: width,
+      angleDegrees: angleDegrees,
+      falloff: falloff,
+      color: color,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_LiquidGlassHighlightPainter oldDelegate) =>
+      oldDelegate.radius != radius ||
+      oldDelegate.width != width ||
+      oldDelegate.angleDegrees != angleDegrees ||
+      oldDelegate.falloff != falloff ||
+      oldDelegate.color != color;
+}
+
+// ---------------------------------------------------------------------------
+// shader 资源
+// ---------------------------------------------------------------------------
+
+ui.FragmentProgram? _gRefractionProgram;
+ui.FragmentProgram? _gHighlightProgram;
+Future<ui.FragmentProgram>? _gRefractionLoading;
+Future<ui.FragmentProgram>? _gHighlightLoading;
+
+/// 加载折射着色器（带缓存，供所有玻璃面共用同一个 Program）。
+Future<ui.FragmentProgram> loadLiquidGlassRefractionProgram() {
+  if (_gRefractionProgram != null) {
+    return Future<ui.FragmentProgram>.value(_gRefractionProgram);
+  }
+  return _gRefractionLoading ??=
+      ui.FragmentProgram.fromAsset('shaders/liquid_glass_refraction.frag').then(
+        (program) {
+          _gRefractionProgram = program;
+          return program;
+        },
+      );
+}
+
+/// 边缘高光着色器；尚未加载完成时为 null（此时不画高光）。
+ui.FragmentProgram? get liquidGlassHighlightProgram => _gHighlightProgram;
+
+/// 预热两个着色器：折射在首帧后按需异步加载，高光需要显式预热才会生效。
+Future<void> preloadLiquidGlassShaders() async {
+  try {
+    if (_gRefractionProgram == null) {
+      await loadLiquidGlassRefractionProgram();
+    }
+    _gHighlightProgram ??= await (_gHighlightLoading ??=
+        ui.FragmentProgram.fromAsset('shaders/liquid_glass_highlight.frag'));
+  } catch (_) {
+    // 优雅降级：着色器不可用时退化为纯模糊玻璃。
+  }
+}

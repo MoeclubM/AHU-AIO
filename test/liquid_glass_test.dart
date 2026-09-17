@@ -1,0 +1,199 @@
+import 'dart:typed_data';
+import 'dart:ui' as ui;
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+import 'package:ahu_aio/miuix/liquid_glass_layer.dart';
+
+/// 液态玻璃着色器的回归测试。
+///
+/// 折射走 `ImageFilter.shader`（只有 Impeller 支持，测试环境是软件后端），
+/// 因此这里验证的是**着色器本身**：能否编译、uniform 布局是否与 Dart 侧一致、
+/// 以及边缘高光的 SDF 数学是否正确。
+///
+/// 高光用 `Paint.shader` 绘制，与后端无关，所以可以逐像素验证。
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  /// 像素读取辅助。
+  Future<ui.Image> render(void Function(Canvas canvas) draw, Size size) async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    draw(canvas);
+    return recorder.endRecording().toImage(
+      size.width.round(),
+      size.height.round(),
+    );
+  }
+
+  double luminance(Uint8List rgba, int width, int x, int y) {
+    final int i = (y * width + x) * 4;
+    return (0.2126 * rgba[i] + 0.7152 * rgba[i + 1] + 0.0722 * rgba[i + 2]) /
+        255.0;
+  }
+
+  group('着色器可编译且 uniform 布局正确', () {
+    test('折射 shader 能编译，且所有参数可按名字绑定', () async {
+      final ui.FragmentProgram program =
+          await loadLiquidGlassRefractionProgram();
+      final ui.FragmentShader shader = program.fragmentShader();
+      addTearDown(shader.dispose);
+
+      // 按名字取槽位：名字写错会直接抛错，比魔数索引可靠。
+      // u_size 由 ImageFilter.shader 的引擎侧写入，Dart 侧不设置。
+      expect(
+        () {
+          shader.getUniformVec2('u_logical_size').set(200, 64);
+          shader.getUniformFloat('u_pad').set(24);
+          shader.getUniformFloat('u_radius').set(32);
+          shader.getUniformFloat('u_refraction_height').set(24);
+          shader.getUniformFloat('u_refraction_amount').set(24);
+          shader.getUniformFloat('u_depth_effect').set(0);
+          shader.getUniformFloat('u_dispersion').set(0.5);
+        },
+        returnsNormally,
+        reason: 'shader 里的 uniform 名字必须与 Dart 侧一致',
+      );
+    });
+
+    test('高光 shader 能编译，且所有参数可按名字绑定', () async {
+      await preloadLiquidGlassShaders();
+      final ui.FragmentProgram? program = liquidGlassHighlightProgram;
+      expect(program, isNotNull, reason: '高光 shader 应能加载');
+      final ui.FragmentShader shader = program!.fragmentShader();
+      addTearDown(shader.dispose);
+      expect(() {
+        shader.getUniformVec2('u_size').set(200, 64);
+        shader.getUniformFloat('u_pad').set(0);
+        shader.getUniformFloat('u_radius').set(32);
+        shader.getUniformFloat('u_angle').set(0.785);
+        shader.getUniformFloat('u_falloff').set(1);
+        shader.getUniformVec4('u_color').set(1, 1, 1, 1);
+      }, returnsNormally);
+    });
+
+    test('折射 shader 声明了采样器（ImageFilter.shader 的硬性要求）', () async {
+      final ui.FragmentProgram program =
+          await loadLiquidGlassRefractionProgram();
+      // 能取到采样器槽位即说明声明存在；ImageFilter.shader 缺采样器会抛错。
+      expect(program.fragmentShader(), isNotNull);
+    });
+  });
+
+  group('边缘高光', () {
+    /// 直接调用生产代码的高光绘制函数，避免测试与实现各写一份。
+    Future<ui.Image> renderHighlight({
+      required Size size,
+      required double radius,
+      required double width,
+      required Color color,
+      double falloff = 1,
+    }) async {
+      await preloadLiquidGlassShaders();
+      return render((canvas) {
+        canvas.drawRect(Offset.zero & size, Paint()..color = Colors.black);
+        paintLiquidGlassHighlight(
+          canvas,
+          size,
+          radius: radius,
+          width: width,
+          angleDegrees: 45,
+          falloff: falloff,
+          color: color,
+        );
+      }, size);
+    }
+
+    test('高光只出现在边缘：边缘比中心亮', () async {
+      const Size size = Size(200, 64);
+      final ui.Image image = await renderHighlight(
+        size: size,
+        radius: 32,
+        width: 1.5,
+        color: const Color(0xFFFFFFFF),
+      );
+      final ByteData data = (await image.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      ))!;
+      final Uint8List rgba = data.buffer.asUint8List();
+      final int w = image.width;
+      image.dispose();
+
+      // 顶部边缘（胶囊中段的正上方）对比正中心。
+      final double edge = luminance(rgba, w, 100, 1);
+      final double center = luminance(rgba, w, 100, 32);
+      debugPrint('高光：边缘=$edge 中心=$center');
+
+      expect(edge, greaterThan(center + 0.05), reason: '高光应该是贴边的一圈细线');
+      expect(edge, greaterThan(0.01), reason: '边缘必须真的有高光');
+    });
+
+    test('falloff 控制高光的衰减强度', () async {
+      const Size size = Size(200, 64);
+      Future<double> rimPeak(double falloff) async {
+        final ui.Image image = await renderHighlight(
+          size: size,
+          radius: 32,
+          width: 2,
+          color: const Color(0xFFFFFFFF),
+          falloff: falloff,
+        );
+        final ByteData data = (await image.toByteData(
+          format: ui.ImageByteFormat.rawRgba,
+        ))!;
+        final Uint8List rgba = data.buffer.asUint8List();
+        final int w = image.width;
+        image.dispose();
+        // 沿顶部边缘中段取一条竖线，取峰值（避开描边的抗锯齿边缘）。
+        double best = 0;
+        for (int y = 0; y < 6; y++) {
+          final double value = luminance(rgba, w, 100, y);
+          if (value > best) best = value;
+        }
+        return best;
+      }
+
+      final double soft = await rimPeak(1);
+      final double sharp = await rimPeak(4);
+      debugPrint('高光峰值：falloff=1 → $soft，falloff=4 → $sharp');
+
+      expect(soft, greaterThan(0.01), reason: 'falloff=1 时应有可见高光');
+      expect(
+        sharp,
+        lessThan(soft),
+        reason: 'falloff 越大强度衰减越快，高光应更暗（验证 uniform 生效）',
+      );
+    });
+
+    test('高光不越出形状（四角保持透明）', () async {
+      const Size size = Size(200, 64);
+      final ui.Image image = await renderHighlight(
+        size: size,
+        radius: 32,
+        width: 2,
+        color: const Color(0xFFFFFFFF),
+      );
+      final ByteData data = (await image.toByteData(
+        format: ui.ImageByteFormat.rawRgba,
+      ))!;
+      final Uint8List rgba = data.buffer.asUint8List();
+      final int w = image.width;
+      image.dispose();
+
+      // 胶囊的圆角处（四个角）在形状之外，高光必须被裁掉。
+      for (final (int x, int y) in <(int, int)>[
+        (1, 1),
+        (198, 1),
+        (1, 62),
+        (198, 62),
+      ]) {
+        expect(
+          luminance(rgba, w, x, y),
+          lessThan(0.02),
+          reason: '形状外的 ($x,$y) 不应有高光',
+        );
+      }
+    });
+  });
+}

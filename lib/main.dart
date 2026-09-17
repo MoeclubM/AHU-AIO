@@ -8,6 +8,7 @@ import 'package:dynamic_color/dynamic_color.dart';
 import 'dart:io';
 import 'theme_manager.dart';
 import 'auth/auth_manager.dart';
+import 'miuix/liquid_glass_layer.dart';
 import 'miuix/miuix_theme.dart';
 import 'main_layout_screen.dart';
 
@@ -23,6 +24,8 @@ void main() async {
   final themeManager = ThemeManager();
   await themeManager.loadThemeMode();
   await AuthManager().loadConfig();
+  // 预加载液态玻璃着色器，避免底栏首帧缺少边缘高光。
+  await preloadLiquidGlassShaders();
 
   runApp(MyApp(themeManager: themeManager));
 }
