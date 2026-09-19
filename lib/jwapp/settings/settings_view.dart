@@ -264,9 +264,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildLogoutButton(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: AdaptiveLogoutButton(
-        onPressed: () => _showLogoutDialog(context),
-      ),
+      child: AdaptiveLogoutButton(onPressed: () => _showLogoutDialog(context)),
     );
   }
 

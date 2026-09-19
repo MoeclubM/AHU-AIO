@@ -51,51 +51,52 @@ void main() {
     expect(clicked, isTrue);
   });
 
-  testWidgets('MD3 模式：AdaptiveLogoutButton 呈现 FilledButton 且具有正确的 error 配色与高度', (
-    tester,
-  ) async {
-    await ThemeManager().setUiMode(UiMode.material3);
-    bool clicked = false;
+  testWidgets(
+    'MD3 模式：AdaptiveLogoutButton 呈现 FilledButton 且具有正确的 error 配色与高度',
+    (tester) async {
+      await ThemeManager().setUiMode(UiMode.material3);
+      bool clicked = false;
 
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: material3LightTheme(),
-        home: Scaffold(
-          body: Center(
-            child: AdaptiveLogoutButton(
-              onPressed: () => clicked = true,
-              label: '退出登录',
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: material3LightTheme(),
+          home: Scaffold(
+            body: Center(
+              child: AdaptiveLogoutButton(
+                onPressed: () => clicked = true,
+                label: '退出登录',
+              ),
             ),
           ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.byType(FilledButton), findsOneWidget);
-    expect(find.byIcon(Icons.logout_rounded), findsOneWidget);
-    expect(find.text('退出登录'), findsOneWidget);
+      expect(find.byType(FilledButton), findsOneWidget);
+      expect(find.byIcon(Icons.logout_rounded), findsOneWidget);
+      expect(find.text('退出登录'), findsOneWidget);
 
-    final Size size = tester.getSize(find.byType(AdaptiveLogoutButton));
-    expect(size.height, greaterThanOrEqualTo(50.0));
+      final Size size = tester.getSize(find.byType(AdaptiveLogoutButton));
+      expect(size.height, greaterThanOrEqualTo(50.0));
 
-    final FilledButton button = tester.widget<FilledButton>(
-      find.byType(FilledButton),
-    );
-    final ColorScheme scheme = material3LightTheme().colorScheme;
-    expect(
-      button.style?.backgroundColor?.resolve(<WidgetState>{}),
-      scheme.error,
-    );
-    expect(
-      button.style?.foregroundColor?.resolve(<WidgetState>{}),
-      scheme.onError,
-    );
+      final FilledButton button = tester.widget<FilledButton>(
+        find.byType(FilledButton),
+      );
+      final ColorScheme scheme = material3LightTheme().colorScheme;
+      expect(
+        button.style?.backgroundColor?.resolve(<WidgetState>{}),
+        scheme.error,
+      );
+      expect(
+        button.style?.foregroundColor?.resolve(<WidgetState>{}),
+        scheme.onError,
+      );
 
-    await tester.tap(find.byType(AdaptiveLogoutButton));
-    await tester.pumpAndSettle();
-    expect(clicked, isTrue);
-  });
+      await tester.tap(find.byType(AdaptiveLogoutButton));
+      await tester.pumpAndSettle();
+      expect(clicked, isTrue);
+    },
+  );
 
   testWidgets('showAdaptiveConfirmDialog 在 isDanger 为 true 时渲染取消与危险操作按钮', (
     tester,

@@ -413,11 +413,7 @@ class AdaptiveDangerButton extends StatelessWidget {
         label: child,
       );
     }
-    return FilledButton(
-      style: style,
-      onPressed: onPressed,
-      child: child,
-    );
+    return FilledButton(style: style, onPressed: onPressed, child: child);
   }
 }
 
@@ -443,10 +439,7 @@ class AdaptiveLogoutButton extends StatelessWidget {
       onPressed: onPressed,
       icon: const Icon(Icons.logout_rounded),
       minimumSize: minimumSize,
-      child: Text(
-        label,
-        style: const TextStyle(fontWeight: FontWeight.bold),
-      ),
+      child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
     );
   }
 }
