@@ -163,10 +163,7 @@ class _AdaptiveDropdownState<T> extends State<AdaptiveDropdown<T>> {
 
     if (miuix) {
       if (!_enabled) return trigger;
-      return MiuixNoRipple(
-        onTap: _openMiuixMenu,
-        child: trigger,
-      );
+      return MiuixNoRipple(onTap: _openMiuixMenu, child: trigger);
     }
 
     // Material 3 模式：采用标准 MenuAnchor
@@ -183,12 +180,13 @@ class _AdaptiveDropdownState<T> extends State<AdaptiveDropdown<T>> {
       ],
       builder:
           (BuildContext context, MenuController controller, Widget? child) {
-        if (!_enabled) return trigger;
-        return InkWell(
-          onTap: () => controller.isOpen ? controller.close() : controller.open(),
-          child: trigger,
-        );
-      },
+            if (!_enabled) return trigger;
+            return InkWell(
+              onTap: () =>
+                  controller.isOpen ? controller.close() : controller.open(),
+              child: trigger,
+            );
+          },
     );
   }
 }
@@ -256,8 +254,10 @@ class _MiuixDropdownRoute<T> extends PopupRoute<_MiuixDropdownResult<T>> {
           math.max(16.0, screenSize.width - 16.0 - menuWidth),
         );
 
-        final double maxHeight =
-            math.min(380.0, showBelow ? spaceBelow : spaceAbove);
+        final double maxHeight = math.min(
+          380.0,
+          showBelow ? spaceBelow : spaceAbove,
+        );
 
         return CustomSingleChildLayout(
           delegate: _MiuixDropdownPositionDelegate(
@@ -305,8 +305,10 @@ class _MiuixDropdownRoute<T> extends PopupRoute<_MiuixDropdownResult<T>> {
     final double horizontalBias =
         ((triggerRect.center.dx - left) / menuWidth * 2 - 1.0).clamp(-1.0, 1.0);
 
-    final Alignment alignment =
-        Alignment(horizontalBias, showBelow ? -1.0 : 1.0);
+    final Alignment alignment = Alignment(
+      horizontalBias,
+      showBelow ? -1.0 : 1.0,
+    );
 
     final Animation<double> scaleAnimation = CurvedAnimation(
       parent: animation,
@@ -435,8 +437,9 @@ class _MiuixMenuCard<T> extends StatelessWidget {
                     selected: item.value == selectedValue,
                     labelStyle: item.labelStyle,
                     onTap: () {
-                      Navigator.of(context)
-                          .pop(_MiuixDropdownResult(item.value));
+                      Navigator.of(
+                        context,
+                      ).pop(_MiuixDropdownResult(item.value));
                     },
                   ),
               ],
@@ -493,8 +496,9 @@ class _MiuixMenuItemState extends State<_MiuixMenuItem> {
               style: (widget.labelStyle ?? theme.textStyles.body1)
                   .copyWith(
                     color: widget.selected ? c.primary : c.onSurface,
-                    fontWeight:
-                        widget.selected ? FontWeight.w600 : FontWeight.normal,
+                    fontWeight: widget.selected
+                        ? FontWeight.w600
+                        : FontWeight.normal,
                   )
                   .withMiuixWeight(theme.fontWeightAdjustment),
             ),
