@@ -130,6 +130,15 @@ class _JwHomePageState extends State<JwHomePage>
   }
 
   void _logout() async {
+    final confirmed = await showAdaptiveConfirmDialog(
+      context: context,
+      title: '退出登录',
+      content: const Text('确定要退出当前教务账号吗？'),
+      confirmText: '退出登录',
+      isDanger: true,
+    );
+    if (confirmed != true) return;
+
     await JwLoginService.logout();
     if (!mounted) return;
     if (globals.onLoginStateChanged == null) {
@@ -154,7 +163,7 @@ class _JwHomePageState extends State<JwHomePage>
               title: const Text('安大教务'),
               actions: [
                 AdaptiveIconButton(
-                  icon: const Icon(Icons.logout),
+                  icon: const Icon(Icons.logout_rounded),
                   onPressed: _logout,
                   tooltip: '退出登录',
                 ),

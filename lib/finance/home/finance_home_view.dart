@@ -76,7 +76,17 @@ class _FinanceHomePageState extends State<FinanceHomePage>
     }
   }
 
-  void _logout() async {
+  void _logout({bool confirm = false}) async {
+    if (confirm) {
+      final ok = await showAdaptiveConfirmDialog(
+        context: context,
+        title: '退出登录',
+        content: const Text('确定要退出当前一卡通账号吗？'),
+        confirmText: '退出登录',
+        isDanger: true,
+      );
+      if (ok != true) return;
+    }
     await _client.logout();
     await CasAuthCache.clear();
     globals.jwLoggedIn = false;
@@ -107,9 +117,9 @@ class _FinanceHomePageState extends State<FinanceHomePage>
                   onPressed: _loadData,
                 ),
                 AdaptiveIconButton(
-                  icon: const Icon(Icons.logout),
-                  onPressed: _logout,
-                  tooltip: '退出',
+                  icon: const Icon(Icons.logout_rounded),
+                  onPressed: () => _logout(confirm: true),
+                  tooltip: '退出登录',
                 ),
               ],
             ),

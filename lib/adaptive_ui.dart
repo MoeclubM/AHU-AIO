@@ -395,20 +395,58 @@ class AdaptiveDangerButton extends StatelessWidget {
         child: child,
       );
     }
-    // M3 没有「danger filled」概念：破坏性操作用 error 前景的 tonal 按钮，
-    // 几何与配色角色都走主题默认值。
+    // M3 规范：破坏性操作使用 error 配色的 FilledButton，
+    // 统一图标与文字颜色为 onError，背景为 error，并严格遵循 minimumSize 几何约束。
     final scheme = Theme.of(context).colorScheme;
-    final TextStyle labelStyle = TextStyle(color: scheme.error);
+    final ButtonStyle style = FilledButton.styleFrom(
+      backgroundColor: scheme.error,
+      foregroundColor: scheme.onError,
+      disabledBackgroundColor: scheme.onSurface.withValues(alpha: 0.12),
+      disabledForegroundColor: scheme.onSurface.withValues(alpha: 0.38),
+      minimumSize: minimumSize,
+    );
     if (icon != null) {
-      return FilledButton.tonalIcon(
+      return FilledButton.icon(
+        style: style,
         onPressed: onPressed,
         icon: icon!,
-        label: DefaultTextStyle.merge(style: labelStyle, child: child),
+        label: child,
       );
     }
-    return FilledButton.tonal(
+    return FilledButton(
+      style: style,
       onPressed: onPressed,
-      child: DefaultTextStyle.merge(style: labelStyle, child: child),
+      child: child,
+    );
+  }
+}
+
+/// 全局统一风格的「退出登录」页面大按钮。
+///
+/// 规范化采用 [Icons.logout_rounded] 图标、加粗文字、一致的破坏性配色与 50dp 高度，
+/// 在 Miuix 与 Material 3 模式下均保持统一步调。
+class AdaptiveLogoutButton extends StatelessWidget {
+  const AdaptiveLogoutButton({
+    super.key,
+    required this.onPressed,
+    this.label = '退出登录',
+    this.minimumSize = const Size.fromHeight(50),
+  });
+
+  final VoidCallback? onPressed;
+  final String label;
+  final Size minimumSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return AdaptiveDangerButton(
+      onPressed: onPressed,
+      icon: const Icon(Icons.logout_rounded),
+      minimumSize: minimumSize,
+      child: Text(
+        label,
+        style: const TextStyle(fontWeight: FontWeight.bold),
+      ),
     );
   }
 }

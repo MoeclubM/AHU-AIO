@@ -262,12 +262,10 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildLogoutButton(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: AdaptiveDangerButton(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: AdaptiveLogoutButton(
         onPressed: () => _showLogoutDialog(context),
-        icon: const Icon(Icons.logout),
-        child: const Text('退出登录'),
       ),
     );
   }
@@ -277,7 +275,7 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (BuildContext context) {
         return AdaptiveAlertDialog(
-          title: const Text('确认退出'),
+          title: const Text('退出登录'),
           content: const Text('您确定要退出登录吗？'),
           actions: [
             AdaptiveTextButton(
@@ -290,7 +288,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 Navigator.of(context).pop();
                 _logout(context);
               },
-              child: const Text('确认退出'),
+              child: const Text('退出登录'),
             ),
           ],
         );
