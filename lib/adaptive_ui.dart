@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import 'miuix/miuix_components.dart';
@@ -578,7 +579,7 @@ class AdaptiveTabBar extends StatelessWidget implements PreferredSizeWidget {
     this.onTap,
     this.isScrollable = false,
     this.padding,
-    this.height = 46,
+    this.height,
   });
 
   final List<Widget> tabs;
@@ -586,44 +587,57 @@ class AdaptiveTabBar extends StatelessWidget implements PreferredSizeWidget {
   final ValueChanged<int>? onTap;
   final bool isScrollable;
   final EdgeInsetsGeometry? padding;
-  final double height;
+  final double? height;
+
+  double _calculateHeight() {
+    if (height != null) return height!;
+    double maxHeight = 46.0;
+    for (final Widget item in tabs) {
+      if (item is PreferredSizeWidget) {
+        maxHeight = math.max(item.preferredSize.height, maxHeight);
+      }
+    }
+    return maxHeight;
+  }
 
   @override
-  Size get preferredSize => Size.fromHeight(height);
+  Size get preferredSize => Size.fromHeight(_calculateHeight());
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     if (isMiuixUi()) {
-      return Container(
-        height: height,
+      return Padding(
         padding:
             padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        child: TabBar(
-          controller: controller,
-          onTap: onTap,
-          isScrollable: isScrollable,
-          tabAlignment: isScrollable ? TabAlignment.start : null,
-          splashFactory: NoSplash.splashFactory,
-          overlayColor: const WidgetStatePropertyAll(Colors.transparent),
-          dividerColor: Colors.transparent,
-          indicatorSize: TabBarIndicatorSize.tab,
-          indicator: ShapeDecoration(
-            color: scheme.primary.withValues(alpha: 0.12),
-            shape: const MiuixSquircleBorder(cornerRadius: 12),
+        child: SizedBox(
+          height: height,
+          child: TabBar(
+            controller: controller,
+            onTap: onTap,
+            isScrollable: isScrollable,
+            tabAlignment: isScrollable ? TabAlignment.start : null,
+            splashFactory: NoSplash.splashFactory,
+            overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+            dividerColor: Colors.transparent,
+            indicatorSize: TabBarIndicatorSize.tab,
+            indicator: ShapeDecoration(
+              color: scheme.primary.withValues(alpha: 0.12),
+              shape: const MiuixSquircleBorder(cornerRadius: 12),
+            ),
+            labelColor: scheme.primary,
+            unselectedLabelColor: scheme.onSurfaceVariant,
+            labelStyle: const TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+            unselectedLabelStyle: const TextStyle(
+              fontWeight: FontWeight.normal,
+              fontSize: 14,
+            ),
+            tabs: tabs,
           ),
-          labelColor: scheme.primary,
-          unselectedLabelColor: scheme.onSurfaceVariant,
-          labelStyle: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 14,
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.normal,
-            fontSize: 14,
-          ),
-          tabs: tabs,
         ),
       );
     }
