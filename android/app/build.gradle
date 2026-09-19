@@ -5,6 +5,23 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
+// 本地构建时的 git 短哈希，用于给 debug 包版本名加可追溯后缀；
+// git 不可用（如 CI 隔离环境）时退化为 local。
+def getGitShortHash() {
+    try {
+        def proc = new ProcessBuilder('git', 'rev-parse', '--short', 'HEAD')
+                .directory(project.projectDir)
+                .redirectErrorStream(true)
+                .start()
+        def output = proc.inputStream.text
+        proc.waitFor()
+        def hash = output.trim()
+        return (proc.exitValue() == 0 && hash.matches(/^[0-9a-f]{7,12}$/)) ? hash : 'local'
+    } catch (Exception ignored) {
+        return 'local'
+    }
+}
+
 android {
     namespace = "com.example.ahu_aio"
     compileSdk = flutter.compileSdkVersion
@@ -63,6 +80,12 @@ android {
     }
 
     buildTypes {
+        debug {
+            // 本地 debug 包在系统应用信息里显示为 1.0.9-debug.<短哈希>，
+            // 与 CI beta 包（-beta.N.<短哈希>）和正式包区分。
+            // CI 的 beta/release 走 --release + --build-name，不受此影响。
+            versionNameSuffix "-debug.${getGitShortHash()}"
+        }
         release {
             if (signingConfigs.release.storeFile != null) {
                 signingConfig signingConfigs.release

@@ -47,7 +47,6 @@ dependencies:
   shared_preferences: ^2.5.5
   provider: ^6.1.5+1
   webview_flutter_android: ^4.13.0
-  webview_flutter_wkwebview: ^3.26.0
   flutter_inappwebview: ^6.1.5
   path_provider: ^2.1.6
   material_color_utilities: ^0.13.0
@@ -61,7 +60,6 @@ dev_dependencies:
 
 flutter_icons:
   android: true
-  ios: true
   image_path: "assets/icon/app_icon.png"  # 这里指定图标的路径
 
   # The "flutter_lints" package below contains a set of recommended lints to

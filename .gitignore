@@ -902,3 +902,6 @@ AGENTS.md
 !pubspec.lock
 
 .zcode/
+
+# adb 调试截图临时目录
+.adb_shots/

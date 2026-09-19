@@ -36,6 +36,17 @@ class SemesterInfo {
     );
   }
 
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'code': code,
+    'nameZh': nameZh,
+    'nameEn': nameEn,
+    'schoolYear': schoolYear,
+    'startDate': startDate,
+    'endDate': endDate,
+    'season': season,
+  };
+
   @override
   String toString() {
     return nameZh;
@@ -81,6 +92,18 @@ class CurrentSemesterInfo {
           : (json['weeks'] != null ? List<int>.from(json['weeks']) : []),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'code': code,
+    'nameZh': nameZh,
+    'nameEn': nameEn,
+    'schoolYear': schoolYear,
+    'startDate': startDate,
+    'endDate': endDate,
+    'season': season,
+    'weekIndices': weekIndices,
+  };
 }
 
 /// 获取所有学期信息
