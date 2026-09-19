@@ -450,6 +450,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
                               controller: _subPageControllers[section],
                               items: _subTabsOf(section),
                               height: MiuixFloatingBarDefaults.subBarHeight,
+                              horizontalMargin:
+                                  MiuixFloatingBarDefaults.subHorizontalMargin,
                               iconSize: MiuixFloatingBarDefaults.subIconSize,
                               fontSize:
                                   MiuixFloatingBarDefaults.subLabelFontSize,

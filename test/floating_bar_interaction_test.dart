@@ -485,6 +485,29 @@ void main() {
       reason: '选中项处应有明显高光',
     );
   });
+
+  test('二级子栏规格比主栏紧凑，且具有独立的内收外边距', () {
+    expect(
+      MiuixFloatingBarDefaults.subBarHeight,
+      lessThan(MiuixFloatingBarDefaults.height - 10),
+      reason: '二级子栏高度应明显低于主底栏（44dp vs 64dp）',
+    );
+    expect(
+      MiuixFloatingBarDefaults.subIconSize,
+      lessThan(MiuixFloatingBarDefaults.iconSize),
+      reason: '二级子栏图标应更小巧精致',
+    );
+    expect(
+      MiuixFloatingBarDefaults.subLabelFontSize,
+      lessThan(MiuixFloatingBarDefaults.labelFontSize),
+      reason: '二级子栏字号应相应紧凑',
+    );
+    expect(
+      MiuixFloatingBarDefaults.subHorizontalMargin,
+      greaterThan(MiuixFloatingBarDefaults.horizontalMargin),
+      reason: '二级子栏水平外边距应稍作内收（32dp vs 24dp）',
+    );
+  });
 }
 
 /// 悬浮底栏测试用的像素探针。

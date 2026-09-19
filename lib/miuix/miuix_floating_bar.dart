@@ -28,26 +28,29 @@ class MiuixFloatingBarDefaults {
   /// 主底栏高度（官方 64dp）。
   static const double height = 64;
 
-  /// 二级底栏高度（官方内层内容高 56dp）。
-  static const double subBarHeight = 56;
+  /// 二级底栏高度（紧凑小巧，突出主次层级）。
+  static const double subBarHeight = 44;
 
   /// 胶囊内四周留白（官方 4dp）。
   static const EdgeInsets insidePadding = EdgeInsets.all(4);
 
-  /// 胶囊左右外边距（官方 24dp）。
+  /// 主底栏左右外边距（官方 24dp）。
   static const double horizontalMargin = 24;
+
+  /// 二级底栏左右外边距（稍作内收，更精致）。
+  static const double subHorizontalMargin = 32;
 
   /// 主底栏图标尺寸（参考库 `LiquidBottomTab` 内容 28dp）。
   static const double iconSize = 28;
 
   /// 二级底栏图标尺寸。
-  static const double subIconSize = 20;
+  static const double subIconSize = 17;
 
   /// 主底栏标签字号（参考库 12sp）。
   static const double labelFontSize = 12;
 
   /// 二级底栏标签字号。
-  static const double subLabelFontSize = 11;
+  static const double subLabelFontSize = 10;
 
   /// 选中胶囊底色不透明度（官方 `accentColor @ 0.15`）。
   static const double pillAlpha = 0.15;
@@ -230,6 +233,7 @@ class MiuixFloatingTabBar extends StatefulWidget {
     required this.controller,
     required this.items,
     this.height = MiuixFloatingBarDefaults.height,
+    this.horizontalMargin = MiuixFloatingBarDefaults.horizontalMargin,
     this.iconSize = MiuixFloatingBarDefaults.iconSize,
     this.fontSize = MiuixFloatingBarDefaults.labelFontSize,
     this.showLabels = true,
@@ -243,6 +247,9 @@ class MiuixFloatingTabBar extends StatefulWidget {
 
   /// 胶囊高度。
   final double height;
+
+  /// 胶囊左右外边距。
+  final double horizontalMargin;
 
   /// 图标尺寸。
   final double iconSize;
@@ -648,9 +655,7 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
     final bool ltr = Directionality.of(context) == TextDirection.ltr;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: MiuixFloatingBarDefaults.horizontalMargin,
-      ),
+      padding: EdgeInsets.symmetric(horizontal: widget.horizontalMargin),
       child: LayoutBuilder(
         builder: (context, constraints) {
           // 胶囊内边距由 _GlassBarSurface 施加，故内容宽为栏宽减去四周留白。
@@ -754,7 +759,7 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
                           ],
                         ),
                       ),
-                      // 按压高光（参考库 InteractiveHighlight：选中项处的一团柔光）。
+                      // 按压高光：与选中胶囊轮廓吻合的圆弧胶囊形亮斑。
                       if (blurEnabled && _highlightCtrl.value > 0.01)
                         Positioned.fill(
                           child: IgnorePointer(
@@ -766,16 +771,18 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
                               ),
                               child: CustomPaint(
                                 painter: _InteractiveHighlightPainter(
-                                  // 参考库 InteractiveHighlight.position：
-                                  // 光晕落在**当前选中条目中心**（跟着指示器走），
-                                  // 而不是手指位置；坐标基于已内缩 4dp 的内容区。
+                                  // 光晕中心落在当前选中胶囊中心，跟随位移与橡皮筋偏移。
                                   position: Offset(
-                                    ltr
-                                        ? (value + 0.5) * tabWidth
-                                        : contentWidth -
-                                              (value + 0.5) * tabWidth,
+                                    (ltr
+                                            ? (value + 0.5) * tabWidth
+                                            : contentWidth -
+                                                  (value + 0.5) * tabWidth) +
+                                        panelOffset,
                                     pillHeight / 2,
                                   ),
+                                  width: tabWidth * scaleX,
+                                  height: pillHeight * scaleY,
+                                  radius: (pillHeight / 2) * scaleY,
                                   progress: _highlightCtrl.value,
                                 ),
                               ),
@@ -1153,62 +1160,78 @@ class _MiuixFloatingBarItem extends StatelessWidget {
   }
 }
 
-/// 官方 InteractiveHighlight 等效：整体白色淡扫 + 触点径向高光。
+/// 交互高光：选中胶囊处的圆弧胶囊形亮斑，随按压进度亮起，
+/// 轮廓与展开的胶囊完全吻合，两端为柔和圆弧。
 class _InteractiveHighlightPainter extends CustomPainter {
   const _InteractiveHighlightPainter({
     required this.position,
+    required this.width,
+    required this.height,
+    required this.radius,
     required this.progress,
   });
 
+  /// 胶囊中心位置。
   final Offset position;
+
+  /// 胶囊宽度与高度（含按压与拉伸缩放）。
+  final double width;
+  final double height;
+
+  /// 胶囊端点圆角半径。
+  final double radius;
+
+  /// 按压高光进度 (0–1)。
   final double progress;
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (size.width <= 0 || size.height <= 0 || progress <= 0) return;
+    if (size.width <= 0 ||
+        size.height <= 0 ||
+        progress <= 0 ||
+        width <= 0 ||
+        height <= 0) {
+      return;
+    }
 
-    final Offset clamped = Offset(
-      position.dx.clamp(0.0, size.width),
-      position.dy.clamp(0.0, size.height),
+    final Rect pillRect = Rect.fromCenter(
+      center: position,
+      width: width,
+      height: height,
+    );
+    final RRect rrect = RRect.fromRectAndRadius(
+      pillRect,
+      Radius.circular(radius.clamp(0.0, height / 2)),
     );
 
-    // 参考库 InteractiveHighlight 的 shader：
-    //   `smoothstep(radius, radius * 0.5, dist)`，radius = minDimension * 1.5。
-    // 即选中项中心半程内满强度，之后平滑衰减到 0 —— 是一团**局部**柔光。
-    //
-    // 注意这里**不能**再叠一层整条白扫：那是参考库 `drawWithContent` 里的
-    // 8% 全幅叠加，落在我们的场景会让整条底栏一起发亮（实测离选中项最远处
-    // 也会 +20/255），看起来就像「按一下整条都亮了」。
-    final double glowRadius = size.shortestSide * 1.5;
-    canvas.drawRect(
-      Offset.zero & size,
+    // 亮斑形状：与选中胶囊轮廓吻合的圆弧胶囊形，
+    // 告别之前的正圆形手电筒光斑。
+    final double maxAlpha = (0.22 * progress).clamp(0.0, 0.22);
+
+    // 1. 外层柔和胶囊晕染（向外微弱扩散，形成光晕）
+    canvas.drawRRect(
+      rrect.inflate(4),
       Paint()
-        ..shader = RadialGradient(
-          center: FractionalOffset.fromOffsetAndRect(
-            clamped,
-            Offset.zero & size,
-          ),
-          radius: glowRadius / math.max(size.shortestSide, 1),
-          // smoothstep 采样出来的衰减曲线（p=0.5 前满强度）。
-          stops: const <double>[0.0, 0.5, 0.625, 0.75, 0.875, 1.0],
-          colors: <Color>[
-            _glowColor,
-            _glowColor,
-            _glowColor.withValues(alpha: _glowColor.a * 0.84),
-            _glowColor.withValues(alpha: _glowColor.a * 0.5),
-            _glowColor.withValues(alpha: _glowColor.a * 0.156),
-            _glowColor.withValues(alpha: 0.0),
-          ],
-        ).createShader(Offset.zero & size)
+        ..color = Colors.white.withValues(alpha: maxAlpha * 0.45)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10)
+        ..blendMode = BlendMode.plus,
+    );
+
+    // 2. 核心圆弧胶囊亮斑（形状轮廓清晰，两端弧形与胶囊完全契合）
+    canvas.drawRRect(
+      rrect,
+      Paint()
+        ..color = Colors.white.withValues(alpha: maxAlpha * 0.55)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3)
         ..blendMode = BlendMode.plus,
     );
   }
 
-  /// 辉光颜色（参考库 `Color.White.copy(alpha = 0.15f * progress)`）。
-  Color get _glowColor =>
-      Colors.white.withValues(alpha: (0.15 * progress).clamp(0.0, 0.15));
-
   @override
   bool shouldRepaint(covariant _InteractiveHighlightPainter oldDelegate) =>
-      position != oldDelegate.position || progress != oldDelegate.progress;
+      position != oldDelegate.position ||
+      width != oldDelegate.width ||
+      height != oldDelegate.height ||
+      radius != oldDelegate.radius ||
+      progress != oldDelegate.progress;
 }
