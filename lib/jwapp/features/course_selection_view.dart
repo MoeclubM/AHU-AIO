@@ -1,10 +1,9 @@
-// ignore_for_file: sort_child_properties_last, unused_field, use_build_context_synchronously
 import 'package:flutter/material.dart';
-import '../api/course_selection.dart';
+import '../../adaptive_ui.dart';
+import '../../miuix/liquid_glass_app_bar.dart';
 import '../api/api_manager.dart';
 import '../api/api_models.dart';
-import '../../globals.dart' as globals;
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../api/course_selection.dart';
 
 /// 选课页面
 class CourseSelectionPage extends StatefulWidget {
@@ -156,22 +155,12 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
   }
 
   Future<void> _dropCourse(CourseItem course) async {
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAdaptiveConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('确认退选'),
-        content: Text('确定要退选课程"${course.courseName}"吗？'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('确定'),
-          ),
-        ],
-      ),
+      title: '确认退选',
+      content: Text('确定要退选课程"${course.courseName}"吗？'),
+      confirmText: '确定退选',
+      isDanger: true,
     );
 
     if (confirmed != true) return;
@@ -204,7 +193,7 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
     return Scaffold(
       appBar: LiquidGlassAppBar(
         title: const Text('选课系统'),
-        bottom: TabBar(
+        bottom: AdaptiveTabBar(
           controller: _tabController,
           tabs: const [
             Tab(text: '可选课程', icon: Icon(Icons.search)),
@@ -253,25 +242,14 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
   }
 
   Widget _buildSearchSection() {
-    return Container(
+    return AdaptiveCard(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
       child: TextField(
         decoration: InputDecoration(
           hintText: '搜索课程名称、课程代码或教师...',
           prefixIcon: const Icon(Icons.search),
-          suffixIcon: IconButton(
+          suffixIcon: AdaptiveIconButton(
             onPressed: _searchCourses,
             icon: const Icon(Icons.search),
           ),
@@ -319,10 +297,11 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
               ),
             ],
           ),
-          ElevatedButton.icon(
+          AdaptivePrimaryButton(
+            minimumSize: const Size(88, 36),
             onPressed: _loadCourses,
             icon: const Icon(Icons.refresh),
-            label: const Text('刷新'),
+            child: const Text('刷新'),
           ),
         ],
       ),
@@ -345,7 +324,7 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
   }
 
   Widget _buildCourseCard(CourseItem course, bool isAvailableList) {
-    return Card.filled(
+    return AdaptiveCard(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -408,24 +387,16 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
                     ),
                     const SizedBox(height: 8),
                     if (isAvailableList && course.isAvailable)
-                      ElevatedButton(
+                      AdaptivePrimaryButton(
+                        minimumSize: const Size(72, 34),
                         onPressed: () => _showClassSelectionDialog(course),
                         child: const Text('选课'),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                        ),
                       ),
                     if (!isAvailableList)
-                      OutlinedButton(
+                      AdaptiveDangerButton(
+                        minimumSize: const Size(72, 34),
                         onPressed: () => _dropCourse(course),
                         child: const Text('退选'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: Colors.red,
-                          side: const BorderSide(color: Colors.red),
-                        ),
                       ),
                   ],
                 ),
@@ -498,17 +469,21 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
             style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: _loadInitialData, child: const Text('重试')),
+          AdaptivePrimaryButton(
+            minimumSize: const Size(120, 40),
+            onPressed: _loadInitialData,
+            child: const Text('重试'),
+          ),
         ],
       ),
     );
   }
 
   void _showClassSelectionDialog(CourseItem course) {
-    showDialog(
+    showAdaptiveDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('选择教学班'),
+      builder: (context) => AdaptiveAlertDialog(
+        title: const Text('选择教学班'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -517,9 +492,10 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
             // 这里应该显示可选的教学班列表
             // 简化实现，显示一个默认选项
             ListTile(
-              title: Text('默认教学班'),
+              title: const Text('默认教学班'),
               subtitle: Text(course.schedule),
-              trailing: ElevatedButton(
+              trailing: AdaptivePrimaryButton(
+                minimumSize: const Size(64, 32),
                 onPressed: () {
                   Navigator.of(context).pop();
                   _selectCourse(course, 'default_class_id');
@@ -530,7 +506,7 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
           ],
         ),
         actions: [
-          TextButton(
+          AdaptiveTextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('取消'),
           ),

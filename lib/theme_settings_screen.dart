@@ -500,14 +500,14 @@ Future<Color?> showThemeColorDialog({
   required BuildContext context,
   required Color current,
 }) {
-  return showDialog<Color>(
+  return showAdaptiveDialog<Color>(
     context: context,
     builder: (ctx) {
       Color picked = current;
       return StatefulBuilder(
         builder: (ctx, setDialogState) {
           final scheme = Theme.of(ctx).colorScheme;
-          return AlertDialog(
+          return AdaptiveAlertDialog(
             title: const Text('强调色'),
             content: SizedBox(
               width: 320,
@@ -586,13 +586,13 @@ Future<Color?> showThemeColorDialog({
 /// 自定义取色：Miuix 使用 OkHSV 取色器，MD3 使用标准 HSV 滑块。
 Future<Color?> _showCustomColorPicker(BuildContext context, Color initial) {
   if (isMiuixUi()) {
-    return showDialog<Color>(
+    return showAdaptiveDialog<Color>(
       context: context,
       builder: (ctx) {
         Color picked = initial;
         return StatefulBuilder(
           builder: (ctx, setDialogState) {
-            return AlertDialog(
+            return AdaptiveAlertDialog(
               title: const Text('自定义取色'),
               content: SizedBox(
                 width: 300,
@@ -619,7 +619,7 @@ Future<Color?> _showCustomColorPicker(BuildContext context, Color initial) {
       },
     );
   }
-  return showDialog<Color>(
+  return showAdaptiveDialog<Color>(
     context: context,
     builder: (ctx) => _HsvColorDialog(initial: initial),
   );
@@ -642,7 +642,7 @@ class _HsvColorDialogState extends State<_HsvColorDialog> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final preview = _hsv.toColor();
-    return AlertDialog(
+    return AdaptiveAlertDialog(
       title: const Text('自定义取色'),
       content: SizedBox(
         width: 320,

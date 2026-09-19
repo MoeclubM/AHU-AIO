@@ -109,7 +109,7 @@ class _HomePageState extends State<HomePage>
               ? null
               : LiquidGlassAppBar(
                   title: const Text('首页'),
-                  bottom: const TabBar(
+                  bottom: const AdaptiveTabBar(
                     tabs: [
                       Tab(icon: Icon(Icons.schedule_outlined), text: '日程'),
                       Tab(icon: Icon(Icons.quiz_outlined), text: '考试'),
@@ -134,14 +134,11 @@ class _HomePageState extends State<HomePage>
               return Column(
                 children: [
                   if (widget.embed)
-                    Container(
-                      color: Theme.of(context).colorScheme.surface,
-                      child: const TabBar(
-                        tabs: [
-                          Tab(icon: Icon(Icons.schedule_outlined), text: '日程'),
-                          Tab(icon: Icon(Icons.quiz_outlined), text: '考试'),
-                        ],
-                      ),
+                    const AdaptiveTabBar(
+                      tabs: [
+                        Tab(icon: Icon(Icons.schedule_outlined), text: '日程'),
+                        Tab(icon: Icon(Icons.quiz_outlined), text: '考试'),
+                      ],
                     ),
                   Expanded(
                     child: TabBarView(
@@ -175,30 +172,28 @@ class _HomePageState extends State<HomePage>
   Widget _buildDateSelector(HomePageLogic logic) {
     final theme = Theme.of(context);
 
-    return Card(
+    return AdaptiveCard(
       margin: const EdgeInsets.fromLTRB(16.0, 8.0, 16.0, 8.0),
-      child: InkWell(
-        onTap: () => _selectDate(context, logic),
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('选择日期', style: theme.textTheme.bodySmall),
-                    const SizedBox(height: 2),
-                    Text(
-                      _formatSelectedDate(),
-                      style: theme.textTheme.titleSmall,
-                    ),
-                  ],
-                ),
+      onTap: () => _selectDate(context, logic),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('选择日期', style: theme.textTheme.bodySmall),
+                  const SizedBox(height: 2),
+                  Text(
+                    _formatSelectedDate(),
+                    style: theme.textTheme.titleSmall,
+                  ),
+                ],
               ),
-              const Icon(Icons.date_range, size: 20),
-            ],
-          ),
+            ),
+            const Icon(Icons.date_range, size: 20),
+          ],
         ),
       ),
     );
@@ -272,7 +267,7 @@ class _HomePageState extends State<HomePage>
 
     if (logic.currentError != null) {
       return Center(
-        child: Card(
+        child: AdaptiveCard(
           margin: const EdgeInsets.all(16),
           child: Padding(
             padding: const EdgeInsets.all(32),
@@ -328,7 +323,7 @@ class _HomePageState extends State<HomePage>
           child: Row(
             children: [
               Expanded(
-                child: Card(
+                child: AdaptiveCard(
                   child: Padding(
                     padding: const EdgeInsets.all(12.0),
                     child: Column(
@@ -354,7 +349,7 @@ class _HomePageState extends State<HomePage>
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: Card(
+                child: AdaptiveCard(
                   child: Padding(
                     padding: const EdgeInsets.all(12.0),
                     child: Column(
@@ -376,7 +371,7 @@ class _HomePageState extends State<HomePage>
         Expanded(
           child: groupedSchedules.isEmpty
               ? Center(
-                  child: Card(
+                  child: AdaptiveCard(
                     margin: const EdgeInsets.all(16),
                     child: Padding(
                       padding: const EdgeInsets.all(24),
@@ -413,7 +408,7 @@ class _HomePageState extends State<HomePage>
                           selectedDateString,
                         );
 
-                    return Card(
+                    return AdaptiveCard(
                       margin: const EdgeInsets.symmetric(vertical: 4.0),
                       // 如果包含正在进行或即将进行的课程，添加边框高亮
                       // 浅色模式使用primaryContainer实现更柔和的背景色
@@ -426,19 +421,17 @@ class _HomePageState extends State<HomePage>
                                     alpha: 0.4,
                                   ))
                           : null,
-                      shape: hasOngoingOrUpcoming
-                          ? RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(
-                                color: isDark
-                                    ? theme.colorScheme.primary
-                                    : theme.colorScheme.primary.withValues(
-                                        alpha: 0.6,
-                                      ),
-                                width: isDark ? 2 : 1.5,
-                              ),
+                      border: hasOngoingOrUpcoming
+                          ? BorderSide(
+                              color: isDark
+                                  ? theme.colorScheme.primary
+                                  : theme.colorScheme.primary.withValues(
+                                      alpha: 0.6,
+                                    ),
+                              width: isDark ? 2 : 1.5,
                             )
                           : null,
+                      borderRadius: 12,
                       child: Theme(
                         data: Theme.of(
                           context,
@@ -571,7 +564,7 @@ class _HomePageState extends State<HomePage>
 
     if (exams == null) {
       return Center(
-        child: Card(
+        child: AdaptiveCard(
           margin: const EdgeInsets.all(16),
           child: Padding(
             padding: const EdgeInsets.all(32),
@@ -586,7 +579,7 @@ class _HomePageState extends State<HomePage>
 
     if (exams.isEmpty) {
       return Center(
-        child: Card(
+        child: AdaptiveCard(
           margin: const EdgeInsets.all(32),
           child: Padding(
             padding: const EdgeInsets.all(32),
@@ -612,7 +605,7 @@ class _HomePageState extends State<HomePage>
         final endTime = logic.formatExamTime(exam['endTime']);
         final classroom = exam['classroom'] ?? exam['place'];
 
-        return Card(
+        return AdaptiveCard(
           margin: const EdgeInsets.symmetric(vertical: 4.0),
           child: ListTile(
             contentPadding: const EdgeInsets.all(16.0),

@@ -3,9 +3,10 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
-import '../api/synjones_client.dart';
+import '../../adaptive_ui.dart';
 import '../../adaptive_dropdown.dart';
 import '../../miuix/liquid_glass_app_bar.dart';
+import '../api/synjones_client.dart';
 
 class FinanceRechargeDetailPage extends StatefulWidget {
   final Map<String, dynamic> entry;
@@ -476,22 +477,12 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
     final text = bind
         ? _sceneText ?? ''
         : _sceneTextFromItems(_boundSceneItems);
-    final confirmed = await showDialog<bool>(
+    final confirmed = await showAdaptiveConfirmDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('${bind ? '添加' : '解绑'}$label信息'),
-        content: Text(text),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('确定'),
-          ),
-        ],
-      ),
+      title: '${bind ? '添加' : '解绑'}$label信息',
+      content: Text(text),
+      confirmText: '确定',
+      isDanger: !bind,
     );
     if (confirmed == true) await _saveSceneBinding(sceneinfo);
   }
@@ -858,7 +849,11 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
           children: [
             Text(_error!, textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            FilledButton(onPressed: _load, child: const Text('重试')),
+            AdaptivePrimaryButton(
+              minimumSize: const Size(120, 40),
+              onPressed: _load,
+              child: const Text('重试'),
+            ),
           ],
         ),
       ),
@@ -868,7 +863,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
   Widget _buildFeeitemCard() {
     final feeitem = _feeitem!;
     final colorScheme = Theme.of(context).colorScheme;
-    return Card(
+    return AdaptiveCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -895,7 +890,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
   }
 
   Widget _buildCardRechargeForm() {
-    return Card(
+    return AdaptiveCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -929,7 +924,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
             const SizedBox(height: 16),
             _buildAmountInput('充值金额'),
             const SizedBox(height: 16),
-            FilledButton.icon(
+            AdaptivePrimaryButton(
               onPressed: _creating ? null : _createCardOrder,
               icon: _creating
                   ? const SizedBox(
@@ -938,7 +933,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.payments),
-              label: Text(_creating ? '正在下单' : '创建充值订单'),
+              child: Text(_creating ? '正在下单' : '创建充值订单'),
             ),
           ],
         ),
@@ -947,7 +942,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
   }
 
   Widget _buildChargeForm() {
-    return Card(
+    return AdaptiveCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -964,7 +959,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
             const SizedBox(height: 16),
             _buildAmountInput('缴费金额'),
             const SizedBox(height: 16),
-            FilledButton.icon(
+            AdaptivePrimaryButton(
               onPressed: _creating ? null : _createChargeOrder,
               icon: _creating
                   ? const SizedBox(
@@ -973,7 +968,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.receipt_long),
-              label: Text(_creating ? '正在下单' : '创建缴费订单'),
+              child: Text(_creating ? '正在下单' : '创建缴费订单'),
             ),
           ],
         ),
@@ -1034,21 +1029,23 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
               alignment: Alignment.centerLeft,
               child: Row(
                 children: [
-                  FilledButton.icon(
+                  AdaptivePrimaryButton(
+                    minimumSize: const Size(120, 36),
                     onPressed: _sceneBinding
                         ? null
                         : () => _confirmSceneBind(true),
                     icon: const Icon(Icons.check_circle_outline),
-                    label: Text(hasBoundScene ? '保存修改' : '添加为我的$sceneLabel'),
+                    child: Text(hasBoundScene ? '保存修改' : '添加为我的$sceneLabel'),
                   ),
                   if (hasBoundScene) ...[
                     const SizedBox(width: 8),
-                    OutlinedButton.icon(
+                    AdaptiveDangerButton(
+                      minimumSize: const Size(80, 36),
                       onPressed: _sceneBinding
                           ? null
                           : () => _confirmSceneBind(false),
                       icon: const Icon(Icons.remove_circle_outline),
-                      label: const Text('解绑'),
+                      child: const Text('解绑'),
                     ),
                   ],
                 ],
@@ -1113,17 +1110,18 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
             spacing: 8,
             runSpacing: 8,
             children: [
-              TextButton.icon(
+              AdaptiveTextButton(
                 onPressed: _sceneBinding ? null : _editBoundScene,
                 icon: const Icon(Icons.edit),
-                label: const Text('编辑'),
+                child: const Text('编辑'),
               ),
-              OutlinedButton.icon(
+              AdaptiveDangerButton(
+                minimumSize: const Size(120, 36),
                 onPressed: _sceneBinding
                     ? null
                     : () => _confirmSceneBind(false),
                 icon: const Icon(Icons.remove_circle_outline),
-                label: Text('解绑我的$sceneLabel'),
+                child: Text('解绑我的$sceneLabel'),
               ),
             ],
           ),
@@ -1149,7 +1147,8 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
           ),
         ),
         const SizedBox(width: 8),
-        FilledButton(
+        AdaptivePrimaryButton(
+          minimumSize: const Size(80, 40),
           onPressed: _thirdLoading ? null : _queryThirdInput,
           child: const Text('查询'),
         ),
@@ -1396,7 +1395,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
               for (var digit = 1; digit <= 9; digit++) _secureKeyButton(digit),
               const SizedBox.shrink(),
               _secureKeyButton(0),
-              OutlinedButton(
+              AdaptiveOutlinedButton(
                 onPressed: _paymentPasswordValue.isEmpty
                     ? null
                     : () => setState(() {
@@ -1409,7 +1408,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
               ),
             ],
           ),
-          TextButton(
+          AdaptiveTextButton(
             onPressed: _loadSecureKeyboard,
             child: const Text('刷新安全键盘'),
           ),
@@ -1424,7 +1423,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
         index < _secureKeyboardValues.length &&
         index < _secureKeyboardImages.length;
     final enabled = hasKey && _paymentPasswordValue.length < 6;
-    return OutlinedButton(
+    return AdaptiveOutlinedButton(
       onPressed: enabled
           ? () => setState(() {
               _paymentPasswordValue += _secureKeyboardValues[index];
@@ -1530,7 +1529,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
         : _orderResponse?['orderid']?.toString();
     final payList = ((_payInfo?['payList'] as List?) ?? []).whereType<Map>();
     final selectedPay = _selectedPay();
-    return Card(
+    return AdaptiveCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -1579,7 +1578,8 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
               if (selectedPay != null && orderId != null)
                 _buildPayAccountSelectors(orderId, selectedPay),
               const SizedBox(height: 12),
-              FilledButton.icon(
+              AdaptivePrimaryButton(
+                minimumSize: const Size(120, 40),
                 onPressed: _paying || _preparingPay ? null : _requestPayStep,
                 icon: _paying
                     ? const SizedBox(
@@ -1588,7 +1588,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.payment),
-                label: Text(_paying ? '正在提交支付' : '提交支付'),
+                child: Text(_paying ? '正在提交支付' : '提交支付'),
               ),
             ] else if (orderId != null) ...[
               const SizedBox(height: 8),

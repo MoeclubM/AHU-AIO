@@ -243,11 +243,8 @@ class _UnifiedLoginPageState extends State<UnifiedLoginPage> {
           padding: const EdgeInsets.all(24.0),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 420),
-            child: Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
+            child: AdaptiveCard(
+              borderRadius: 24,
               child: Padding(
                 padding: const EdgeInsets.all(32.0),
                 child: Column(
@@ -287,9 +284,6 @@ class _UnifiedLoginPageState extends State<UnifiedLoginPage> {
                       controller: _usernameController,
                       textInputAction: TextInputAction.next,
                       decoration: const InputDecoration(
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(16)),
-                        ),
                         labelText: '学号 / 工号',
                         prefixIcon: Icon(Icons.person_outline_rounded),
                       ),
@@ -302,9 +296,6 @@ class _UnifiedLoginPageState extends State<UnifiedLoginPage> {
                         if (!_isLoading) _handleLogin();
                       },
                       decoration: const InputDecoration(
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(16)),
-                        ),
                         labelText: '统一认证密码',
                         prefixIcon: Icon(Icons.lock_outline_rounded),
                       ),

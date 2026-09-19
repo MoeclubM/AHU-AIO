@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import '../../globals.dart' as globals;
+import '../../adaptive_ui.dart';
 import '../../miuix/liquid_glass_app_bar.dart';
 
 /// 培养方案查询页面（原版网页内嵌）
@@ -68,7 +68,7 @@ class _PlanQueryPageState extends State<PlanQueryPage> {
       appBar: LiquidGlassAppBar(
         title: const Text('培养方案查询'),
         actions: [
-          IconButton(
+          AdaptiveIconButton(
             onPressed: () {
               _webViewController.reload();
             },
@@ -81,12 +81,12 @@ class _PlanQueryPageState extends State<PlanQueryPage> {
           WebViewWidget(controller: _webViewController),
           if (_isLoading)
             Container(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               child: const Center(child: CircularProgressIndicator()),
             ),
           if (_error != null)
             Container(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -115,7 +115,8 @@ class _PlanQueryPageState extends State<PlanQueryPage> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    ElevatedButton(
+                    AdaptivePrimaryButton(
+                      minimumSize: const Size(120, 40),
                       onPressed: () {
                         setState(() {
                           _error = null;

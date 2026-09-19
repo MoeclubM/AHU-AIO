@@ -60,7 +60,7 @@ class _AcademicWarningPageState extends State<AcademicWarningPage>
             onPressed: _loadPlanData,
           ),
         ],
-        bottom: TabBar(
+        bottom: AdaptiveTabBar(
           controller: _tabController,
           tabs: const [
             Tab(text: '计划完成情况'),
@@ -120,8 +120,7 @@ class _AcademicWarningPageState extends State<AcademicWarningPage>
   Widget _buildOverallProgress(int completed, int total) {
     final percentage = total > 0 ? (completed / total * 100) : 0.0;
 
-    return Card(
-      elevation: 4,
+    return AdaptiveCard(
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -184,7 +183,7 @@ class _AcademicWarningPageState extends State<AcademicWarningPage>
         : 0.0;
     final courses = module['courses'] as List<dynamic>? ?? [];
 
-    return Card(
+    return AdaptiveCard(
       margin: const EdgeInsets.only(bottom: 12),
       child: ExpansionTile(
         title: Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
@@ -374,8 +373,7 @@ class _AcademicWarningPageState extends State<AcademicWarningPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 计划外学分统计
-          Card(
-            elevation: 4,
+          AdaptiveCard(
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Row(
@@ -465,7 +463,7 @@ class _AcademicWarningPageState extends State<AcademicWarningPage>
               ),
             ),
           ] else ...[
-            Card(
+            AdaptiveCard(
               child: Padding(
                 padding: const EdgeInsets.all(32),
                 child: Center(
@@ -511,7 +509,7 @@ class _AcademicWarningPageState extends State<AcademicWarningPage>
         course['semester']?.toString() ?? course['termName']?.toString() ?? '';
     final gpa = (course['gpa'] ?? 0.0).toDouble();
 
-    return Card(
+    return AdaptiveCard(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
@@ -620,7 +618,11 @@ class _AcademicWarningPageState extends State<AcademicWarningPage>
             style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: _loadPlanData, child: const Text('刷新')),
+          AdaptivePrimaryButton(
+            minimumSize: const Size(120, 40),
+            onPressed: _loadPlanData,
+            child: const Text('刷新'),
+          ),
         ],
       ),
     );
@@ -648,7 +650,11 @@ class _AcademicWarningPageState extends State<AcademicWarningPage>
             style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: _loadPlanData, child: const Text('重试')),
+          AdaptivePrimaryButton(
+            minimumSize: const Size(120, 40),
+            onPressed: _loadPlanData,
+            child: const Text('重试'),
+          ),
         ],
       ),
     );

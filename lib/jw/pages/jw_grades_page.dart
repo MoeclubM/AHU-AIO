@@ -139,7 +139,8 @@ class _JwGradesPageState extends State<JwGradesPage>
                 children: [
                   Text(_error!, style: const TextStyle(color: Colors.red)),
                   const SizedBox(height: 16),
-                  ElevatedButton(
+                  AdaptivePrimaryButton(
+                    minimumSize: const Size(120, 40),
                     onPressed: _loadAllGrades,
                     child: const Text('重试'),
                   ),
@@ -204,7 +205,7 @@ class _JwGradesPageState extends State<JwGradesPage>
       padding: adaptivePagePadding(context, horizontal: 12, top: 12),
       children: [
         if (gpa != null)
-          Card(
+          AdaptiveCard(
             color: Theme.of(context).colorScheme.primaryContainer,
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -239,7 +240,7 @@ class _JwGradesPageState extends State<JwGradesPage>
     final score = g.numericGrade;
     final isLow = score != null && score < 60;
 
-    return Card(
+    return AdaptiveCard(
       margin: const EdgeInsets.only(bottom: 8),
       child: Padding(
         padding: const EdgeInsets.all(12),

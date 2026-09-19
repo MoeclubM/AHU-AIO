@@ -158,7 +158,7 @@ class _FinanceRechargePageState extends State<FinanceRechargePage>
                 ValueListenableBuilder<bool>(
                   valueListenable: financeRechargeIsListViewNotifier,
                   builder: (context, isListView, _) {
-                    return IconButton(
+                    return AdaptiveIconButton(
                       icon: Icon(
                         isListView
                             ? Icons.grid_view_rounded
@@ -225,7 +225,11 @@ class _FinanceRechargePageState extends State<FinanceRechargePage>
           children: [
             Text(_error!, textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            FilledButton(onPressed: _loadEntries, child: const Text('重试')),
+            AdaptivePrimaryButton(
+              minimumSize: const Size(120, 40),
+              onPressed: _loadEntries,
+              child: const Text('重试'),
+            ),
           ],
         ),
       ),
@@ -252,46 +256,42 @@ class _FinanceRechargePageState extends State<FinanceRechargePage>
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Card(
-      elevation: 1,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => FinanceRechargeDetailPage(
-                entry: entry,
-                feeitemId: entry['feeitemId'] as int,
-                isCardRecharge: isCardRecharge,
+    return AdaptiveCard(
+      borderRadius: 16,
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => FinanceRechargeDetailPage(
+              entry: entry,
+              feeitemId: entry['feeitemId'] as int,
+              isCardRecharge: isCardRecharge,
+            ),
+          ),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircleAvatar(
+              radius: 26,
+              backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
+              child: Icon(iconData, color: colorScheme.primary, size: 28),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
               ),
             ),
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CircleAvatar(
-                radius: 26,
-                backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
-                child: Icon(iconData, color: colorScheme.primary, size: 28),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
+          ],
         ),
       ),
     );
@@ -317,56 +317,46 @@ class _FinanceRechargePageState extends State<FinanceRechargePage>
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-    return Card(
-      elevation: 0.5,
+    return AdaptiveCard(
       margin: const EdgeInsets.only(bottom: 10),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
-        side: BorderSide(
-          color: colorScheme.outlineVariant.withOpacity(0.35),
-          width: 0.6,
-        ),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => FinanceRechargeDetailPage(
-                entry: entry,
-                feeitemId: entry['feeitemId'] as int,
-                isCardRecharge: isCardRecharge,
-              ),
+      borderRadius: 14,
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => FinanceRechargeDetailPage(
+              entry: entry,
+              feeitemId: entry['feeitemId'] as int,
+              isCardRecharge: isCardRecharge,
             ),
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
-                child: Icon(iconData, color: colorScheme.primary, size: 24),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
+          ),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 22,
+              backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
+              child: Icon(iconData, color: colorScheme.primary, size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: colorScheme.onSurfaceVariant.withOpacity(0.4),
-                size: 22,
-              ),
-            ],
-          ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              size: 20,
+              color: colorScheme.onSurfaceVariant.withOpacity(0.6),
+            ),
+          ],
         ),
       ),
     );

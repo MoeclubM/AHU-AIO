@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../login/login_service.dart';
+import '../../adaptive_ui.dart';
 import '../../auth/unified_login_page.dart';
+import '../../globals.dart' as globals;
+import '../../miuix/liquid_glass_app_bar.dart';
+import '../../miuix/miuix_components.dart';
+import '../../theme_manager.dart';
 import '../api/getuserinfo_extended.dart';
 import '../api/unauthorized_exception.dart';
-import '../../globals.dart' as globals;
-import '../../theme_manager.dart';
-import '../../miuix/miuix_components.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../login/login_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -168,7 +169,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildThemeModeSelector(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Card(
+    return AdaptiveCard(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -209,7 +210,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildUserInfo(Map<String, dynamic> userInfo) {
     final theme = Theme.of(context);
 
-    return Card(
+    return AdaptiveCard(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -239,15 +240,16 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _showSessionExpiredDialog() {
-    showDialog(
+    showAdaptiveDialog(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
-        return AlertDialog(
+        return AdaptiveAlertDialog(
           title: const Text('登录已过期'),
           content: const Text('重新登录失败，请手动登录。'),
           actions: [
-            MiuixDangerButton(
+            AdaptiveDangerButton(
+              minimumSize: const Size(100, 38),
               onPressed: () {
                 Navigator.of(context).pop();
                 _logout(this.context);
@@ -263,7 +265,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildLogoutButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      child: MiuixDangerButton(
+      child: AdaptiveDangerButton(
         onPressed: () => _showLogoutDialog(context),
         icon: const Icon(Icons.logout),
         child: const Text('退出登录'),
@@ -272,18 +274,19 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _showLogoutDialog(BuildContext context) {
-    showDialog(
+    showAdaptiveDialog(
       context: context,
       builder: (BuildContext context) {
-        return AlertDialog(
+        return AdaptiveAlertDialog(
           title: const Text('确认退出'),
           content: const Text('您确定要退出登录吗？'),
           actions: [
-            MiuixTextButton(
+            AdaptiveTextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: const Text('取消'),
             ),
-            MiuixDangerButton(
+            AdaptiveDangerButton(
+              minimumSize: const Size(100, 38),
               onPressed: () {
                 Navigator.of(context).pop();
                 _logout(context);
@@ -299,7 +302,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildAppInfo() {
     final theme = Theme.of(context);
 
-    return Card(
+    return AdaptiveCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

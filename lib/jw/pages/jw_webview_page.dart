@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import '../utils/jw_webview_auth.dart';
+import '../../adaptive_ui.dart';
 import '../../miuix/liquid_glass_app_bar.dart';
+import '../utils/jw_webview_auth.dart';
 
 /// 通用 WebView 页面，共享 Dio 的认证 cookies
 class JwWebViewPage extends StatefulWidget {
@@ -93,7 +94,7 @@ class _JwWebViewPageState extends State<JwWebViewPage> {
       appBar: LiquidGlassAppBar(
         title: Text(widget.title),
         actions: [
-          IconButton(
+          AdaptiveIconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () async {
               setState(() {
@@ -167,7 +168,7 @@ class _JwWebViewPageState extends State<JwWebViewPage> {
                 ),
                 if (_hasError)
                   Center(
-                    child: Card(
+                    child: AdaptiveCard(
                       margin: const EdgeInsets.all(32),
                       child: Padding(
                         padding: const EdgeInsets.all(24),
@@ -185,7 +186,8 @@ class _JwWebViewPageState extends State<JwWebViewPage> {
                               textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 16),
-                            ElevatedButton(
+                            AdaptivePrimaryButton(
+                              minimumSize: const Size(120, 40),
                               onPressed: () async {
                                 setState(() {
                                   _hasError = false;

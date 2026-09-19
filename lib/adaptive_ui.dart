@@ -77,6 +77,9 @@ class AdaptiveCard extends StatelessWidget {
     this.margin,
     this.borderRadius = 20,
     this.color,
+    this.onTap,
+    this.elevation,
+    this.border,
   });
 
   final Widget child;
@@ -84,35 +87,58 @@ class AdaptiveCard extends StatelessWidget {
   final EdgeInsets? margin;
   final double borderRadius;
   final Color? color;
+  final VoidCallback? onTap;
+  final double? elevation;
+  final BorderSide? border;
 
   @override
   Widget build(BuildContext context) {
     if (isMiuixUi()) {
       final scheme = Theme.of(context).colorScheme;
+      Widget content = MiuixCard(
+        cornerRadius: borderRadius,
+        insideMargin: padding ?? EdgeInsets.zero,
+        colors: color == null
+            ? null
+            : MiuixCardColors(color: color!, contentColor: scheme.onSurface),
+        child: child,
+      );
+      if (onTap != null) {
+        content = MiuixNoRipple(
+          onTap: onTap,
+          child: content,
+        );
+      }
       return Padding(
         padding: margin ?? EdgeInsets.zero,
-        child: MiuixCard(
-          cornerRadius: borderRadius,
-          insideMargin: padding ?? EdgeInsets.zero,
-          colors: color == null
-              ? null
-              : MiuixCardColors(color: color!, contentColor: scheme.onSurface),
-          child: child,
-        ),
+        child: content,
       );
     }
     // M3：圆角、elevation、颜色全部交给 CardTheme / Card 默认值，
     // 不再套用 Miuix 的 20 圆角；调用方显式传 borderRadius 时才覆盖。
+    Widget content = Padding(
+      padding: padding ?? EdgeInsets.zero,
+      child: child,
+    );
+    if (onTap != null) {
+      content = InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: content,
+      );
+    }
     return Card(
       margin: margin ?? EdgeInsets.zero,
       color: color,
-      shape: borderRadius == 20
+      elevation: elevation,
+      shape: (borderRadius == 20 && border == null)
           ? null
           : RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(borderRadius),
+              side: border ?? BorderSide.none,
             ),
       clipBehavior: Clip.antiAlias,
-      child: Padding(padding: padding ?? EdgeInsets.zero, child: child),
+      child: content,
     );
   }
 }
@@ -137,12 +163,10 @@ class AdaptivePageHeader extends StatelessWidget {
         children: [
           // 设计稿：Miuix 用**普通返回箭头**（无底板），MD3 用**圆形实底按钮**。
           if (miuix)
-            IconButton(
+            AdaptiveIconButton(
               onPressed: onBack ?? () => Navigator.maybePop(context),
-              icon: const Icon(Icons.arrow_back),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
-              iconSize: 26,
+              icon: MiuixIcons.arrowBack(),
+              size: 24,
             )
           else
             Material(
@@ -466,6 +490,305 @@ class AdaptiveIconButton extends StatelessWidget {
       color: color,
     );
   }
+}
+
+/// 次级按钮（Tonal 按钮）：Miuix 用原生次级按钮配色（secondaryVariant 底色），MD3 用 FilledButton.tonal。
+class AdaptiveSecondaryButton extends StatelessWidget {
+  const AdaptiveSecondaryButton({
+    super.key,
+    required this.onPressed,
+    required this.child,
+    this.icon,
+    this.minimumSize = const Size.fromHeight(40),
+  });
+
+  final VoidCallback? onPressed;
+  final Widget child;
+  final Widget? icon;
+  final Size minimumSize;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isMiuixUi()) {
+      return MiuixButton(
+        onPressed: onPressed,
+        icon: icon,
+        minWidth: minimumSize.width,
+        minHeight: minimumSize.height,
+        child: child,
+      );
+    }
+    if (icon != null) {
+      return FilledButton.tonalIcon(
+        onPressed: onPressed,
+        icon: icon!,
+        label: child,
+      );
+    }
+    return FilledButton.tonal(
+      onPressed: onPressed,
+      child: child,
+    );
+  }
+}
+
+/// 描边按钮：Miuix 用 Squircle 描边（无底色，带 outline 边框与按下微缩），MD3 用 OutlinedButton。
+class AdaptiveOutlinedButton extends StatelessWidget {
+  const AdaptiveOutlinedButton({
+    super.key,
+    required this.onPressed,
+    required this.child,
+    this.icon,
+    this.minimumSize = const Size.fromHeight(40),
+  });
+
+  final VoidCallback? onPressed;
+  final Widget child;
+  final Widget? icon;
+  final Size minimumSize;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isMiuixUi()) {
+      final scheme = Theme.of(context).colorScheme;
+      return MiuixButton(
+        onPressed: onPressed,
+        icon: icon,
+        minWidth: minimumSize.width,
+        minHeight: minimumSize.height,
+        borderSide: BorderSide(color: scheme.outline, width: 0.8),
+        colors: MiuixButtonColors(
+          color: Colors.transparent,
+          disabledColor: Colors.transparent,
+          contentColor: scheme.primary,
+          disabledContentColor: scheme.onSurfaceVariant.withValues(alpha: 0.38),
+        ),
+        child: child,
+      );
+    }
+    if (icon != null) {
+      return OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: icon!,
+        label: child,
+      );
+    }
+    return OutlinedButton(
+      onPressed: onPressed,
+      child: child,
+    );
+  }
+}
+
+/// 自适应标签栏。
+///
+/// - Miuix 模式：完全去除 Material 水波纹与下划线指示器，采用 HyperOS 风格的胶囊滑动/圆角药丸背景，
+///   选中项使用 `primary` 柔和底色，无下划线和点击涟漪。
+/// - MD3 模式：纯标准 Material 3 TabBar 规范，保留系统默认指示器与主题色彩。
+class AdaptiveTabBar extends StatelessWidget implements PreferredSizeWidget {
+  const AdaptiveTabBar({
+    super.key,
+    required this.tabs,
+    this.controller,
+    this.onTap,
+    this.isScrollable = false,
+    this.padding,
+    this.height = 46,
+  });
+
+  final List<Widget> tabs;
+  final TabController? controller;
+  final ValueChanged<int>? onTap;
+  final bool isScrollable;
+  final EdgeInsetsGeometry? padding;
+  final double height;
+
+  @override
+  Size get preferredSize => Size.fromHeight(height);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    if (isMiuixUi()) {
+      return Container(
+        height: height,
+        padding:
+            padding ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        child: TabBar(
+          controller: controller,
+          onTap: onTap,
+          isScrollable: isScrollable,
+          tabAlignment: isScrollable ? TabAlignment.start : null,
+          splashFactory: NoSplash.splashFactory,
+          overlayColor: const WidgetStatePropertyAll(Colors.transparent),
+          dividerColor: Colors.transparent,
+          indicatorSize: TabBarIndicatorSize.tab,
+          indicator: ShapeDecoration(
+            color: scheme.primary.withValues(alpha: 0.12),
+            shape: const MiuixSquircleBorder(cornerRadius: 12),
+          ),
+          labelColor: scheme.primary,
+          unselectedLabelColor: scheme.onSurfaceVariant,
+          labelStyle:
+              const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+          unselectedLabelStyle:
+              const TextStyle(fontWeight: FontWeight.normal, fontSize: 14),
+          tabs: tabs,
+        ),
+      );
+    }
+    return TabBar(
+      controller: controller,
+      onTap: onTap,
+      isScrollable: isScrollable,
+      tabAlignment: isScrollable ? TabAlignment.start : null,
+      padding: padding,
+      tabs: tabs,
+    );
+  }
+}
+
+/// 自适应悬浮操作按钮。
+///
+/// - Miuix 模式：采用 HyperOS 风格的平坦 squircle 形状（无 Material 投射阴影，无水波纹，按下轻微下沉缩放）。
+/// - MD3 模式：纯标准 Material 3 FloatingActionButton（标准海拔与调色板）。
+class AdaptiveFloatingActionButton extends StatelessWidget {
+  const AdaptiveFloatingActionButton({
+    super.key,
+    required this.onPressed,
+    required this.child,
+    this.tooltip,
+    this.backgroundColor,
+    this.foregroundColor,
+  });
+
+  final VoidCallback? onPressed;
+  final Widget child;
+  final String? tooltip;
+  final Color? backgroundColor;
+  final Color? foregroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isMiuixUi()) {
+      final scheme = Theme.of(context).colorScheme;
+      final Color bg = backgroundColor ?? scheme.primary;
+      final Color fg = foregroundColor ?? scheme.onPrimary;
+
+      Widget button = MiuixNoRipple(
+        onTap: onPressed,
+        child: Container(
+          width: 56,
+          height: 56,
+          decoration: ShapeDecoration(
+            color: bg,
+            shape: const MiuixSquircleBorder(cornerRadius: 18),
+          ),
+          child: Center(
+            child: IconTheme(
+              data: IconThemeData(color: fg, size: 24),
+              child: child,
+            ),
+          ),
+        ),
+      );
+      if (tooltip != null) {
+        button = Tooltip(message: tooltip!, child: button);
+      }
+      return button;
+    }
+    return FloatingActionButton(
+      onPressed: onPressed,
+      tooltip: tooltip,
+      backgroundColor: backgroundColor,
+      foregroundColor: foregroundColor,
+      child: child,
+    );
+  }
+}
+
+/// 自适应警告/消息弹窗：
+///
+/// - Miuix 模式：零海拔、24dp Squircle 弹窗，符合 HyperOS 规范。
+/// - MD3 模式：标准 Material 3 AlertDialog，28dp 圆角与 tonal elevation。
+class AdaptiveAlertDialog extends StatelessWidget {
+  const AdaptiveAlertDialog({
+    super.key,
+    this.title,
+    this.content,
+    this.actions,
+    this.contentPadding,
+  });
+
+  final Widget? title;
+  final Widget? content;
+  final List<Widget>? actions;
+  final EdgeInsetsGeometry? contentPadding;
+
+  @override
+  Widget build(BuildContext context) {
+    final bool miuix = isMiuixUi();
+    return AlertDialog(
+      title: title,
+      content: content,
+      contentPadding: contentPadding ??
+          EdgeInsets.fromLTRB(24, 20, 24, miuix ? 16 : 24),
+      actions: actions,
+      actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    );
+  }
+}
+
+/// 打开自适应弹窗。
+Future<T?> showAdaptiveDialog<T>({
+  required BuildContext context,
+  required Widget Function(BuildContext) builder,
+  bool barrierDismissible = true,
+}) {
+  return showDialog<T>(
+    context: context,
+    barrierDismissible: barrierDismissible,
+    builder: builder,
+  );
+}
+
+/// 自适应确认弹窗。
+Future<bool?> showAdaptiveConfirmDialog({
+  required BuildContext context,
+  required String title,
+  required Widget content,
+  String confirmText = '确定',
+  String cancelText = '取消',
+  bool isDanger = false,
+}) {
+  return showAdaptiveDialog<bool>(
+    context: context,
+    builder: (ctx) {
+      return AdaptiveAlertDialog(
+        title: Text(title),
+        content: content,
+        actions: [
+          AdaptiveTextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(cancelText),
+          ),
+          if (isDanger)
+            AdaptiveDangerButton(
+              minimumSize: const Size(80, 38),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(confirmText),
+            )
+          else
+            AdaptivePrimaryButton(
+              minimumSize: const Size(80, 38),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(confirmText),
+            ),
+        ],
+      );
+    },
+  );
 }
 
 /// 选项弹窗中的一项。

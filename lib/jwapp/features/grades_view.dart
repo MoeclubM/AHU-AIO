@@ -137,10 +137,11 @@ class _GradesPageState extends State<GradesPage>
             style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 24),
-          ElevatedButton.icon(
+          AdaptivePrimaryButton(
+            minimumSize: const Size(120, 40),
             onPressed: _loadGrades,
             icon: const Icon(Icons.refresh),
-            label: const Text('重试'),
+            child: const Text('重试'),
           ),
         ],
       ),
@@ -148,20 +149,9 @@ class _GradesPageState extends State<GradesPage>
   }
 
   Widget _buildSemesterFilter() {
-    return Container(
+    return AdaptiveCard(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
       child: Row(
         children: [
           const Icon(Icons.filter_list, size: 20),
@@ -233,7 +223,7 @@ class _GradesPageState extends State<GradesPage>
         final semester = sortedSemesters[index];
         final semesterGrades = grouped[semester]!;
 
-        return Card(
+        return AdaptiveCard(
           margin: const EdgeInsets.only(bottom: 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

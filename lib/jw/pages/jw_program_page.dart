@@ -68,7 +68,11 @@ class _JwProgramPageState extends State<JwProgramPage>
                 children: [
                   Text(_error!, style: const TextStyle(color: Colors.red)),
                   const SizedBox(height: 16),
-                  ElevatedButton(onPressed: _loadData, child: const Text('重试')),
+                  AdaptivePrimaryButton(
+                    minimumSize: const Size(120, 40),
+                    onPressed: _loadData,
+                    child: const Text('重试'),
+                  ),
                 ],
               ),
             )
@@ -85,7 +89,7 @@ class _JwProgramPageState extends State<JwProgramPage>
     return ListView(
       padding: adaptivePagePadding(context, horizontal: 12, top: 12),
       children: [
-        Card(
+        AdaptiveCard(
           color: Theme.of(context).colorScheme.primaryContainer,
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -115,7 +119,7 @@ class _JwProgramPageState extends State<JwProgramPage>
     final courses = module.courses;
     final courseCount = courses.length;
 
-    return Card(
+    return AdaptiveCard(
       margin: const EdgeInsets.only(bottom: 8),
       child: ExpansionTile(
         leading: _moduleIcon(module),

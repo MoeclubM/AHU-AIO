@@ -58,6 +58,7 @@ class MiuixButton extends StatelessWidget {
     this.minHeight = kit.MiuixButtonDefaults.minHeight,
     this.colors,
     this.insideMargin = kit.MiuixButtonDefaults.insideMargin,
+    this.borderSide,
   });
 
   final VoidCallback? onPressed;
@@ -69,6 +70,7 @@ class MiuixButton extends StatelessWidget {
   final double minHeight;
   final kit.MiuixButtonColors? colors;
   final EdgeInsetsGeometry insideMargin;
+  final BorderSide? borderSide;
 
   @override
   Widget build(BuildContext context) {
@@ -103,6 +105,7 @@ class MiuixButton extends StatelessWidget {
       minWidth: minWidth,
       minHeight: minHeight,
       insideMargin: insideMargin,
+      borderSide: borderSide,
       child: label,
     );
   }

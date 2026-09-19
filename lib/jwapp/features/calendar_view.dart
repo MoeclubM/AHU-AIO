@@ -1,10 +1,9 @@
-// ignore_for_file: sized_box_for_whitespace, unused_local_variable
 import 'package:flutter/material.dart';
-import '../api/getcalendar.dart';
-import '../models/calendar_model.dart';
-import '../../globals.dart' as globals;
+import '../../adaptive_ui.dart';
 import '../../adaptive_dropdown.dart';
 import '../../miuix/liquid_glass_app_bar.dart';
+import '../api/getcalendar.dart';
+import '../models/calendar_model.dart';
 
 class CalendarPage extends StatefulWidget {
   const CalendarPage({super.key});
@@ -155,10 +154,11 @@ class _CalendarPageState extends State<CalendarPage> {
             style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 24),
-          ElevatedButton.icon(
+          AdaptivePrimaryButton(
+            minimumSize: const Size(120, 40),
             onPressed: _loadCalendarData,
             icon: const Icon(Icons.refresh),
-            label: const Text('重试'),
+            child: const Text('重试'),
           ),
         ],
       ),
@@ -190,20 +190,9 @@ class _CalendarPageState extends State<CalendarPage> {
   }
 
   Widget _buildSemesterSelector() {
-    return Container(
+    return AdaptiveCard(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
       child: Row(
         children: [
           Icon(Icons.calendar_month, color: Colors.teal.shade600, size: 20),
@@ -374,7 +363,7 @@ class _CalendarPageState extends State<CalendarPage> {
                   _buildWeekRow(weekNum, layout.weeklyLayout[weekNum]!),
             ),
         if (weeks.length > 4)
-          TextButton(
+          AdaptiveTextButton(
             onPressed: () {
               // 这里可以展开显示更多周
             },

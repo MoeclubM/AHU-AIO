@@ -576,6 +576,7 @@ class MiuixButton extends StatelessWidget {
     this.minWidth = MiuixButtonDefaults.minWidth,
     this.minHeight = MiuixButtonDefaults.minHeight,
     this.insideMargin = MiuixButtonDefaults.insideMargin,
+    this.borderSide,
   });
 
   final VoidCallback? onPressed;
@@ -586,6 +587,7 @@ class MiuixButton extends StatelessWidget {
   final double minWidth;
   final double minHeight;
   final EdgeInsetsGeometry insideMargin;
+  final BorderSide? borderSide;
 
   @override
   Widget build(BuildContext context) {
@@ -603,6 +605,7 @@ class MiuixButton extends StatelessWidget {
           cornerRadius: cornerRadius,
           backgroundColor: active ? c.color : c.disabledColor,
           foregroundColor: active ? c.contentColor : c.disabledContentColor,
+          borderSide: borderSide,
           onTap: onPressed,
           child: Padding(
             padding: insideMargin,
@@ -621,6 +624,7 @@ class _MiuixButtonSurface extends StatefulWidget {
     required this.cornerRadius,
     required this.backgroundColor,
     required this.foregroundColor,
+    this.borderSide,
     required this.onTap,
     required this.child,
   });
@@ -629,6 +633,7 @@ class _MiuixButtonSurface extends StatefulWidget {
   final double cornerRadius;
   final Color backgroundColor;
   final Color foregroundColor;
+  final BorderSide? borderSide;
   final VoidCallback? onTap;
   final Widget child;
 
@@ -661,7 +666,10 @@ class _MiuixButtonSurfaceState extends State<_MiuixButtonSurface> {
           child: DecoratedBox(
             decoration: ShapeDecoration(
               color: widget.backgroundColor,
-              shape: MiuixSquircleBorder(cornerRadius: widget.cornerRadius),
+              shape: MiuixSquircleBorder(
+                cornerRadius: widget.cornerRadius,
+                side: widget.borderSide ?? BorderSide.none,
+              ),
             ),
             child: widget.child,
           ),

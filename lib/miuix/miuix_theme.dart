@@ -150,6 +150,122 @@ ThemeData _buildMiuixTheme(MiuixColors c, Brightness brightness) {
       indicatorColor: c.primary.withOpacity(0.12),
       labelTextStyle: WidgetStateProperty.all(const TextStyle(fontSize: 11)),
     ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: c.surfaceContainerHigh,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: c.outline, width: 0.5),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: c.outline, width: 0.5),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: c.primary, width: 1.5),
+      ),
+      hintStyle: TextStyle(color: c.onSurfaceVariantSummary, fontSize: 14),
+      labelStyle: TextStyle(color: c.onSurfaceVariantActions, fontSize: 14),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: ButtonStyle(
+        elevation: const WidgetStatePropertyAll(0),
+        backgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return c.disabledPrimaryButton;
+          }
+          return c.primary;
+        }),
+        foregroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return c.disabledOnPrimaryButton;
+          }
+          return c.onPrimary;
+        }),
+        shape: const WidgetStatePropertyAll(
+          MiuixSquircleBorder(cornerRadius: 16),
+        ),
+        padding: const WidgetStatePropertyAll(
+          EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
+      ),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ButtonStyle(
+        elevation: const WidgetStatePropertyAll(0),
+        backgroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return c.disabledSecondaryVariant;
+          }
+          return c.secondaryVariant;
+        }),
+        foregroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return c.disabledOnSecondaryVariant;
+          }
+          return c.onSecondaryVariant;
+        }),
+        shape: const WidgetStatePropertyAll(
+          MiuixSquircleBorder(cornerRadius: 16),
+        ),
+        padding: const WidgetStatePropertyAll(
+          EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: ButtonStyle(
+        elevation: const WidgetStatePropertyAll(0),
+        side: WidgetStatePropertyAll(BorderSide(color: c.outline, width: 0.5)),
+        shape: const WidgetStatePropertyAll(
+          MiuixSquircleBorder(cornerRadius: 16),
+        ),
+        foregroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return c.disabledPrimary;
+          }
+          return c.primary;
+        }),
+        padding: const WidgetStatePropertyAll(
+          EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: ButtonStyle(
+        elevation: const WidgetStatePropertyAll(0),
+        foregroundColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return c.disabledPrimary;
+          }
+          return c.primary;
+        }),
+        shape: const WidgetStatePropertyAll(
+          MiuixSquircleBorder(cornerRadius: 12),
+        ),
+      ),
+    ),
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
+      elevation: 0,
+      focusElevation: 0,
+      hoverElevation: 0,
+      disabledElevation: 0,
+      highlightElevation: 0,
+      shape: const MiuixSquircleBorder(cornerRadius: 18),
+      backgroundColor: c.primary,
+      foregroundColor: c.onPrimary,
+    ),
+    checkboxTheme: CheckboxThemeData(
+      fillColor: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) return c.primary;
+        return Colors.transparent;
+      }),
+      checkColor: WidgetStatePropertyAll(c.onPrimary),
+      side: BorderSide(color: c.outline, width: 1.5),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+    ),
   );
 }
 
