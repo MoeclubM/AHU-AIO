@@ -1,6 +1,6 @@
-// ignore_for_file: depend_on_referenced_packages
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../globals.dart' as globals;
 import '../../adaptive_ui.dart';
 import '../../adaptive_dropdown.dart';
 import '../../miuix/liquid_glass_app_bar.dart';
@@ -470,7 +470,7 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
   }
 
   void _showExamDetails(ExamInfo exam) {
-    showAdaptiveDialog(
+    showAdaptiveAppDialog(
       context: context,
       builder: (context) => AdaptiveAlertDialog(
         title: Text(exam.courseName),

@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../adaptive_ui.dart';
 import '../../miuix/liquid_glass_app_bar.dart';
-import '../features/academic_warning_view.dart';
-import '../features/classroom_schedule_view.dart';
-import '../features/course_selection_view.dart';
 import '../features/grades_view.dart';
-import '../features/notice_view.dart';
-import '../features/plan_query_view.dart';
 import '../features/room_view.dart';
 
 class FuncPage extends StatelessWidget {

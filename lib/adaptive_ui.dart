@@ -104,7 +104,7 @@ class AdaptiveCard extends StatelessWidget {
         child: child,
       );
       if (onTap != null) {
-        content = MiuixNoRipple(onTap: onTap, child: content);
+        content = MiuixNoRipple(onTap: onTap!, child: content);
       }
       return Padding(padding: margin ?? EdgeInsets.zero, child: content);
     }
@@ -665,23 +665,26 @@ class AdaptiveFloatingActionButton extends StatelessWidget {
       final Color bg = backgroundColor ?? scheme.primary;
       final Color fg = foregroundColor ?? scheme.onPrimary;
 
-      Widget button = MiuixNoRipple(
-        onTap: onPressed,
-        child: Container(
-          width: 56,
-          height: 56,
-          decoration: ShapeDecoration(
-            color: bg,
-            shape: const MiuixSquircleBorder(cornerRadius: 18),
-          ),
-          child: Center(
-            child: IconTheme(
-              data: IconThemeData(color: fg, size: 24),
-              child: child,
-            ),
+      Widget button = Container(
+        width: 56,
+        height: 56,
+        decoration: ShapeDecoration(
+          color: bg,
+          shape: const MiuixSquircleBorder(cornerRadius: 18),
+        ),
+        child: Center(
+          child: IconTheme(
+            data: IconThemeData(color: fg, size: 24),
+            child: child,
           ),
         ),
       );
+      if (onPressed != null) {
+        button = MiuixNoRipple(
+          onTap: onPressed!,
+          child: button,
+        );
+      }
       if (tooltip != null) {
         button = Tooltip(message: tooltip!, child: button);
       }
@@ -729,8 +732,8 @@ class AdaptiveAlertDialog extends StatelessWidget {
   }
 }
 
-/// 打开自适应弹窗。
-Future<T?> showAdaptiveDialog<T>({
+/// 打开自适应应用弹窗（避免与 Flutter Material 的 showAdaptiveDialog 冲突）。
+Future<T?> showAdaptiveAppDialog<T>({
   required BuildContext context,
   required Widget Function(BuildContext) builder,
   bool barrierDismissible = true,
@@ -751,7 +754,7 @@ Future<bool?> showAdaptiveConfirmDialog({
   String cancelText = '取消',
   bool isDanger = false,
 }) {
-  return showAdaptiveDialog<bool>(
+  return showAdaptiveAppDialog<bool>(
     context: context,
     builder: (ctx) {
       return AdaptiveAlertDialog(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../globals.dart' as globals;
 import '../../adaptive_ui.dart';
 import '../../adaptive_dropdown.dart';
 import '../../miuix/liquid_glass_app_bar.dart';

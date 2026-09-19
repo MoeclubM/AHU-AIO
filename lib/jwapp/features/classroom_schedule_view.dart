@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../globals.dart' as globals;
 import '../../adaptive_ui.dart';
 import '../../adaptive_dropdown.dart';
 import '../../miuix/liquid_glass_app_bar.dart';
@@ -337,7 +338,7 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
   }
 
   void _showFilterDialog() {
-    showAdaptiveDialog(
+    showAdaptiveAppDialog(
       context: context,
       builder: (context) => AdaptiveAlertDialog(
         title: const Text('筛选条件'),

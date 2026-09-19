@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../globals.dart' as globals;
 import '../../adaptive_ui.dart';
 import '../../miuix/liquid_glass_app_bar.dart';
 import '../api/api_manager.dart';
@@ -287,7 +288,7 @@ class _NoticePageState extends State<NoticePage>
     final publishTime = notice['sendDateTime']?.toString() ?? '';
     final publisher = notice['publisher']?.toString() ?? '教务处';
 
-    showAdaptiveDialog(
+    showAdaptiveAppDialog(
       context: context,
       builder: (context) => AdaptiveAlertDialog(
         title: Text(title),

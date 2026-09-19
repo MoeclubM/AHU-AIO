@@ -500,7 +500,7 @@ Future<Color?> showThemeColorDialog({
   required BuildContext context,
   required Color current,
 }) {
-  return showAdaptiveDialog<Color>(
+  return showAdaptiveAppDialog<Color>(
     context: context,
     builder: (ctx) {
       Color picked = current;
@@ -586,7 +586,7 @@ Future<Color?> showThemeColorDialog({
 /// 自定义取色：Miuix 使用 OkHSV 取色器，MD3 使用标准 HSV 滑块。
 Future<Color?> _showCustomColorPicker(BuildContext context, Color initial) {
   if (isMiuixUi()) {
-    return showAdaptiveDialog<Color>(
+    return showAdaptiveAppDialog<Color>(
       context: context,
       builder: (ctx) {
         Color picked = initial;
@@ -619,7 +619,7 @@ Future<Color?> _showCustomColorPicker(BuildContext context, Color initial) {
       },
     );
   }
-  return showAdaptiveDialog<Color>(
+  return showAdaptiveAppDialog<Color>(
     context: context,
     builder: (ctx) => _HsvColorDialog(initial: initial),
   );

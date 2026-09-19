@@ -83,7 +83,7 @@ class _FinanceCardsPageState extends State<FinanceCardsPage> {
         return;
       }
       final code = codes.first.toString();
-      showAdaptiveDialog<void>(
+      showAdaptiveAppDialog<void>(
         context: context,
         builder: (_) => AdaptiveAlertDialog(
           title: Text(card['name']?.toString() ?? '校园卡身份码'),

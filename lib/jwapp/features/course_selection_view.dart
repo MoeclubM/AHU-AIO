@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../globals.dart' as globals;
 import '../../adaptive_ui.dart';
 import '../../miuix/liquid_glass_app_bar.dart';
 import '../api/api_manager.dart';
@@ -480,7 +481,7 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
   }
 
   void _showClassSelectionDialog(CourseItem course) {
-    showAdaptiveDialog(
+    showAdaptiveAppDialog(
       context: context,
       builder: (context) => AdaptiveAlertDialog(
         title: const Text('选择教学班'),

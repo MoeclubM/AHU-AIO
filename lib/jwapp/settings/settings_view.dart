@@ -240,7 +240,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _showSessionExpiredDialog() {
-    showAdaptiveDialog(
+    showAdaptiveAppDialog(
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
@@ -274,7 +274,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _showLogoutDialog(BuildContext context) {
-    showAdaptiveDialog(
+    showAdaptiveAppDialog(
       context: context,
       builder: (BuildContext context) {
         return AdaptiveAlertDialog(

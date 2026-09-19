@@ -288,7 +288,7 @@ class _JwNoticePageState extends State<JwNoticePage>
         notice['createDateTime']?.toString() ??
         '';
 
-    showAdaptiveDialog(
+    showAdaptiveAppDialog(
       context: context,
       builder: (context) => AdaptiveAlertDialog(
         title: Text(title),
