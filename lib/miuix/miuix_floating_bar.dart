@@ -333,8 +333,30 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
     });
   }
 
+  ModalRoute<dynamic>? _route;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final ModalRoute<dynamic>? newRoute = ModalRoute.of(context);
+    if (newRoute != _route) {
+      _route?.secondaryAnimation?.removeListener(_onRouteAnimation);
+      _route = newRoute;
+      _route?.secondaryAnimation?.addListener(_onRouteAnimation);
+    }
+  }
+
+  void _onRouteAnimation() {
+    // 当上层子页面出栈就位时，强制同步指示器并刷新。
+    if (mounted) {
+      _syncFromController();
+      setState(() {});
+    }
+  }
+
   @override
   void dispose() {
+    _route?.secondaryAnimation?.removeListener(_onRouteAnimation);
     widget.controller.removeListener(_onControllerChanged);
     _valueCtrl.dispose();
     _pressCtrl.dispose();

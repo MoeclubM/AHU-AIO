@@ -192,8 +192,29 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     _checkInit();
   }
 
+  ModalRoute<dynamic>? _route;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final ModalRoute<dynamic>? newRoute = ModalRoute.of(context);
+    if (newRoute != _route) {
+      _route?.secondaryAnimation?.removeListener(_onRouteAnimation);
+      _route = newRoute;
+      _route?.secondaryAnimation?.addListener(_onRouteAnimation);
+    }
+  }
+
+  void _onRouteAnimation() {
+    // 当上层子页面出栈就位时，刷新底栏与页面，确保毛玻璃与渲染层完全就绪。
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   @override
   void dispose() {
+    _route?.secondaryAnimation?.removeListener(_onRouteAnimation);
     if (globals.onLoginStateChanged == _onLoginStateChanged) {
       globals.onLoginStateChanged = null;
     }

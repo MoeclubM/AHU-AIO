@@ -1,6 +1,8 @@
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import 'miuix_kit.dart';
 
@@ -118,11 +120,30 @@ class LiquidGlassLayer extends StatefulWidget {
 class _LiquidGlassLayerState extends State<LiquidGlassLayer> {
   ui.FragmentShader? _refractionShader;
   bool _shaderReady = false;
+  ModalRoute<dynamic>? _route;
 
   @override
   void initState() {
     super.initState();
     if (LiquidGlassLayer.isRefractionSupported) _loadShader();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final ModalRoute<dynamic>? newRoute = ModalRoute.of(context);
+    if (newRoute != _route) {
+      _route?.secondaryAnimation?.removeListener(_onRouteAnimation);
+      _route = newRoute;
+      _route?.secondaryAnimation?.addListener(_onRouteAnimation);
+    }
+  }
+
+  void _onRouteAnimation() {
+    // 上层子页面推入或退出时，强制刷新，保证返回就位时着色器与滤镜立即恢复。
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _loadShader() async {
@@ -138,6 +159,7 @@ class _LiquidGlassLayerState extends State<LiquidGlassLayer> {
 
   @override
   void dispose() {
+    _route?.secondaryAnimation?.removeListener(_onRouteAnimation);
     _refractionShader?.dispose();
     super.dispose();
   }
@@ -244,6 +266,13 @@ class _LiquidGlassLayerState extends State<LiquidGlassLayer> {
                 filter: _buildFilter(refract: refract),
                 shape: shape,
                 pad: pad,
+                shader: refract ? _refractionShader : null,
+                dpr: dpr,
+                cornerRadius: widget.cornerRadius,
+                refractionHeight: widget.refractionHeight,
+                refractionAmount: widget.refractionAmount,
+                depthEffect: widget.depthEffect,
+                dispersion: widget.dispersion,
               );
 
         final Widget highlight = widget.showHighlight
@@ -314,11 +343,25 @@ class _GlassBackdrop extends StatelessWidget {
     required this.filter,
     required this.shape,
     required this.pad,
+    this.shader,
+    this.dpr = 1.0,
+    this.cornerRadius = 0.0,
+    this.refractionHeight = 0.0,
+    this.refractionAmount = 0.0,
+    this.depthEffect = 0.0,
+    this.dispersion = 0.0,
   });
 
   final ui.ImageFilter filter;
   final ShapeBorder shape;
   final double pad;
+  final ui.FragmentShader? shader;
+  final double dpr;
+  final double cornerRadius;
+  final double refractionHeight;
+  final double refractionAmount;
+  final double depthEffect;
+  final double dispersion;
 
   @override
   Widget build(BuildContext context) {
@@ -330,9 +373,126 @@ class _GlassBackdrop extends StatelessWidget {
       clipper: ShapeBorderClipper(shape: shape),
       child: filtered,
     );
+    final Widget synced = _LiquidGlassShaderSync(
+      shader: shader,
+      pad: pad,
+      dpr: dpr,
+      cornerRadius: cornerRadius,
+      refractionHeight: refractionHeight,
+      refractionAmount: refractionAmount,
+      depthEffect: depthEffect,
+      dispersion: dispersion,
+      child: clipped,
+    );
     return pad > 0
-        ? Padding(padding: EdgeInsets.all(pad), child: clipped)
-        : clipped;
+        ? Padding(padding: EdgeInsets.all(pad), child: synced)
+        : synced;
+  }
+}
+
+/// 在绘制阶段实时从 Canvas 的全局变换矩阵同步着色器坐标（u_origin / u_region_size）。
+///
+/// 避免因路由转场（SlideTransition / DualTransition）、滑动或无 rebuild 的位移导致
+/// 着色器的屏幕空间原点停留在旧位置，从而在子页面返回时出现覆盖率归零（底栏变灰）的问题。
+class _LiquidGlassShaderSync extends SingleChildRenderObjectWidget {
+  const _LiquidGlassShaderSync({
+    required this.shader,
+    required this.pad,
+    required this.dpr,
+    required this.cornerRadius,
+    required this.refractionHeight,
+    required this.refractionAmount,
+    required this.depthEffect,
+    required this.dispersion,
+    required super.child,
+  });
+
+  final ui.FragmentShader? shader;
+  final double pad;
+  final double dpr;
+  final double cornerRadius;
+  final double refractionHeight;
+  final double refractionAmount;
+  final double depthEffect;
+  final double dispersion;
+
+  @override
+  RenderObject createRenderObject(BuildContext context) {
+    return _RenderLiquidGlassShaderSync(
+      shader: shader,
+      pad: pad,
+      dpr: dpr,
+      cornerRadius: cornerRadius,
+      refractionHeight: refractionHeight,
+      refractionAmount: refractionAmount,
+      depthEffect: depthEffect,
+      dispersion: dispersion,
+    );
+  }
+
+  @override
+  void updateRenderObject(
+    BuildContext context,
+    _RenderLiquidGlassShaderSync renderObject,
+  ) {
+    renderObject
+      ..shader = shader
+      ..pad = pad
+      ..dpr = dpr
+      ..cornerRadius = cornerRadius
+      ..refractionHeight = refractionHeight
+      ..refractionAmount = refractionAmount
+      ..depthEffect = depthEffect
+      ..dispersion = dispersion;
+  }
+}
+
+class _RenderLiquidGlassShaderSync extends RenderProxyBox {
+  _RenderLiquidGlassShaderSync({
+    required this.shader,
+    required this.pad,
+    required this.dpr,
+    required this.cornerRadius,
+    required this.refractionHeight,
+    required this.refractionAmount,
+    required this.depthEffect,
+    required this.dispersion,
+  });
+
+  ui.FragmentShader? shader;
+  double pad;
+  double dpr;
+  double cornerRadius;
+  double refractionHeight;
+  double refractionAmount;
+  double depthEffect;
+  double dispersion;
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    final ui.FragmentShader? s = shader;
+    if (s != null && (refractionHeight > 0 || refractionAmount > 0)) {
+      final Float64List matrix = context.canvas.getTransform();
+      final double scaleX = matrix[0];
+      final double scaleY = matrix[5];
+      final double transX = matrix[12] + offset.dx * scaleX;
+      final double transY = matrix[13] + offset.dy * scaleY;
+      final double originX = (transX - pad) * dpr;
+      final double originY = (transY - pad) * dpr;
+      final double regionW = (size.width + pad * 2) * dpr;
+      final double regionH = (size.height + pad * 2) * dpr;
+
+      s
+        ..getUniformVec2('u_origin').set(originX, originY)
+        ..getUniformVec2('u_region_size').set(regionW, regionH)
+        ..getUniformFloat('u_dpr').set(dpr)
+        ..getUniformFloat('u_radius').set(cornerRadius)
+        ..getUniformFloat('u_refraction_height').set(refractionHeight)
+        ..getUniformFloat('u_refraction_amount').set(refractionAmount)
+        ..getUniformFloat('u_depth_effect').set(depthEffect)
+        ..getUniformFloat('u_dispersion').set(dispersion);
+    }
+    super.paint(context, offset);
   }
 }
 
