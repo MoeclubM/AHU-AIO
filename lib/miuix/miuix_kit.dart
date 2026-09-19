@@ -199,11 +199,14 @@ class MiuixCard extends StatelessWidget {
         color: bg,
         shape: MiuixSquircleBorder(cornerRadius: cornerRadius),
       ),
-      child: DefaultTextStyle.merge(
-        style: TextStyle(color: fg),
-        child: IconTheme.merge(
-          data: IconThemeData(color: fg),
-          child: Padding(padding: insideMargin, child: child),
+      child: Material(
+        type: MaterialType.transparency,
+        child: DefaultTextStyle.merge(
+          style: TextStyle(color: fg),
+          child: IconTheme.merge(
+            data: IconThemeData(color: fg),
+            child: Padding(padding: insideMargin, child: child),
+          ),
         ),
       ),
     );
