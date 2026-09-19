@@ -680,10 +680,7 @@ class AdaptiveFloatingActionButton extends StatelessWidget {
         ),
       );
       if (onPressed != null) {
-        button = MiuixNoRipple(
-          onTap: onPressed!,
-          child: button,
-        );
+        button = MiuixNoRipple(onTap: onPressed!, child: button);
       }
       if (tooltip != null) {
         button = Tooltip(message: tooltip!, child: button);
