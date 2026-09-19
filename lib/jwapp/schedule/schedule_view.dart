@@ -547,9 +547,7 @@ class _SchedulePageState extends State<SchedulePage>
                                   : [
                                       BoxShadow(
                                         color: theme.colorScheme.primary
-                                            .withOpacity(
-                                              0.35,
-                                            ),
+                                            .withOpacity(0.35),
                                         blurRadius: 4,
                                         offset: const Offset(0, 1),
                                       ),

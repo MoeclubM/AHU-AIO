@@ -104,22 +104,13 @@ class AdaptiveCard extends StatelessWidget {
         child: child,
       );
       if (onTap != null) {
-        content = MiuixNoRipple(
-          onTap: onTap,
-          child: content,
-        );
+        content = MiuixNoRipple(onTap: onTap, child: content);
       }
-      return Padding(
-        padding: margin ?? EdgeInsets.zero,
-        child: content,
-      );
+      return Padding(padding: margin ?? EdgeInsets.zero, child: content);
     }
     // M3：圆角、elevation、颜色全部交给 CardTheme / Card 默认值，
     // 不再套用 Miuix 的 20 圆角；调用方显式传 borderRadius 时才覆盖。
-    Widget content = Padding(
-      padding: padding ?? EdgeInsets.zero,
-      child: child,
-    );
+    Widget content = Padding(padding: padding ?? EdgeInsets.zero, child: child);
     if (onTap != null) {
       content = InkWell(
         onTap: onTap,
@@ -525,10 +516,7 @@ class AdaptiveSecondaryButton extends StatelessWidget {
         label: child,
       );
     }
-    return FilledButton.tonal(
-      onPressed: onPressed,
-      child: child,
-    );
+    return FilledButton.tonal(onPressed: onPressed, child: child);
   }
 }
 
@@ -573,10 +561,7 @@ class AdaptiveOutlinedButton extends StatelessWidget {
         label: child,
       );
     }
-    return OutlinedButton(
-      onPressed: onPressed,
-      child: child,
-    );
+    return OutlinedButton(onPressed: onPressed, child: child);
   }
 }
 
@@ -630,10 +615,14 @@ class AdaptiveTabBar extends StatelessWidget implements PreferredSizeWidget {
           ),
           labelColor: scheme.primary,
           unselectedLabelColor: scheme.onSurfaceVariant,
-          labelStyle:
-              const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-          unselectedLabelStyle:
-              const TextStyle(fontWeight: FontWeight.normal, fontSize: 14),
+          labelStyle: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.normal,
+            fontSize: 14,
+          ),
           tabs: tabs,
         ),
       );
@@ -732,8 +721,8 @@ class AdaptiveAlertDialog extends StatelessWidget {
     return AlertDialog(
       title: title,
       content: content,
-      contentPadding: contentPadding ??
-          EdgeInsets.fromLTRB(24, 20, 24, miuix ? 16 : 24),
+      contentPadding:
+          contentPadding ?? EdgeInsets.fromLTRB(24, 20, 24, miuix ? 16 : 24),
       actions: actions,
       actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     );
