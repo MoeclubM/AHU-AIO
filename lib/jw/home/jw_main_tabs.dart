@@ -3,7 +3,7 @@ import '../../adaptive_ui.dart';
 import '../../miuix/liquid_glass_app_bar.dart';
 import '../../theme_manager.dart';
 import 'jw_home_view.dart';
-import '../../jwapp/schedule/schedule_view.dart';
+import '../pages/jw_schedule_page.dart';
 import '../pages/jw_grades_page.dart';
 import '../pages/jw_notice_page.dart';
 import '../pages/jw_program_page.dart';
@@ -78,7 +78,7 @@ class _JwMainTabsState extends State<JwMainTabs>
           controller: widget.pageController,
           children: const [
             JwHomePage(embed: true),
-            SchedulePage(embed: true),
+            JwSchedulePage(embed: true),
             JwGradesPage(embed: true),
             JwProgramPage(embed: true),
           ],
