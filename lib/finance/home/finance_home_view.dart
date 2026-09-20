@@ -76,7 +76,17 @@ class _FinanceHomePageState extends State<FinanceHomePage>
     }
   }
 
-  void _logout() async {
+  void _logout({bool confirm = false}) async {
+    if (confirm) {
+      final ok = await showAdaptiveConfirmDialog(
+        context: context,
+        title: '退出登录',
+        content: const Text('确定要退出当前一卡通账号吗？'),
+        confirmText: '退出登录',
+        isDanger: true,
+      );
+      if (ok != true) return;
+    }
     await _client.logout();
     await CasAuthCache.clear();
     globals.jwLoggedIn = false;
@@ -102,14 +112,14 @@ class _FinanceHomePageState extends State<FinanceHomePage>
           : LiquidGlassAppBar(
               title: const Text('一卡通系统'),
               actions: [
-                IconButton(
+                AdaptiveIconButton(
                   icon: const Icon(Icons.refresh),
                   onPressed: _loadData,
                 ),
-                IconButton(
-                  icon: const Icon(Icons.logout),
-                  onPressed: _logout,
-                  tooltip: '退出',
+                AdaptiveIconButton(
+                  icon: const Icon(Icons.logout_rounded),
+                  onPressed: () => _logout(confirm: true),
+                  tooltip: '退出登录',
                 ),
               ],
             ),
@@ -145,7 +155,8 @@ class _FinanceHomePageState extends State<FinanceHomePage>
             child: Text(_error!, textAlign: TextAlign.center),
           ),
           const SizedBox(height: 16),
-          ElevatedButton(
+          AdaptivePrimaryButton(
+            minimumSize: const Size(120, 40),
             onPressed: _error == '登录已过期，请重新登录' ? _logout : _loadData,
             child: Text(_error == '登录已过期，请重新登录' ? '重新登录' : '重试'),
           ),
@@ -156,8 +167,7 @@ class _FinanceHomePageState extends State<FinanceHomePage>
 
   Widget _buildUserCard() {
     final name = _userInfo?['name']?.toString() ?? '-';
-    return Card(
-      elevation: 2,
+    return AdaptiveCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
@@ -217,8 +227,7 @@ class _FinanceHomePageState extends State<FinanceHomePage>
     }
     final balanceYuan = (balanceFen / 100).toStringAsFixed(2);
 
-    return Card(
-      elevation: 3,
+    return AdaptiveCard(
       color: Colors.orange.shade50,
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -249,7 +258,7 @@ class _FinanceHomePageState extends State<FinanceHomePage>
   }
 
   Widget _buildCardsPreview() {
-    return Card(
+    return AdaptiveCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -263,7 +272,7 @@ class _FinanceHomePageState extends State<FinanceHomePage>
                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
-                TextButton(
+                AdaptiveTextButton(
                   onPressed: () {
                     Navigator.push(
                       context,

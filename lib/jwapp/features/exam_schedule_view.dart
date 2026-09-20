@@ -1,11 +1,11 @@
-// ignore_for_file: depend_on_referenced_packages
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../api/api_manager.dart';
-import '../api/api_models.dart';
 import '../../globals.dart' as globals;
+import '../../adaptive_ui.dart';
 import '../../adaptive_dropdown.dart';
 import '../../miuix/liquid_glass_app_bar.dart';
+import '../api/api_manager.dart';
+import '../api/api_models.dart';
 
 /// 考试安排页面
 class ExamSchedulePage extends StatefulWidget {
@@ -132,7 +132,7 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
     return Scaffold(
       appBar: LiquidGlassAppBar(
         title: const Text('考试安排'),
-        bottom: TabBar(
+        bottom: AdaptiveTabBar(
           controller: _tabController,
           tabs: const [
             Tab(text: '全部考试', icon: Icon(Icons.list)),
@@ -160,7 +160,7 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: AdaptiveFloatingActionButton(
         onPressed: _loadExams,
         backgroundColor: Colors.red.shade600,
         child: const Icon(Icons.refresh),
@@ -169,20 +169,9 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
   }
 
   Widget _buildFilterSection() {
-    return Container(
+    return AdaptiveCard(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
       child: Column(
         children: [
           // 搜索框
@@ -240,19 +229,15 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: TextButton.icon(
+                child: AdaptiveOutlinedButton(
                   onPressed: _selectDateRange,
-                  icon: const Icon(Icons.date_range),
-                  label: Text(
+                  icon: const Icon(Icons.date_range, size: 18),
+                  child: Text(
                     _startDate == null
                         ? '选择日期范围'
                         : '${DateFormat('MM/dd').format(_startDate!)} - ${DateFormat('MM/dd').format(_endDate ?? _startDate!)}',
-                  ),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),
@@ -407,7 +392,7 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
                       ),
                     ),
                     const SizedBox(height: 8),
-                    IconButton(
+                    AdaptiveIconButton(
                       onPressed: () => _showExamDetails(exam),
                       icon: Icon(
                         Icons.info_outline,
@@ -485,9 +470,9 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
   }
 
   void _showExamDetails(ExamInfo exam) {
-    showDialog(
+    showAdaptiveAppDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AdaptiveAlertDialog(
         title: Text(exam.courseName),
         content: SingleChildScrollView(
           child: Column(
@@ -505,7 +490,7 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
           ),
         ),
         actions: [
-          TextButton(
+          AdaptiveTextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('关闭'),
           ),
@@ -565,7 +550,11 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
             style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: _loadExams, child: const Text('重试')),
+          AdaptivePrimaryButton(
+            minimumSize: const Size(120, 40),
+            onPressed: _loadExams,
+            child: const Text('重试'),
+          ),
         ],
       ),
     );

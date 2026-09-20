@@ -1,8 +1,8 @@
-// ignore_for_file: avoid_print
 import 'package:flutter/material.dart';
-import '../api/api_manager.dart';
 import '../../globals.dart' as globals;
+import '../../adaptive_ui.dart';
 import '../../miuix/liquid_glass_app_bar.dart';
+import '../api/api_manager.dart';
 
 /// 通知公告页面
 class NoticePage extends StatefulWidget {
@@ -91,47 +91,44 @@ class _NoticePageState extends State<NoticePage>
       appBar: LiquidGlassAppBar(
         title: const Text('通知公告'),
         actions: [
-          IconButton(onPressed: _loadNotices, icon: const Icon(Icons.refresh)),
+          AdaptiveIconButton(
+            onPressed: _loadNotices,
+            icon: const Icon(Icons.refresh),
+          ),
         ],
       ),
       body: Column(
         children: [
           // Tab切换栏
-          Container(
-            color: Colors.white,
-            child: TabBar(
-              controller: _tabController,
-              onTap: (index) {
-                setState(() {
-                  _isUnreadTab = index == 0;
-                });
-              },
-              indicatorColor: Colors.orange.shade600,
-              labelColor: Colors.orange.shade600,
-              unselectedLabelColor: Colors.grey.shade600,
-              tabs: const [
-                Tab(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('未读'),
-                      SizedBox(width: 4),
-                      Icon(Icons.notifications_active, size: 16),
-                    ],
-                  ),
+          AdaptiveTabBar(
+            controller: _tabController,
+            onTap: (index) {
+              setState(() {
+                _isUnreadTab = index == 0;
+              });
+            },
+            tabs: const [
+              Tab(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('未读'),
+                    SizedBox(width: 4),
+                    Icon(Icons.notifications_active, size: 16),
+                  ],
                 ),
-                Tab(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('已读'),
-                      SizedBox(width: 4),
-                      Icon(Icons.notifications_none, size: 16),
-                    ],
-                  ),
+              ),
+              Tab(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('已读'),
+                    SizedBox(width: 4),
+                    Icon(Icons.notifications_none, size: 16),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
           // 内容区域
           Expanded(
@@ -172,9 +169,8 @@ class _NoticePageState extends State<NoticePage>
     final publishTime = notice['sendDateTime']?.toString() ?? '';
     final publisher = notice['publisher']?.toString() ?? '教务处';
 
-    return Card(
+    return AdaptiveCard(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
         title: Text(
@@ -276,7 +272,11 @@ class _NoticePageState extends State<NoticePage>
             style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: _loadNotices, child: const Text('重试')),
+          AdaptivePrimaryButton(
+            minimumSize: const Size(120, 40),
+            onPressed: _loadNotices,
+            child: const Text('重试'),
+          ),
         ],
       ),
     );
@@ -288,9 +288,9 @@ class _NoticePageState extends State<NoticePage>
     final publishTime = notice['sendDateTime']?.toString() ?? '';
     final publisher = notice['publisher']?.toString() ?? '教务处';
 
-    showDialog(
+    showAdaptiveAppDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AdaptiveAlertDialog(
         title: Text(title),
         content: SizedBox(
           width: double.maxFinite,
@@ -321,7 +321,7 @@ class _NoticePageState extends State<NoticePage>
           ),
         ),
         actions: [
-          TextButton(
+          AdaptiveTextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('关闭'),
           ),

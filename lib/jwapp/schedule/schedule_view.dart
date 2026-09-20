@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../adaptive_ui.dart';
 import '../../adaptive_dropdown.dart';
 import '../../miuix/liquid_glass_app_bar.dart';
 import '../api/getallsemesters.dart';
@@ -356,7 +357,7 @@ class _SchedulePageState extends State<SchedulePage>
 
   Widget _buildErrorNotice(String message) {
     final theme = Theme.of(context);
-    return Card(
+    return AdaptiveCard(
       margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -374,10 +375,11 @@ class _SchedulePageState extends State<SchedulePage>
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerRight,
-              child: TextButton.icon(
+              child: AdaptivePrimaryButton(
+                minimumSize: const Size(88, 36),
                 onPressed: () => _logic.refreshData(),
                 icon: const Icon(Icons.refresh),
-                label: const Text('重试'),
+                child: const Text('重试'),
               ),
             ),
           ],
@@ -559,15 +561,16 @@ class _SchedulePageState extends State<SchedulePage>
                           ? BoxDecoration(
                               color: theme.colorScheme.primary,
                               borderRadius: BorderRadius.circular(10),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: theme.colorScheme.primary.withOpacity(
-                                    0.35,
-                                  ),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 1),
-                                ),
-                              ],
+                              boxShadow: isMiuixUi()
+                                  ? null
+                                  : [
+                                      BoxShadow(
+                                        color: theme.colorScheme.primary
+                                            .withOpacity(0.35),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 1),
+                                      ),
+                                    ],
                             )
                           : null,
                       child: Text(
@@ -786,13 +789,15 @@ class _SchedulePageState extends State<SchedulePage>
               color: textColor.withOpacity(isDark ? 0.35 : 0.22),
               width: 0.6,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
-                blurRadius: 3,
-                offset: const Offset(0, 1),
-              ),
-            ],
+            boxShadow: isMiuixUi()
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
+                      blurRadius: 3,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

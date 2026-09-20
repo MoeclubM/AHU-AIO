@@ -130,6 +130,15 @@ class _JwHomePageState extends State<JwHomePage>
   }
 
   void _logout() async {
+    final confirmed = await showAdaptiveConfirmDialog(
+      context: context,
+      title: '退出登录',
+      content: const Text('确定要退出当前教务账号吗？'),
+      confirmText: '退出登录',
+      isDanger: true,
+    );
+    if (confirmed != true) return;
+
     await JwLoginService.logout();
     if (!mounted) return;
     if (globals.onLoginStateChanged == null) {
@@ -153,8 +162,8 @@ class _JwHomePageState extends State<JwHomePage>
           : LiquidGlassAppBar(
               title: const Text('安大教务'),
               actions: [
-                IconButton(
-                  icon: const Icon(Icons.logout),
+                AdaptiveIconButton(
+                  icon: const Icon(Icons.logout_rounded),
                   onPressed: _logout,
                   tooltip: '退出登录',
                 ),
@@ -169,7 +178,11 @@ class _JwHomePageState extends State<JwHomePage>
                 children: [
                   Text(_error!),
                   const SizedBox(height: 16),
-                  ElevatedButton(onPressed: _loadData, child: const Text('重试')),
+                  AdaptivePrimaryButton(
+                    minimumSize: const Size(120, 40),
+                    onPressed: _loadData,
+                    child: const Text('重试'),
+                  ),
                 ],
               ),
             )
@@ -251,8 +264,7 @@ class _JwHomePageState extends State<JwHomePage>
     final statusColor = info.isInSemester ? Colors.green : Colors.orange;
     final weekColor = info.isInSemester ? Colors.blue : Colors.grey;
 
-    return Card(
-      elevation: 4,
+    return AdaptiveCard(
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -288,7 +300,7 @@ class _JwHomePageState extends State<JwHomePage>
     final noticeCount = notices['noticeCount'] ?? {};
     final noReadCount = noticeCount['noReadCount'] ?? 0;
 
-    return Card(
+    return AdaptiveCard(
       child: ListTile(
         leading: Icon(
           noReadCount > 0
@@ -367,24 +379,21 @@ class _JwHomePageState extends State<JwHomePage>
       itemCount: features.length,
       itemBuilder: (context, index) {
         final f = features[index];
-        return Card(
-          child: InkWell(
-            onTap: f.onTap,
-            borderRadius: BorderRadius.circular(12),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(f.icon, size: 28, color: Colors.blue),
-                const SizedBox(height: 8),
-                Text(
-                  f.title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
+        return AdaptiveCard(
+          onTap: f.onTap,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(f.icon, size: 28, color: Colors.blue),
+              const SizedBox(height: 8),
+              Text(
+                f.title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },

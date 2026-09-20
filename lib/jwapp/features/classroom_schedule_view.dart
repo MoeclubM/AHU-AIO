@@ -1,10 +1,10 @@
-// ignore_for_file: avoid_print, prefer_final_fields, prefer_for_elements_to_map_fromiterable, unnecessary_brace_in_string_interps, unnecessary_non_null_assertion, unnecessary_string_interpolations, unnecessary_type_check, unused_element
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../globals.dart' as globals;
-import '../api/sendrequest.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../../adaptive_ui.dart';
 import '../../adaptive_dropdown.dart';
+import '../../miuix/liquid_glass_app_bar.dart';
+import '../api/sendrequest.dart';
 
 /// 教室课表查询页面（原版系统风格）
 class ClassroomSchedulePage extends StatefulWidget {
@@ -118,7 +118,7 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
       appBar: LiquidGlassAppBar(
         title: const Text('教室课表'),
         actions: [
-          IconButton(
+          AdaptiveIconButton(
             onPressed: _loadClassrooms,
             icon: const Icon(Icons.refresh),
           ),
@@ -127,31 +127,23 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
       body: Column(
         children: [
           // 学期选择
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.calendar_today),
-                const SizedBox(width: 8),
-                Text(
-                  '当前学期: $_selectedSemester',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: AdaptiveCard(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  const Icon(Icons.calendar_today),
+                  const SizedBox(width: 8),
+                  Text(
+                    '当前学期: $_selectedSemester',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 16,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
 
@@ -163,7 +155,7 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
                 hintText: '请输入教室名称搜索',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchQuery.isNotEmpty
-                    ? IconButton(
+                    ? AdaptiveIconButton(
                         onPressed: () {
                           setState(() {
                             _searchQuery = '';
@@ -192,24 +184,19 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
             child: Row(
               children: [
                 Expanded(
-                  child: OutlinedButton.icon(
+                  child: AdaptiveOutlinedButton(
                     onPressed: _showFilterDialog,
                     icon: const Icon(Icons.filter_list),
-                    label: const Text('筛选'),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
+                    child: const Text('筛选'),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: ElevatedButton.icon(
+                  child: AdaptivePrimaryButton(
+                    minimumSize: const Size(80, 40),
                     onPressed: _filterClassrooms,
                     icon: const Icon(Icons.search),
-                    label: const Text('搜索'),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
+                    child: const Text('搜索'),
                   ),
                 ),
               ],
@@ -254,9 +241,8 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
     final roomType = classroom['roomType']?.toString() ?? '';
     final capacity = classroom['capacity']?.toString() ?? '0';
 
-    return Card(
+    return AdaptiveCard(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
         leading: Container(
@@ -352,19 +338,19 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
   }
 
   void _showFilterDialog() {
-    showDialog(
+    showAdaptiveAppDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AdaptiveAlertDialog(
         title: const Text('筛选条件'),
-        content: Column(
+        content: const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             // 这里可以添加更多筛选选项
-            const Text('筛选功能开发中...'),
+            Text('筛选功能开发中...'),
           ],
         ),
         actions: [
-          TextButton(
+          AdaptiveTextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('取消'),
           ),
@@ -416,7 +402,11 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
             style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: _loadClassrooms, child: const Text('重试')),
+          AdaptivePrimaryButton(
+            minimumSize: const Size(120, 40),
+            onPressed: _loadClassrooms,
+            child: const Text('重试'),
+          ),
         ],
       ),
     );
@@ -520,10 +510,11 @@ class _ClassroomScheduleDetailPageState
                     },
                   ),
                   const Spacer(),
-                  ElevatedButton.icon(
+                  AdaptivePrimaryButton(
+                    minimumSize: const Size(88, 36),
                     onPressed: _loadScheduleData,
                     icon: const Icon(Icons.refresh),
-                    label: const Text('刷新'),
+                    child: const Text('刷新'),
                   ),
                   const SizedBox(width: 8),
                 ],
@@ -687,7 +678,11 @@ class _ClassroomScheduleDetailPageState
             style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: _loadScheduleData, child: const Text('重试')),
+          AdaptivePrimaryButton(
+            minimumSize: const Size(120, 40),
+            onPressed: _loadScheduleData,
+            child: const Text('重试'),
+          ),
         ],
       ),
     );

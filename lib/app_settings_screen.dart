@@ -149,14 +149,9 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
           const AdaptiveSectionTitle('账号与登录状态'),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: AdaptiveDangerButton(
+            child: AdaptiveLogoutButton(
               onPressed: _globalLogout,
-              icon: const Icon(Icons.logout_rounded),
-              minimumSize: const Size.fromHeight(52),
-              child: const Text(
-                '退出登录 (清除所有账号与缓存)',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
+              label: '退出登录 (清除所有账号与缓存)',
             ),
           ),
         ],

@@ -83,9 +83,9 @@ class _FinanceCardsPageState extends State<FinanceCardsPage> {
         return;
       }
       final code = codes.first.toString();
-      showDialog<void>(
+      showAdaptiveAppDialog<void>(
         context: context,
-        builder: (_) => AlertDialog(
+        builder: (_) => AdaptiveAlertDialog(
           title: Text(card['name']?.toString() ?? '校园卡身份码'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -100,7 +100,7 @@ class _FinanceCardsPageState extends State<FinanceCardsPage> {
             ],
           ),
           actions: [
-            TextButton(
+            AdaptiveTextButton(
               onPressed: () async {
                 await Clipboard.setData(ClipboardData(text: code));
                 if (!mounted) return;
@@ -108,7 +108,8 @@ class _FinanceCardsPageState extends State<FinanceCardsPage> {
               },
               child: const Text('复制'),
             ),
-            FilledButton(
+            AdaptivePrimaryButton(
+              minimumSize: const Size(80, 36),
               onPressed: () => Navigator.pop(context),
               child: const Text('完成'),
             ),
@@ -157,7 +158,11 @@ class _FinanceCardsPageState extends State<FinanceCardsPage> {
           children: [
             Text(_error!, textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            FilledButton(onPressed: _loadCards, child: const Text('重试')),
+            AdaptivePrimaryButton(
+              minimumSize: const Size(120, 40),
+              onPressed: _loadCards,
+              child: const Text('重试'),
+            ),
           ],
         ),
       ),
@@ -168,7 +173,7 @@ class _FinanceCardsPageState extends State<FinanceCardsPage> {
     final balance = _money(
       card['elec_accamt'] ?? card['db_balance'] ?? card['balance'],
     );
-    return Card(
+    return AdaptiveCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -218,10 +223,11 @@ class _FinanceCardsPageState extends State<FinanceCardsPage> {
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerRight,
-              child: FilledButton.icon(
+              child: AdaptivePrimaryButton(
+                minimumSize: const Size(120, 36),
                 onPressed: () => _showAuthCode(card),
                 icon: const Icon(Icons.qr_code_2),
-                label: const Text('生成身份码'),
+                child: const Text('生成身份码'),
               ),
             ),
           ],

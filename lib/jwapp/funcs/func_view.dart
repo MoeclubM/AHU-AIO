@@ -1,13 +1,8 @@
-// ignore_for_file: unused_import
 import 'package:flutter/material.dart';
-import '../features/grades_view.dart';
-import '../features/plan_query_view.dart';
-import '../features/room_view.dart';
-import '../features/classroom_schedule_view.dart';
-import '../features/course_selection_view.dart';
-import '../features/academic_warning_view.dart';
-import '../features/notice_view.dart';
+import '../../adaptive_ui.dart';
 import '../../miuix/liquid_glass_app_bar.dart';
+import '../features/grades_view.dart';
+import '../features/room_view.dart';
 
 class FuncPage extends StatelessWidget {
   final bool embed;
@@ -37,34 +32,29 @@ class FuncPage extends StatelessWidget {
   }
 
   Widget _buildFeatureCard(BuildContext context, Feature feature) {
-    return Card(
-      child: InkWell(
-        onTap: () => _handleFeatureTap(context, feature),
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                feature.title,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                feature.subtitle,
-                style: Theme.of(context).textTheme.bodySmall,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
+    return AdaptiveCard(
+      onTap: () => _handleFeatureTap(context, feature),
+      child: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              feature.title,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              feature.subtitle,
+              style: Theme.of(context).textTheme.bodySmall,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
       ),
     );

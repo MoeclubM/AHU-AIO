@@ -231,7 +231,7 @@ class _FinancePayCodePageState extends State<FinancePayCodePage>
     final selectedIndex = _payments.indexWhere(
       (payment) => payment['id'] == _payment?['id'],
     );
-    return Card(
+    return AdaptiveCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: AdaptiveDropdownFormField<int>(
@@ -267,17 +267,20 @@ class _FinancePayCodePageState extends State<FinancePayCodePage>
         user['sno']?.toString() ?? user['account']?.toString() ?? '';
     final avatar = user['avatar']?.toString();
     final headImage = _headImage(avatar);
+    final bool miuix = isMiuixUi();
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.primary,
         borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.primary.withValues(alpha: 0.22),
-            blurRadius: 24,
-            offset: const Offset(0, 14),
-          ),
-        ],
+        boxShadow: miuix
+            ? null
+            : [
+                BoxShadow(
+                  color: colorScheme.primary.withValues(alpha: 0.22),
+                  blurRadius: 24,
+                  offset: const Offset(0, 14),
+                ),
+              ],
       ),
       padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
       child: Column(
@@ -376,14 +379,15 @@ class _FinancePayCodePageState extends State<FinancePayCodePage>
                 Row(
                   children: [
                     Expanded(
-                      child: FilledButton.icon(
+                      child: AdaptivePrimaryButton(
+                        minimumSize: const Size(120, 40),
                         onPressed: _refreshing ? null : _refreshCode,
                         icon: const Icon(Icons.refresh),
-                        label: Text(_refreshing ? '刷新中' : '刷新码和余额'),
+                        child: Text(_refreshing ? '刷新中' : '刷新码和余额'),
                       ),
                     ),
                     const SizedBox(width: 10),
-                    IconButton.filledTonal(
+                    AdaptiveIconButton(
                       onPressed: _oneCode == null
                           ? null
                           : () async {
@@ -432,13 +436,18 @@ class _FinancePayCodePageState extends State<FinancePayCodePage>
                 style: TextStyle(color: colorScheme.error),
               ),
               const SizedBox(height: 12),
-              FilledButton(onPressed: _load, child: const Text('重试')),
+              AdaptivePrimaryButton(
+                minimumSize: const Size(120, 40),
+                onPressed: _load,
+                child: const Text('重试'),
+              ),
             ],
           ),
         ),
       );
     }
     if (_oneCode == null) return const SizedBox(width: 260, height: 260);
+    final bool miuix = isMiuixUi();
     return Container(
       width: 260,
       height: 260,
@@ -446,13 +455,15 @@ class _FinancePayCodePageState extends State<FinancePayCodePage>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        boxShadow: miuix
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
       ),
       child: QrImageView(
         data: _oneCode!,

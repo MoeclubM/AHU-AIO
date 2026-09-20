@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import '../api/jw_api.dart';
+import '../../adaptive_ui.dart';
 import '../../miuix/liquid_glass_app_bar.dart';
+import '../api/jw_api.dart';
 
 class JwNoticePage extends StatefulWidget {
   final bool embed;
@@ -80,7 +81,7 @@ class _JwNoticePageState extends State<JwNoticePage>
           : LiquidGlassAppBar(
               title: const Text('通知公告'),
               actions: [
-                IconButton(
+                AdaptiveIconButton(
                   onPressed: _loadNotices,
                   icon: const Icon(Icons.refresh),
                 ),
@@ -89,43 +90,35 @@ class _JwNoticePageState extends State<JwNoticePage>
       body: Column(
         children: [
           // Tab切换栏
-          Container(
-            color: Theme.of(context).colorScheme.surface,
-            child: TabBar(
-              controller: _tabController,
-              onTap: (index) {
-                setState(() {
-                  _isUnreadTab = index == 0;
-                });
-              },
-              indicatorColor: Theme.of(context).colorScheme.primary,
-              labelColor: Theme.of(context).colorScheme.primary,
-              unselectedLabelColor: Theme.of(
-                context,
-              ).colorScheme.onSurfaceVariant.withOpacity(0.7),
-              tabs: const [
-                Tab(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('未读'),
-                      SizedBox(width: 4),
-                      Icon(Icons.notifications_active, size: 16),
-                    ],
-                  ),
+          AdaptiveTabBar(
+            controller: _tabController,
+            onTap: (index) {
+              setState(() {
+                _isUnreadTab = index == 0;
+              });
+            },
+            tabs: const [
+              Tab(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('未读'),
+                    SizedBox(width: 4),
+                    Icon(Icons.notifications_active, size: 16),
+                  ],
                 ),
-                Tab(
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('已读'),
-                      SizedBox(width: 4),
-                      Icon(Icons.notifications_none, size: 16),
-                    ],
-                  ),
+              ),
+              Tab(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('已读'),
+                    SizedBox(width: 4),
+                    Icon(Icons.notifications_none, size: 16),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
           // 内容区域
           Expanded(
@@ -170,9 +163,8 @@ class _JwNoticePageState extends State<JwNoticePage>
     final publishTime =
         n['sendTime']?.toString() ?? n['createDateTime']?.toString() ?? '';
 
-    return Card(
+    return AdaptiveCard(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
       child: ListTile(
         contentPadding: const EdgeInsets.all(16),
         title: Text(
@@ -274,7 +266,11 @@ class _JwNoticePageState extends State<JwNoticePage>
             style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 16),
-          ElevatedButton(onPressed: _loadNotices, child: const Text('重试')),
+          AdaptivePrimaryButton(
+            minimumSize: const Size(120, 40),
+            onPressed: _loadNotices,
+            child: const Text('重试'),
+          ),
         ],
       ),
     );
@@ -292,9 +288,9 @@ class _JwNoticePageState extends State<JwNoticePage>
         notice['createDateTime']?.toString() ??
         '';
 
-    showDialog(
+    showAdaptiveAppDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (context) => AdaptiveAlertDialog(
         title: Text(title),
         content: SizedBox(
           width: double.maxFinite,
@@ -325,7 +321,7 @@ class _JwNoticePageState extends State<JwNoticePage>
           ),
         ),
         actions: [
-          TextButton(
+          AdaptiveTextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('关闭'),
           ),

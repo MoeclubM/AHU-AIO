@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../../adaptive_ui.dart';
+import '../../miuix/liquid_glass_app_bar.dart';
 import '../api/synjones_client.dart';
 import 'finance_cards_page.dart';
 import 'finance_pay_code_page.dart';
 import 'finance_recharge_detail_page.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
 
 class FinanceAppsPage extends StatefulWidget {
   final List<dynamic> initialCards;
@@ -93,7 +94,11 @@ class _FinanceAppsPageState extends State<FinanceAppsPage> {
           children: [
             Text(_error!, textAlign: TextAlign.center),
             const SizedBox(height: 12),
-            FilledButton(onPressed: _loadApps, child: const Text('重试')),
+            AdaptivePrimaryButton(
+              minimumSize: const Size(120, 40),
+              onPressed: _loadApps,
+              child: const Text('重试'),
+            ),
           ],
         ),
       ),
@@ -102,7 +107,7 @@ class _FinanceAppsPageState extends State<FinanceAppsPage> {
 
   Widget _buildApp(Map<String, dynamic> app) {
     final action = _actionText(app);
-    return Card(
+    return AdaptiveCard(
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: Colors.indigo.shade50,

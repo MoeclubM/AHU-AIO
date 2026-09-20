@@ -498,7 +498,7 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
                       color: scheme.outline.withOpacity(0.3),
                     ),
                   ),
-                  suffixIcon: IconButton(
+                  suffixIcon: AdaptiveIconButton(
                     icon: Icon(
                       obscure
                           ? Icons.visibility_off_outlined
@@ -512,17 +512,9 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
               ),
             ),
             const SizedBox(width: 10),
-            FilledButton(
+            AdaptivePrimaryButton(
+              minimumSize: const Size(64, 44),
               onPressed: loading ? null : onVerify,
-              style: FilledButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-              ),
               child: loading
                   ? const SizedBox(
                       width: 16,

@@ -146,7 +146,7 @@ class _RoomPageState extends State<RoomPage>
       ),
       floatingActionButton: Padding(
         padding: EdgeInsets.only(bottom: adaptiveBottomPadding(context)),
-        child: FloatingActionButton(
+        child: AdaptiveFloatingActionButton(
           onPressed: _searchRooms,
           child: const Icon(Icons.search),
         ),
@@ -155,20 +155,9 @@ class _RoomPageState extends State<RoomPage>
   }
 
   Widget _buildFilterSection() {
-    return Container(
+    return AdaptiveCard(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
       child: Column(
         children: [
           Row(
@@ -302,7 +291,7 @@ class _RoomPageState extends State<RoomPage>
     final availableSlots = room.getAvailableTimeSlots();
     final isAvailable = availableSlots.isNotEmpty;
 
-    return Card.filled(
+    return AdaptiveCard(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(16),
