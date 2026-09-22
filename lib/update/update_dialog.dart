@@ -118,6 +118,30 @@ Future<void> showUpdateAvailableDialog(
   );
 }
 
+/// 当前为 beta/debug 构建：不提供正式版覆盖更新。
+Future<void> showPrereleaseBuildDialog(
+  BuildContext context, {
+  required String version,
+}) {
+  return showAdaptiveAppDialog<void>(
+    context: context,
+    builder: (ctx) => AdaptiveAlertDialog(
+      title: const Text('Beta 构建'),
+      content: Text(
+        '当前为非正式发布构建（$version）。\n'
+        'CI Beta 代码通常新于同号 Release，已跳过正式版更新检查。',
+      ),
+      actions: [
+        AdaptivePrimaryButton(
+          minimumSize: const Size(80, 38),
+          onPressed: () => Navigator.of(ctx).pop(),
+          child: const Text('知道了'),
+        ),
+      ],
+    ),
+  );
+}
+
 /// 手动检查结果：已是最新。
 Future<void> showUpToDateDialog(BuildContext context, String version) {
   return showAdaptiveAppDialog<void>(
