@@ -73,7 +73,8 @@ class AppUpdateInfo {
   /// 本机当前版本（展示用）。
   final String currentVersion;
 
-  bool get hasDownload => matchedAsset != null && matchedAsset!.downloadUrl.isNotEmpty;
+  bool get hasDownload =>
+      matchedAsset != null && matchedAsset!.downloadUrl.isNotEmpty;
 }
 
 /// 语义化版本（`major.minor.patch`，可选 `+build` / `-prerelease`）。
@@ -250,7 +251,8 @@ String _normalizedArch() {
 
 /// 从 GitHub 拉取并解析最新 Release。网络/解析失败抛 [UpdateException]。
 class GitHubUpdateService {
-  GitHubUpdateService({http.Client? client}) : _client = client ?? http.Client();
+  GitHubUpdateService({http.Client? client})
+    : _client = client ?? http.Client();
 
   final http.Client _client;
 
@@ -266,14 +268,16 @@ class GitHubUpdateService {
   Future<AppUpdateInfo> fetchLatestRelease() async {
     final http.Response response;
     try {
-      response = await _client.get(
-        kGitHubLatestReleaseUrl,
-        headers: const {
-          'accept': 'application/vnd.github+json',
-          'user-agent': 'AHU-AIO-Updater',
-          'x-github-api-version': '2022-11-28',
-        },
-      ).timeout(const Duration(seconds: 15));
+      response = await _client
+          .get(
+            kGitHubLatestReleaseUrl,
+            headers: const {
+              'accept': 'application/vnd.github+json',
+              'user-agent': 'AHU-AIO-Updater',
+              'x-github-api-version': '2022-11-28',
+            },
+          )
+          .timeout(const Duration(seconds: 15));
     } catch (_) {
       throw UpdateException('无法连接 GitHub，请检查网络后重试');
     }
@@ -323,7 +327,8 @@ class GitHubUpdateService {
       tagName: tagName,
       version: version,
       releaseNotes: (json['body'] as String?) ?? '',
-      htmlUrl: (json['html_url'] as String?) ?? kGitHubReleasesPageUrl.toString(),
+      htmlUrl:
+          (json['html_url'] as String?) ?? kGitHubReleasesPageUrl.toString(),
       publishedAt: publishedAt,
       assets: assets,
       matchedAsset: pickAssetForPlatform(

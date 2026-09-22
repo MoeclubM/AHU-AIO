@@ -198,7 +198,10 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
               summary: _appVersion.isEmpty
                   ? '正在读取版本…'
                   : '当前版本 $_appVersion · 来自 GitHub Releases',
-              leading: Icon(Icons.system_update_outlined, color: scheme.primary),
+              leading: Icon(
+                Icons.system_update_outlined,
+                color: scheme.primary,
+              ),
               trailing: _checkingUpdate
                   ? const SizedBox(
                       width: 20,

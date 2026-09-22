@@ -35,9 +35,18 @@ void main() {
 
   group('AppVersion compare', () {
     test('orders by major.minor.patch', () {
-      expect(AppVersion.tryParse('1.0.10')! > AppVersion.tryParse('1.0.9')!, isTrue);
-      expect(AppVersion.tryParse('1.1.0')! > AppVersion.tryParse('1.0.99')!, isTrue);
-      expect(AppVersion.tryParse('2.0.0')! > AppVersion.tryParse('1.9.9')!, isTrue);
+      expect(
+        AppVersion.tryParse('1.0.10')! > AppVersion.tryParse('1.0.9')!,
+        isTrue,
+      );
+      expect(
+        AppVersion.tryParse('1.1.0')! > AppVersion.tryParse('1.0.99')!,
+        isTrue,
+      );
+      expect(
+        AppVersion.tryParse('2.0.0')! > AppVersion.tryParse('1.9.9')!,
+        isTrue,
+      );
     });
 
     test('stable is greater than prerelease of same number', () {
@@ -134,7 +143,8 @@ void main() {
         {
           'tag_name': 'v1.0.10',
           'body': '## Changes\n- fix',
-          'html_url': 'https://github.com/MoeclubM/AHU-AIO/releases/tag/v1.0.10',
+          'html_url':
+              'https://github.com/MoeclubM/AHU-AIO/releases/tag/v1.0.10',
           'published_at': '2026-09-16T17:02:50Z',
           'assets': [
             {

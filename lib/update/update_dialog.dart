@@ -15,7 +15,9 @@ String formatByteSize(int bytes) {
     size /= 1024;
     i++;
   }
-  final text = size >= 100 || i == 0 ? size.toStringAsFixed(0) : size.toStringAsFixed(1);
+  final text = size >= 100 || i == 0
+      ? size.toStringAsFixed(0)
+      : size.toStringAsFixed(1);
   return '$text ${units[i]}';
 }
 
@@ -92,9 +94,9 @@ Future<void> showUpdateAvailableDialog(
             onPressed: () async {
               await Clipboard.setData(ClipboardData(text: info.htmlUrl));
               if (ctx.mounted) {
-                ScaffoldMessenger.of(ctx).showSnackBar(
-                  const SnackBar(content: Text('已复制 Release 链接')),
-                );
+                ScaffoldMessenger.of(
+                  ctx,
+                ).showSnackBar(const SnackBar(content: Text('已复制 Release 链接')));
               }
             },
             child: const Text('复制链接'),
