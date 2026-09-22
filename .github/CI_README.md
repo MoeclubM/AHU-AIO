@@ -48,7 +48,7 @@ git push origin v1.0.0
 
 ### 3. 构建阶段
 并行构建以下平台:
-- Android (arm64, x86_64)
+- Android (arm64)
 - Linux (x86_64)
 - Windows (x64)
 - macOS (universal)
