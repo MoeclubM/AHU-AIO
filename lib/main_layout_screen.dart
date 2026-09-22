@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'globals.dart' as globals;
 import 'jwapp/mainpage/mainpage_view.dart';
@@ -11,6 +12,8 @@ import 'auth/cas_auth_cache.dart';
 import 'miuix/miuix_floating_bar.dart';
 import 'miuix/miuix_theme.dart';
 import 'theme_manager.dart';
+import 'update/github_update_service.dart';
+import 'update/update_dialog.dart';
 
 /// 主底栏标签（Miuix 悬浮栏不显示文字，仅用于无障碍朗读）。
 const List<MiuixFloatingBarItemData> _mainTabs = [
@@ -133,6 +136,9 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
   bool _isInitializing = true;
   int _currentBottomIndex = 0;
   final SynjonesClient _synjonesClient = SynjonesClient();
+  final GitHubUpdateService _updateService = GitHubUpdateService();
+  bool _updatePromptVisible = false;
+  Timer? _updateCheckTimer;
   late PageController _pageController;
   final ValueNotifier<double> _pagePercentNotifier = ValueNotifier(0.0);
   late PageController _microPageController;
@@ -190,6 +196,27 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     // Register the global state change notifier
     globals.onLoginStateChanged = _onLoginStateChanged;
     _checkInit();
+    _scheduleSilentUpdateCheck();
+  }
+
+  /// 启动后静默检查 GitHub Release；仅当有新版本且未忽略时弹窗。
+  void _scheduleSilentUpdateCheck() {
+    _updateCheckTimer?.cancel();
+    _updateCheckTimer = Timer(const Duration(seconds: 3), () async {
+      if (!mounted || _updatePromptVisible) return;
+      final info = await _updateService.checkForUpdateSilently();
+      if (!mounted || info == null || _updatePromptVisible) return;
+      _updatePromptVisible = true;
+      try {
+        await showUpdateAvailableDialog(
+          context,
+          info: info,
+          onDismiss: () => _updateService.dismissUpdate(info.tagName),
+        );
+      } finally {
+        _updatePromptVisible = false;
+      }
+    });
   }
 
   ModalRoute<dynamic>? _route;
@@ -215,6 +242,8 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
   @override
   void dispose() {
     _route?.secondaryAnimation?.removeListener(_onRouteAnimation);
+    _updateCheckTimer?.cancel();
+    _updateService.dispose();
     if (globals.onLoginStateChanged == _onLoginStateChanged) {
       globals.onLoginStateChanged = null;
     }

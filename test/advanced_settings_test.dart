@@ -258,8 +258,9 @@ void main() {
       );
       await tester.pump();
 
-      // Check for 高级 card entry
+      // Check for 高级 card entry and new update section
       expect(find.text('高级'), findsAtLeastNWidgets(1));
+      expect(find.text('检查更新'), findsOneWidget);
 
       // Tap 高级 entry to navigate
       await tester.tap(find.text('高级').last);
@@ -290,6 +291,13 @@ void main() {
         MaterialApp(home: AppSettingsScreen(onSwitchTab: (_) {})),
       );
       await tester.pumpAndSettle();
+
+      // 「软件更新」分区把退出按钮挤出首屏，先滚动到可见再点。
+      await tester.scrollUntilVisible(
+        find.textContaining('退出登录'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
 
       // Tap 退出登录 button
       await tester.tap(find.textContaining('退出登录'));

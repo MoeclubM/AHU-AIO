@@ -11,6 +11,8 @@ import 'jw/login/jw_login_service.dart';
 import 'finance/api/synjones_client.dart';
 import 'auth/cas_auth_cache.dart';
 import 'miuix/liquid_glass_app_bar.dart';
+import 'update/github_update_service.dart';
+import 'update/update_dialog.dart';
 
 class AppSettingsScreen extends StatefulWidget {
   final ValueChanged<int> onSwitchTab;
@@ -24,18 +26,61 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
   final _themeManager = ThemeManager();
   final _authManager = AuthManager();
   final _synjonesClient = SynjonesClient();
+  final _updateService = GitHubUpdateService();
+
+  String _appVersion = '';
+  bool _checkingUpdate = false;
 
   @override
   void initState() {
     super.initState();
     _themeManager.addListener(_onThemeChanged);
     _authManager.addListener(_onThemeChanged);
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    final v = await _updateService.currentVersionString();
+    if (mounted) {
+      setState(() => _appVersion = v);
+    }
+  }
+
+  Future<void> _checkUpdate() async {
+    if (_checkingUpdate) return;
+    setState(() => _checkingUpdate = true);
+    try {
+      final info = await _updateService.checkForUpdate();
+      if (!mounted) return;
+      if (info == null) {
+        await showUpToDateDialog(context, _appVersion);
+        return;
+      }
+      await showUpdateAvailableDialog(
+        context,
+        info: info,
+        onDismiss: () => _updateService.dismissUpdate(info.tagName),
+      );
+    } on UpdateException catch (e) {
+      if (mounted) {
+        await showUpdateErrorDialog(context, e.message);
+      }
+    } catch (_) {
+      if (mounted) {
+        await showUpdateErrorDialog(context, '检查更新时出现未知错误');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _checkingUpdate = false);
+      }
+    }
   }
 
   @override
   void dispose() {
     _themeManager.removeListener(_onThemeChanged);
     _authManager.removeListener(_onThemeChanged);
+    _updateService.dispose();
     super.dispose();
   }
 
@@ -142,6 +187,26 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
               leading: Icon(Icons.tune_outlined, color: scheme.primary),
               trailing: chevron,
               onTap: () => _open(const AdvancedSettingsScreen()),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          const AdaptiveSectionTitle('软件更新'),
+          AdaptiveCard(
+            child: AdaptiveSettingsTile(
+              title: '检查更新',
+              summary: _appVersion.isEmpty
+                  ? '正在读取版本…'
+                  : '当前版本 $_appVersion · 来自 GitHub Releases',
+              leading: Icon(Icons.system_update_outlined, color: scheme.primary),
+              trailing: _checkingUpdate
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : chevron,
+              onTap: _checkingUpdate ? null : () => _checkUpdate(),
             ),
           ),
           const SizedBox(height: 20),
