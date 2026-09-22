@@ -45,9 +45,7 @@ Future<void> showUpdateAvailableDialog(
     barrierDismissible: false,
     builder: (ctx) {
       final notes = info.releaseNotes.trim();
-      final downloadLabel = info.hasDownload
-          ? '下载 ${info.matchedAsset!.name}'
-          : '前往 GitHub 下载';
+      const actionLabel = '前往 GitHub 查看';
 
       return AdaptiveAlertDialog(
         title: Text('发现新版本 ${info.version}'),
@@ -105,12 +103,9 @@ Future<void> showUpdateAvailableDialog(
             minimumSize: const Size(100, 38),
             onPressed: () {
               Navigator.of(ctx).pop();
-              final url = info.hasDownload
-                  ? info.matchedAsset!.downloadUrl
-                  : info.htmlUrl;
-              openUpdateUrl(context, url);
+              openUpdateUrl(context, info.htmlUrl);
             },
-            child: Text(downloadLabel),
+            child: const Text(actionLabel),
           ),
         ],
       );

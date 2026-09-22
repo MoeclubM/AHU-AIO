@@ -30,6 +30,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
 
   String _appVersion = '';
   bool _checkingUpdate = false;
+  bool _enableAutoUpdateCheck = false;
 
   @override
   void initState() {
@@ -37,6 +38,21 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     _themeManager.addListener(_onThemeChanged);
     _authManager.addListener(_onThemeChanged);
     _loadVersion();
+    _loadAutoUpdateSetting();
+  }
+
+  Future<void> _loadAutoUpdateSetting() async {
+    final prefs = await SharedPreferences.getInstance();
+    final enabled = prefs.getBool('enable_auto_update_check') ?? false;
+    if (mounted) {
+      setState(() => _enableAutoUpdateCheck = enabled);
+    }
+  }
+
+  Future<void> _toggleAutoUpdateCheck(bool value) async {
+    setState(() => _enableAutoUpdateCheck = value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('enable_auto_update_check', value);
   }
 
   Future<void> _loadVersion() async {
@@ -192,6 +208,19 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
           const SizedBox(height: 20),
 
           const AdaptiveSectionTitle('软件更新'),
+          AdaptiveCard(
+            child: AdaptiveSwitchTile(
+              title: '启用更新检查',
+              summary: '开启后在应用启动时自动检测新版本',
+              leading: Icon(
+                Icons.notifications_active_outlined,
+                color: scheme.primary,
+              ),
+              value: _enableAutoUpdateCheck,
+              onChanged: _toggleAutoUpdateCheck,
+            ),
+          ),
+          const SizedBox(height: 10),
           AdaptiveCard(
             child: AdaptiveSettingsTile(
               title: '检查更新',

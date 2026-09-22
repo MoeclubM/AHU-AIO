@@ -14,6 +14,7 @@ import 'miuix/miuix_theme.dart';
 import 'theme_manager.dart';
 import 'update/github_update_service.dart';
 import 'update/update_dialog.dart';
+import 'update/top_update_banner.dart';
 
 /// 主底栏标签（Miuix 悬浮栏不显示文字，仅用于无障碍朗读）。
 const List<MiuixFloatingBarItemData> _mainTabs = [
@@ -199,20 +200,24 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     _scheduleSilentUpdateCheck();
   }
 
-  /// 启动后静默检查 GitHub Release；仅当有新版本且未忽略时弹窗。
+  /// 启动后静默检查 GitHub Release：
+  /// 只有用户在设置中开启了「启用更新检查」（默认关闭）时才发起检查；
+  /// 命中新版本时在屏幕顶部弹出 2s 小通知胶囊，不弹大窗口，且不执行自动下载。
   void _scheduleSilentUpdateCheck() {
     _updateCheckTimer?.cancel();
     _updateCheckTimer = Timer(const Duration(seconds: 3), () async {
+      if (!mounted) return;
+      final prefs = await SharedPreferences.getInstance();
+      final enabled = prefs.getBool('enable_auto_update_check') ?? false;
+      if (!enabled) return;
+
       if (!mounted || _updatePromptVisible) return;
       final info = await _updateService.checkForUpdateSilently();
       if (!mounted || info == null || _updatePromptVisible) return;
       _updatePromptVisible = true;
       try {
-        await showUpdateAvailableDialog(
-          context,
-          info: info,
-          onDismiss: () => _updateService.dismissUpdate(info.tagName),
-        );
+        showTopUpdateBanner(context, info: info);
+        await _updateService.dismissUpdate(info.tagName);
       } finally {
         _updatePromptVisible = false;
       }
