@@ -109,9 +109,7 @@ class SemesterConfig {
       if (raw == null || raw.isEmpty) return null;
       final list = jsonDecode(raw) as List<dynamic>;
       return list
-          .map(
-            (item) => SemesterInfo.fromJson(Map<String, dynamic>.from(item)),
-          )
+          .map((item) => SemesterInfo.fromJson(Map<String, dynamic>.from(item)))
           .toList();
     } catch (e) {
       return null;

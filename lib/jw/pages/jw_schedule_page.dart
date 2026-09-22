@@ -78,18 +78,21 @@ class _JwSchedulePageState extends State<JwSchedulePage>
       // 如果未曾手动切换学期，默认自动定位到当前教学周所在学期；
       // 若当前教学周未匹配到，则默认定位到列表中的最新学期（first），避免误降级到最旧的 2024 学期
       if (!_isUserManuallySelected || _selectedSemesterId == null) {
-        final targetSemId = matchedCurrentSemId ??
+        final targetSemId =
+            matchedCurrentSemId ??
             (semList.isNotEmpty ? toInt(semList.first['id']) : null) ??
             192; // 默认最新 2026 第一学期
         _selectedSemesterId = targetSemId;
-        _currentWeek = (weekInfo.weekIndex != null &&
+        _currentWeek =
+            (weekInfo.weekIndex != null &&
                 weekInfo.weekIndex! >= 1 &&
                 weekInfo.weekIndex! <= 25)
             ? weekInfo.weekIndex!
             : 1;
       } else {
         if (_selectedSemesterId == matchedCurrentSemId) {
-          _currentWeek = (weekInfo.weekIndex != null &&
+          _currentWeek =
+              (weekInfo.weekIndex != null &&
                   weekInfo.weekIndex! >= 1 &&
                   weekInfo.weekIndex! <= 25)
               ? weekInfo.weekIndex!
@@ -177,20 +180,17 @@ class _JwSchedulePageState extends State<JwSchedulePage>
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null && _tableData == null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(_error!, style: const TextStyle(color: Colors.red)),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: _loadData,
-                        child: const Text('重试'),
-                      ),
-                    ],
-                  ),
-                )
-              : _buildSchedule(),
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(_error!, style: const TextStyle(color: Colors.red)),
+                  const SizedBox(height: 16),
+                  ElevatedButton(onPressed: _loadData, child: const Text('重试')),
+                ],
+              ),
+            )
+          : _buildSchedule(),
     );
   }
 
@@ -250,8 +250,9 @@ class _JwSchedulePageState extends State<JwSchedulePage>
 
   Widget _buildSemesterHeader(List<CourseActivity> activities) {
     final colorScheme = Theme.of(context).colorScheme;
-    final todayCount =
-        activities.where((a) => a.weekday == DateTime.now().weekday).length;
+    final todayCount = activities
+        .where((a) => a.weekday == DateTime.now().weekday)
+        .length;
     final semName = _selectedSemesterName ?? '加载中...';
 
     return Container(
@@ -321,7 +322,9 @@ class _JwSchedulePageState extends State<JwSchedulePage>
       final code = s['code']?.toString() ?? '';
       final nameZh = s['nameZh']?.toString() ?? '';
       final nameEn = s['nameEn']?.toString() ?? '';
-      if (code == currentName || nameZh == currentName || nameEn == currentName) {
+      if (code == currentName ||
+          nameZh == currentName ||
+          nameEn == currentName) {
         final id = toInt(s['id']);
         if (id != null) return id;
       }
@@ -412,10 +415,7 @@ class _JwSchedulePageState extends State<JwSchedulePage>
                   padding: EdgeInsets.only(bottom: 12),
                   child: Text(
                     '选择学期',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                 ),
                 const Divider(height: 1),
@@ -640,8 +640,9 @@ class _JwSchedulePageState extends State<JwSchedulePage>
                     ...List.generate(7, (dayIdx) {
                       final wd = dayIdx + 1;
                       final isToday = DateTime.now().weekday == wd;
-                      final count =
-                          weekActivities.where((a) => a.weekday == wd).length;
+                      final count = weekActivities
+                          .where((a) => a.weekday == wd)
+                          .length;
                       return Container(
                         width: dayWidth,
                         height: 44,
@@ -737,8 +738,9 @@ class _JwSchedulePageState extends State<JwSchedulePage>
                     ),
                     ...List.generate(7, (dayIdx) {
                       final wd = dayIdx + 1;
-                      final dayActivities =
-                          weekActivities.where((a) => a.weekday == wd).toList();
+                      final dayActivities = weekActivities
+                          .where((a) => a.weekday == wd)
+                          .toList();
                       return SizedBox(
                         width: dayWidth,
                         height: _maxSlots * _slotHeight,
@@ -859,8 +861,8 @@ class _JwSchedulePageState extends State<JwSchedulePage>
     final maxLines = duration > 1
         ? duration * 3
         : (_slotHeight > 160
-            ? 8
-            : (_slotHeight > 100 ? 5 : (_slotHeight > 70 ? 4 : 3)));
+              ? 8
+              : (_slotHeight > 100 ? 5 : (_slotHeight > 70 ? 4 : 3)));
 
     return Material(
       color: Colors.transparent,
