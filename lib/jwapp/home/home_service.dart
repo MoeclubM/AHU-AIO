@@ -170,8 +170,8 @@ class HomePageLogic extends ChangeNotifier {
     return result;
   }
 
-  /// 检查课程是否正在进行或即将进行（30分钟内）
-  bool isCourseOngoingOrUpcoming(
+  /// 解析指定日期课程的起止时间点，如果非当天或解析失败返回 null
+  ({DateTime start, DateTime end})? _resolveCourseTimeRange(
     Map<String, dynamic> course,
     String targetDate,
   ) {
@@ -181,14 +181,14 @@ class HomePageLogic extends ChangeNotifier {
 
     // 只检查今天的课程
     if (targetDate != today) {
-      return false;
+      return null;
     }
 
     final startTime = course['startTime']?.toString() ?? '';
     final endTime = course['endTime']?.toString() ?? '';
 
     if (startTime.isEmpty || endTime.isEmpty) {
-      return false;
+      return null;
     }
 
     try {
@@ -196,7 +196,7 @@ class HomePageLogic extends ChangeNotifier {
       final endParts = endTime.split(':');
 
       if (startParts.length != 2 || endParts.length != 2) {
-        return false;
+        return null;
       }
 
       final startHour = int.parse(startParts[0]);
@@ -218,16 +218,47 @@ class HomePageLogic extends ChangeNotifier {
         endHour,
         endMinute,
       );
-      final upcomingThreshold = now.add(const Duration(minutes: 30));
 
-      // 正在进行：当前时间在课程开始和结束之间
-      // 即将进行：课程在30分钟内开始
-      return (now.isAfter(courseStart) || now.isAtSameMomentAs(courseStart)) &&
-              now.isBefore(courseEnd) ||
-          (courseStart.isAfter(now) && courseStart.isBefore(upcomingThreshold));
-    } catch (e) {
-      return false;
+      return (start: courseStart, end: courseEnd);
+    } catch (_) {
+      return null;
     }
+  }
+
+  /// 检查课程是否正在进行（当前时间处于开课与结课之间）
+  bool isCourseOngoing(
+    Map<String, dynamic> course,
+    String targetDate,
+  ) {
+    final range = _resolveCourseTimeRange(course, targetDate);
+    if (range == null) return false;
+    final now = DateTime.now();
+    return (now.isAfter(range.start) || now.isAtSameMomentAs(range.start)) &&
+        now.isBefore(range.end);
+  }
+
+  /// 检查课程是否即将进行（开课前15分钟内）
+  bool isCourseUpcoming(
+    Map<String, dynamic> course,
+    String targetDate, {
+    int thresholdMinutes = 15,
+  }) {
+    final range = _resolveCourseTimeRange(course, targetDate);
+    if (range == null) return false;
+    final now = DateTime.now();
+    final upcomingThreshold = now.add(Duration(minutes: thresholdMinutes));
+    return range.start.isAfter(now) &&
+        (range.start.isBefore(upcomingThreshold) ||
+            range.start.isAtSameMomentAs(upcomingThreshold));
+  }
+
+  /// 检查课程是否正在进行或即将进行（15分钟内）
+  bool isCourseOngoingOrUpcoming(
+    Map<String, dynamic> course,
+    String targetDate,
+  ) {
+    return isCourseOngoing(course, targetDate) ||
+        isCourseUpcoming(course, targetDate);
   }
 
   /// 检查时间段是否包含正在进行或即将进行的课程

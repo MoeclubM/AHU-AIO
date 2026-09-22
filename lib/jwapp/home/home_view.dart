@@ -454,12 +454,17 @@ class _HomePageState extends State<HomePage>
                           ),
                           subtitle: Text('${courses.length} 节课'),
                           children: courses.map((course) {
-                            // 检查单个课程是否正在进行或即将进行
-                            final isOngoingOrUpcoming = logic
-                                .isCourseOngoingOrUpcoming(
-                                  course,
-                                  selectedDateString,
-                                );
+                            // 检查单个课程是正在进行还是开课前15分钟即将开始
+                            final isOngoing = logic.isCourseOngoing(
+                              course,
+                              selectedDateString,
+                            );
+                            final isUpcoming = logic.isCourseUpcoming(
+                              course,
+                              selectedDateString,
+                            );
+                            final isOngoingOrUpcoming =
+                                isOngoing || isUpcoming;
 
                             return Container(
                               decoration: isOngoingOrUpcoming
@@ -504,15 +509,21 @@ class _HomePageState extends State<HomePage>
                                         decoration: BoxDecoration(
                                           // 浅色模式使用更柔和的标签背景
                                           color: isDark
-                                              ? theme.colorScheme.primary
-                                              : theme.colorScheme.primary
-                                                    .withValues(alpha: 0.85),
+                                              ? (isOngoing
+                                                  ? theme.colorScheme.primary
+                                                  : theme.colorScheme.primary
+                                                        .withValues(alpha: 0.7))
+                                              : (isOngoing
+                                                  ? theme.colorScheme.primary
+                                                        .withValues(alpha: 0.85)
+                                                  : theme.colorScheme.primary
+                                                        .withValues(alpha: 0.65)),
                                           borderRadius: BorderRadius.circular(
                                             12,
                                           ),
                                         ),
                                         child: Text(
-                                          '进行中',
+                                          isOngoing ? '进行中' : '即将开始',
                                           style: TextStyle(
                                             color: theme.colorScheme.onPrimary,
                                             fontSize: 12,
