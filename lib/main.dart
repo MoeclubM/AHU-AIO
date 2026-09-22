@@ -3,7 +3,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
-import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'dart:io';
 import 'theme_manager.dart';
@@ -17,8 +16,6 @@ void main() async {
 
   if (Platform.isAndroid) {
     WebViewPlatform.instance = AndroidWebViewPlatform();
-  } else if (Platform.isIOS) {
-    WebViewPlatform.instance = WebKitWebViewPlatform();
   }
 
   final themeManager = ThemeManager();

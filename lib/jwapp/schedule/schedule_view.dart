@@ -20,7 +20,7 @@ class SchedulePage extends StatefulWidget {
 }
 
 class _SchedulePageState extends State<SchedulePage>
-    with AutomaticKeepAliveClientMixin {
+    with AutomaticKeepAliveClientMixin<SchedulePage> {
   late final ScheduleLogic _logic;
   late final PageController _weekPageController;
   bool _isPageAnimating = false;
@@ -149,40 +149,18 @@ class _SchedulePageState extends State<SchedulePage>
               child: Column(
                 children: [
                   Obx(() {
+                    if (_logic.isOfflineCache.value) {
+                      return _buildCacheBanner(
+                        icon: Icons.cloud_off_outlined,
+                        text: '网络连接失败，当前展示本地缓存课表（下拉可重试）',
+                        warn: true,
+                      );
+                    }
                     if (_logic.isCached.value) {
-                      return Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 6,
-                          horizontal: 16,
-                        ),
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.primaryContainer.withOpacity(0.7),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              size: 14,
-                              color: Theme.of(
-                                context,
-                              ).colorScheme.onPrimaryContainer,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                '当前为本地缓存数据，正在加载最新数据...',
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onPrimaryContainer,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                      return _buildCacheBanner(
+                        icon: Icons.info_outline,
+                        text: '当前为本地缓存数据，正在加载最新数据...',
+                        warn: false,
                       );
                     }
                     return const SizedBox.shrink();
@@ -340,6 +318,43 @@ class _SchedulePageState extends State<SchedulePage>
     );
   }
 
+  /// 本地缓存状态横幅：加载中提示 / 离线回退提示
+  Widget _buildCacheBanner({
+    required IconData icon,
+    required String text,
+    required bool warn,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final bgColor = warn
+        ? colorScheme.errorContainer.withOpacity(0.55)
+        : colorScheme.primaryContainer.withOpacity(0.7);
+    final fgColor = warn
+        ? colorScheme.onErrorContainer
+        : colorScheme.onPrimaryContainer;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+      color: bgColor,
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: fgColor),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 11.5,
+                color: fgColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildErrorNotice(String message) {
     final theme = Theme.of(context);
     return AdaptiveCard(
@@ -386,52 +401,56 @@ class _SchedulePageState extends State<SchedulePage>
         ? math.max(_logic.availableWeeks.last, 20)
         : 20;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final totalWidth = constraints.maxWidth;
-        const timeColWidth = 34.0;
-        final dayWidth = (totalWidth - timeColWidth) / 7;
+    // 网格内容独立成层：菜单/遮罩等浮层动画时不必重绘整张课表
+    // （debug 模式无 raster cache，浮层每帧重光栅化的代价尤其明显）。
+    return RepaintBoundary(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final totalWidth = constraints.maxWidth;
+          const timeColWidth = 34.0;
+          final dayWidth = (totalWidth - timeColWidth) / 7;
 
-        return SizedBox(
-          height: totalTableHeight,
-          child: PageView.builder(
-            controller: _weekPageController,
-            itemCount: maxWeeks,
-            physics: const BouncingScrollPhysics(),
-            onPageChanged: (pageIndex) {
-              final newWeek = pageIndex + 1;
-              if (_logic.selectedWeek.value != newWeek) {
-                _logic.selectWeek(newWeek);
-              }
-            },
-            itemBuilder: (context, pageIndex) {
-              final week = pageIndex + 1;
-              final weekSchedule = _logic.processClassesForWeek(week);
+          return SizedBox(
+            height: totalTableHeight,
+            child: PageView.builder(
+              controller: _weekPageController,
+              itemCount: maxWeeks,
+              physics: const BouncingScrollPhysics(),
+              onPageChanged: (pageIndex) {
+                final newWeek = pageIndex + 1;
+                if (_logic.selectedWeek.value != newWeek) {
+                  _logic.selectWeek(newWeek);
+                }
+              },
+              itemBuilder: (context, pageIndex) {
+                final week = pageIndex + 1;
+                final weekSchedule = _logic.processClassesForWeek(week);
 
-              return SingleChildScrollView(
-                physics: const NeverScrollableScrollPhysics(),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // 1. 顶部表头：月份 + 周一至周日及日期 (指定周次)
-                    _buildHeader(theme, dayWidth, timeColWidth, week),
-                    // 2. 连续 1..13 节次时间轴 + 7 列纵向长条卡片网格
-                    _buildTimelineGrid(
-                      weekSchedule,
-                      dayWidth,
-                      timeColWidth,
-                      slotHeight,
-                      theme,
-                      isDark,
-                      week,
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        );
-      },
+                return SingleChildScrollView(
+                  physics: const NeverScrollableScrollPhysics(),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 1. 顶部表头：月份 + 周一至周日及日期 (指定周次)
+                      _buildHeader(theme, dayWidth, timeColWidth, week),
+                      // 2. 连续 1..13 节次时间轴 + 7 列纵向长条卡片网格
+                      _buildTimelineGrid(
+                        weekSchedule,
+                        dayWidth,
+                        timeColWidth,
+                        slotHeight,
+                        theme,
+                        isDark,
+                        week,
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -837,9 +856,17 @@ class _SchedulePageState extends State<SchedulePage>
     final bg = _getCourseBgColor(entry.courseName, isDark);
     final textColor = _getCourseTextColor(entry.courseName, isDark);
 
+    // 模态默认 250ms 在中低端机叠液玻璃渲染会显得不跟手；
+    // 用 sheetAnimationStyle 让 route 自建自释放控制器，切勿改用
+    // transitionAnimationController + 手动 dispose——route 的 future 在
+    // pop 开始时即完成，提前 dispose 会让退场动画卡死、遮罩无法关闭。
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      sheetAnimationStyle: const AnimationStyle(
+        duration: Duration(milliseconds: 150),
+        reverseDuration: Duration(milliseconds: 120),
+      ),
       builder: (ctx) {
         return Material(
           color: colorScheme.surface,

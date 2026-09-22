@@ -13,6 +13,9 @@ class ScheduleLogic extends GetxController {
   var errorMessage = ''.obs;
   var isCached = false.obs;
 
+  /// 网络失败但有本地缓存：安静回退到缓存展示，用横幅提示而非错误卡片
+  var isOfflineCache = false.obs;
+
   // 防抖定时器
   Timer? _debounceTimer;
 
@@ -98,17 +101,22 @@ class ScheduleLogic extends GetxController {
     try {
       isLoading.value = true;
       errorMessage.value = '';
+      isOfflineCache.value = false;
 
       final semesterId = selectedSemester.value?.id;
       final semIdStr = semesterId?.toString();
 
       // 1. 先尝试加载缓存并立即展示
       await _scheduleService.loadCache(semesterId: semIdStr);
-      scheduleData.assignAll({'classes': _scheduleService.classes ?? []});
-      isCached.value = _scheduleService.isCached;
-      if (scheduleData['classes'] != null &&
-          scheduleData['classes'].isNotEmpty) {
+      final cachedClasses = _scheduleService.classes;
+      if (cachedClasses != null && cachedClasses.isNotEmpty) {
+        scheduleData.assignAll({'classes': cachedClasses});
+        isCached.value = true;
         update();
+      } else {
+        // 该学期没有本地缓存时必须清空旧学期残留，避免误导用户
+        scheduleData.assignAll({'classes': <dynamic>[]});
+        isCached.value = false;
       }
 
       // 2. 发起 API 请求拉取最新数据
@@ -119,8 +127,17 @@ class ScheduleLogic extends GetxController {
       }
       scheduleData.assignAll({'classes': _scheduleService.classes ?? []});
       isCached.value = false;
+      isOfflineCache.value = false;
     } catch (e) {
-      errorMessage.value = e.toString();
+      final classes = scheduleData['classes'];
+      final hasDisplayedCache = classes is List && classes.isNotEmpty;
+      if (hasDisplayedCache) {
+        // 有缓存可看：网络失败不打断浏览，由视图层展示离线缓存横幅
+        isOfflineCache.value = true;
+        errorMessage.value = '';
+      } else {
+        errorMessage.value = e.toString();
+      }
     } finally {
       isLoading.value = false;
       update();
