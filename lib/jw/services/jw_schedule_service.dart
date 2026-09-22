@@ -10,6 +10,7 @@ class JwScheduleService extends ChangeNotifier {
 
   bool isLoading = false;
   bool isCached = false;
+  bool isOfflineCache = false;
   String? errorMessage;
 
   List<JwSemesterInfo> allSemesters = [];
@@ -184,12 +185,14 @@ class JwScheduleService extends ChangeNotifier {
   Future<void> fetchScheduleData(int semesterId) async {
     isLoading = true;
     errorMessage = null;
+    isOfflineCache = false;
     notifyListeners();
 
     try {
       final raw = await _api.getCourseTablePrintData(semesterId);
       scheduleData = JwScheduleData.fromJson(raw);
       isCached = false;
+      isOfflineCache = false;
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
@@ -197,14 +200,21 @@ class JwScheduleService extends ChangeNotifier {
         jsonEncode(raw),
       );
     } catch (e) {
-      errorMessage = e.toString();
       final prefs = await SharedPreferences.getInstance();
       final cached = prefs.getString('jw_sys_schedule_cache_$semesterId');
       if (cached != null) {
         scheduleData = JwScheduleData.fromJson(jsonDecode(cached));
+      }
+
+      if (scheduleData != null && scheduleData!.activities.isNotEmpty) {
+        // 有缓存可看：网络失败不打断浏览，标记为离线缓存展示
         isCached = true;
-        // 有缓存可看时，不向 UI 抛出阻断性错误
+        isOfflineCache = true;
         errorMessage = null;
+      } else {
+        isCached = false;
+        isOfflineCache = false;
+        errorMessage = e.toString();
       }
     } finally {
       isLoading = false;

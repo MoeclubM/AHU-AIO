@@ -129,34 +129,19 @@ class _JwSchedulePageState extends State<JwSchedulePage>
                 _buildTopSelectors(theme, isDark),
                 _buildWeekCapsules(theme),
                 if (_service.isLoading) const LinearProgressIndicator(),
-                if (_service.isCached)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 6,
-                      horizontal: 16,
-                    ),
-                    color: theme.colorScheme.primaryContainer.withOpacity(0.7),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.info_outline,
-                          size: 14,
-                          color: theme.colorScheme.onPrimaryContainer,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            '当前为本地缓存数据，正在加载最新数据...',
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              color: theme.colorScheme.onPrimaryContainer,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                if (_service.isOfflineCache)
+                  _buildCacheBanner(
+                    theme: theme,
+                    icon: Icons.cloud_off_outlined,
+                    text: '网络连接失败，当前展示本地缓存课表（下拉可重试）',
+                    warn: true,
+                  )
+                else if (_service.isCached)
+                  _buildCacheBanner(
+                    theme: theme,
+                    icon: Icons.info_outline,
+                    text: '当前为本地缓存数据，正在加载最新数据...',
+                    warn: false,
                   ),
                 if (_service.errorMessage != null &&
                     _service.scheduleData == null)
@@ -195,6 +180,43 @@ class _JwSchedulePageState extends State<JwSchedulePage>
             },
             icon: const Icon(Icons.refresh, size: 16),
             label: const Text('重试'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 本地缓存状态横幅：加载中提示 vs 离线回退提示（与微教务课表保持完全一致的视觉与交互）
+  Widget _buildCacheBanner({
+    required ThemeData theme,
+    required IconData icon,
+    required String text,
+    required bool warn,
+  }) {
+    final colorScheme = theme.colorScheme;
+    final bgColor = warn
+        ? colorScheme.errorContainer.withOpacity(0.55)
+        : colorScheme.primaryContainer.withOpacity(0.7);
+    final fgColor =
+        warn ? colorScheme.onErrorContainer : colorScheme.onPrimaryContainer;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+      color: bgColor,
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: fgColor),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 11.5,
+                color: fgColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ],
       ),
