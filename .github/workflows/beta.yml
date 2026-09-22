@@ -84,20 +84,11 @@ jobs:
           echo "build_number=${BUILD_NUMBER}" >> $GITHUB_OUTPUT
           echo "Beta version: ${BETA_VERSION}"
 
-  # ──── Android 构建 ────
+  # ──── Android 构建（仅 arm64） ────
   android:
-    name: Build Android (${{ matrix.arch }})
+    name: Build Android (arm64)
     runs-on: ubuntu-latest
     needs: [get-version]
-    strategy:
-      matrix:
-        include:
-          - arch: arm64
-            target_platform: android-arm64
-            abi_filter: arm64-v8a
-          - arch: x86_64
-            target_platform: android-x64
-            abi_filter: x86_64
 
     steps:
       - uses: actions/checkout@v7
@@ -133,11 +124,11 @@ jobs:
       - name: Build APK
         run: |
           flutter build apk --release \
-            --target-platform ${{ matrix.target_platform }} \
+            --target-platform android-arm64 \
             --build-name "${{ needs.get-version.outputs.version }}" \
             --build-number "${{ needs.get-version.outputs.build_number }}"
         env:
-          ABI_FILTER: ${{ matrix.abi_filter }}
+          ABI_FILTER: arm64-v8a
           KEYSTORE_FILE: ${{ env.KEYSTORE_FILE }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
 
@@ -149,12 +140,12 @@ jobs:
         run: |
           mkdir -p dist
           cp build/app/outputs/flutter-apk/app-release.apk \
-            "dist/AHU-AIO-Beta-Android-${{ matrix.arch }}-${{ needs.get-version.outputs.version }}-${{ github.run_id }}.apk"
+            "dist/AHU-AIO-Beta-Android-arm64-${{ needs.get-version.outputs.version }}-${{ github.run_id }}.apk"
 
       - name: Upload APK (Artifact)
         uses: actions/upload-artifact@v7
         with:
-          name: ahu-aio-beta-${{ matrix.arch }}-${{ github.run_id }}
+          name: ahu-aio-beta-arm64-${{ github.run_id }}
           archive: false
-          path: dist/AHU-AIO-Beta-Android-${{ matrix.arch }}-${{ needs.get-version.outputs.version }}-${{ github.run_id }}.apk
+          path: dist/AHU-AIO-Beta-Android-arm64-${{ needs.get-version.outputs.version }}-${{ github.run_id }}.apk
           if-no-files-found: error
