@@ -197,8 +197,9 @@ class _JwSchedulePageState extends State<JwSchedulePage>
     final bgColor = warn
         ? colorScheme.errorContainer.withOpacity(0.55)
         : colorScheme.primaryContainer.withOpacity(0.7);
-    final fgColor =
-        warn ? colorScheme.onErrorContainer : colorScheme.onPrimaryContainer;
+    final fgColor = warn
+        ? colorScheme.onErrorContainer
+        : colorScheme.onPrimaryContainer;
 
     return Container(
       width: double.infinity,
@@ -245,7 +246,9 @@ class _JwSchedulePageState extends State<JwSchedulePage>
               height: 40,
               padding: const EdgeInsets.symmetric(horizontal: 10),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                color: theme.colorScheme.surfaceContainerHighest.withOpacity(
+                  0.5,
+                ),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: theme.colorScheme.outlineVariant.withOpacity(0.4),
@@ -275,7 +278,9 @@ class _JwSchedulePageState extends State<JwSchedulePage>
               height: 40,
               padding: const EdgeInsets.symmetric(horizontal: 10),
               decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+                color: theme.colorScheme.surfaceContainerHighest.withOpacity(
+                  0.5,
+                ),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
                   color: theme.colorScheme.outlineVariant.withOpacity(0.4),
@@ -436,7 +441,8 @@ class _JwSchedulePageState extends State<JwSchedulePage>
           ...List.generate(7, (i) {
             final weekday = i + 1;
             final dayDate = monday?.add(Duration(days: i));
-            final isToday = DateTime.now().weekday == weekday &&
+            final isToday =
+                DateTime.now().weekday == weekday &&
                 week == _service.currentWeek;
 
             return Container(
@@ -444,7 +450,9 @@ class _JwSchedulePageState extends State<JwSchedulePage>
               height: 47,
               decoration: BoxDecoration(
                 color: isToday
-                    ? theme.colorScheme.primary.withOpacity(isDark ? 0.22 : 0.16)
+                    ? theme.colorScheme.primary.withOpacity(
+                        isDark ? 0.22 : 0.16,
+                      )
                     : null,
                 border: Border(
                   right: BorderSide(
@@ -529,8 +537,9 @@ class _JwSchedulePageState extends State<JwSchedulePage>
                   decoration: BoxDecoration(
                     border: Border(
                       bottom: BorderSide(
-                        color:
-                            theme.colorScheme.outlineVariant.withOpacity(0.3),
+                        color: theme.colorScheme.outlineVariant.withOpacity(
+                          0.3,
+                        ),
                         width: 0.5,
                       ),
                     ),
@@ -550,7 +559,8 @@ class _JwSchedulePageState extends State<JwSchedulePage>
           ...List.generate(7, (dIdx) {
             final weekday = dIdx + 1;
             final entries = weekData[weekday] ?? [];
-            final isToday = DateTime.now().weekday == weekday &&
+            final isToday =
+                DateTime.now().weekday == weekday &&
                 week == _service.currentWeek;
 
             return Container(
@@ -558,12 +568,13 @@ class _JwSchedulePageState extends State<JwSchedulePage>
               height: totalH,
               decoration: BoxDecoration(
                 color: isToday
-                    ? theme.colorScheme.primary.withOpacity(isDark ? 0.12 : 0.08)
+                    ? theme.colorScheme.primary.withOpacity(
+                        isDark ? 0.12 : 0.08,
+                      )
                     : null,
                 border: Border(
                   right: BorderSide(
-                    color:
-                        theme.colorScheme.outlineVariant.withOpacity(0.35),
+                    color: theme.colorScheme.outlineVariant.withOpacity(0.35),
                     width: 0.5,
                   ),
                 ),
@@ -614,11 +625,7 @@ class _JwSchedulePageState extends State<JwSchedulePage>
     );
   }
 
-  Widget _buildCourseCard(
-    JwScheduleEntry entry,
-    ThemeData theme,
-    bool isDark,
-  ) {
+  Widget _buildCourseCard(JwScheduleEntry entry, ThemeData theme, bool isDark) {
     final hash = entry.courseName.hashCode.abs();
     final hue = (hash % 360).toDouble();
     final bg = isDark
@@ -638,10 +645,7 @@ class _JwSchedulePageState extends State<JwSchedulePage>
           decoration: BoxDecoration(
             color: bg,
             borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-              color: textColor.withOpacity(0.25),
-              width: 0.6,
-            ),
+            border: Border.all(color: textColor.withOpacity(0.25), width: 0.6),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

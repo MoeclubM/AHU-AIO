@@ -463,8 +463,7 @@ class _HomePageState extends State<HomePage>
                               course,
                               selectedDateString,
                             );
-                            final isOngoingOrUpcoming =
-                                isOngoing || isUpcoming;
+                            final isOngoingOrUpcoming = isOngoing || isUpcoming;
 
                             return Container(
                               decoration: isOngoingOrUpcoming
@@ -510,14 +509,20 @@ class _HomePageState extends State<HomePage>
                                           // 浅色模式使用更柔和的标签背景
                                           color: isDark
                                               ? (isOngoing
-                                                  ? theme.colorScheme.primary
-                                                  : theme.colorScheme.primary
-                                                        .withValues(alpha: 0.7))
+                                                    ? theme.colorScheme.primary
+                                                    : theme.colorScheme.primary
+                                                          .withValues(
+                                                            alpha: 0.7,
+                                                          ))
                                               : (isOngoing
-                                                  ? theme.colorScheme.primary
-                                                        .withValues(alpha: 0.85)
-                                                  : theme.colorScheme.primary
-                                                        .withValues(alpha: 0.65)),
+                                                    ? theme.colorScheme.primary
+                                                          .withValues(
+                                                            alpha: 0.85,
+                                                          )
+                                                    : theme.colorScheme.primary
+                                                          .withValues(
+                                                            alpha: 0.65,
+                                                          )),
                                           borderRadius: BorderRadius.circular(
                                             12,
                                           ),

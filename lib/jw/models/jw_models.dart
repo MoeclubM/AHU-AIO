@@ -466,14 +466,14 @@ class JwSemesterInfo {
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'code': code,
-        'schoolYear': schoolYear,
-        'nameZh': nameZh,
-        'startDate': startDate,
-        'endDate': endDate,
-        'season': season,
-      };
+    'id': id,
+    'code': code,
+    'schoolYear': schoolYear,
+    'nameZh': nameZh,
+    'startDate': startDate,
+    'endDate': endDate,
+    'season': season,
+  };
 
   @override
   bool operator ==(Object other) =>
@@ -522,13 +522,15 @@ class JwCourseActivity {
   });
 
   factory JwCourseActivity.fromJson(Map<String, dynamic> json) {
-    final weeks = (json['weekIndexes'] as List?)
+    final weeks =
+        (json['weekIndexes'] as List?)
             ?.map((e) => int.tryParse('$e') ?? 0)
             .where((w) => w > 0)
             .toList() ??
         [];
 
-    final tList = ((json['teacherNames'] ?? json['teachers']) as List?)
+    final tList =
+        ((json['teacherNames'] ?? json['teachers']) as List?)
             ?.map((e) => e.toString().trim())
             .where((t) => t.isNotEmpty)
             .toList() ??
@@ -567,20 +569,20 @@ class JwCourseActivity {
   }
 
   Map<String, dynamic> toJson() => {
-        'lessonId': lessonId,
-        'courseName': courseName,
-        'courseCode': courseCode,
-        'room': room,
-        'building': building,
-        'campus': campus,
-        'weekday': weekday,
-        'startUnit': startUnit,
-        'endUnit': endUnit,
-        'weekIndexes': weekIndexes,
-        'teachers': teachers,
-        'credits': credits,
-        'courseTypeName': courseTypeName,
-      };
+    'lessonId': lessonId,
+    'courseName': courseName,
+    'courseCode': courseCode,
+    'room': room,
+    'building': building,
+    'campus': campus,
+    'weekday': weekday,
+    'startUnit': startUnit,
+    'endUnit': endUnit,
+    'weekIndexes': weekIndexes,
+    'teachers': teachers,
+    'credits': credits,
+    'courseTypeName': courseTypeName,
+  };
 
   bool hasWeek(int week) => weekIndexes.contains(week);
 }
@@ -695,17 +697,17 @@ class JwScheduleData {
   }
 
   Map<String, dynamic> toJson() => {
-        'studentTableVms': [
-          {
-            'id': studentId,
-            'name': studentName,
-            'code': studentCode,
-            'adminclass': adminclass,
-            'major': major,
-            'activities': activities.map((a) => a.toJson()).toList(),
-          }
-        ],
-      };
+    'studentTableVms': [
+      {
+        'id': studentId,
+        'name': studentName,
+        'code': studentCode,
+        'adminclass': adminclass,
+        'major': major,
+        'activities': activities.map((a) => a.toJson()).toList(),
+      },
+    ],
+  };
 
   /// 过滤指定教学周，并排布生成周一至周日（1~7）的排课列表。
   Map<int, List<JwScheduleEntry>> buildWeekSchedule(int week) {
@@ -730,11 +732,17 @@ class JwScheduleData {
           final existing = entries[overlapIdx];
           entries[overlapIdx] = JwScheduleEntry(
             weekday: weekday,
-            startUnit: existing.startUnit < act.startUnit ? existing.startUnit : act.startUnit,
-            endUnit: existing.endUnit > act.endUnit ? existing.endUnit : act.endUnit,
+            startUnit: existing.startUnit < act.startUnit
+                ? existing.startUnit
+                : act.startUnit,
+            endUnit: existing.endUnit > act.endUnit
+                ? existing.endUnit
+                : act.endUnit,
             courseName: '${existing.courseName} / ${act.courseName}',
             teacherName: '${existing.teacherName} / ${act.teachers.join(",")}',
-            roomName: existing.roomName == act.room ? existing.roomName : '${existing.roomName} / ${act.room}',
+            roomName: existing.roomName == act.room
+                ? existing.roomName
+                : '${existing.roomName} / ${act.room}',
             activities: [...existing.activities, act],
           );
         } else {

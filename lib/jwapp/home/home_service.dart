@@ -226,10 +226,7 @@ class HomePageLogic extends ChangeNotifier {
   }
 
   /// 检查课程是否正在进行（当前时间处于开课与结课之间）
-  bool isCourseOngoing(
-    Map<String, dynamic> course,
-    String targetDate,
-  ) {
+  bool isCourseOngoing(Map<String, dynamic> course, String targetDate) {
     final range = _resolveCourseTimeRange(course, targetDate);
     if (range == null) return false;
     final now = DateTime.now();

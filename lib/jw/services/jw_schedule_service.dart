@@ -121,8 +121,9 @@ class JwScheduleService extends ChangeNotifier {
       }
 
       if (selectedSemester != null) {
-        final cachedData =
-            prefs.getString('jw_sys_schedule_cache_${selectedSemester!.id}');
+        final cachedData = prefs.getString(
+          'jw_sys_schedule_cache_${selectedSemester!.id}',
+        );
         if (cachedData != null) {
           scheduleData = JwScheduleData.fromJson(jsonDecode(cachedData));
           isCached = true;
