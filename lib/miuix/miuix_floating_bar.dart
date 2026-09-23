@@ -40,14 +40,14 @@ class MiuixFloatingBarDefaults {
   /// 二级底栏左右外边距（稍作内收，更精致）。
   static const double subHorizontalMargin = 32;
 
-  /// 主底栏图标尺寸（参考库 `LiquidBottomTab` 内容 28dp）。
-  static const double iconSize = 28;
+  /// 主底栏图标尺寸（官方 `LiquidGlassNavigationBar` 22dp）。
+  static const double iconSize = 22;
 
   /// 二级底栏图标尺寸。
   static const double subIconSize = 17;
 
-  /// 主底栏标签字号（参考库 12sp）。
-  static const double labelFontSize = 12;
+  /// 主底栏标签字号（官方 11sp）。
+  static const double labelFontSize = 11;
 
   /// 二级底栏标签字号。
   static const double subLabelFontSize = 10;
@@ -58,9 +58,8 @@ class MiuixFloatingBarDefaults {
   /// 玻璃填充不透明度（官方 `surfaceContainer @ 0.4`）。
   static const double fillAlpha = 0.4;
 
-  /// 边缘高光基础不透明度（参考库 `Highlight.Default` = 白 50%，
-  /// 实际强度再乘以按压力度）。
-  static const double highlightAlpha = 0.5;
+  /// 边缘高光基础不透明度（官方栏体 `baseHighlight.alpha = 0.75`）。
+  static const double highlightAlpha = 0.75;
 
   /// 底栏背景模糊半径（参考库 `blur(8.dp)`）。
   static const double blurRadius = 8;
@@ -1080,7 +1079,7 @@ class _GlassBarSurface extends StatelessWidget {
             radius: height / 2,
             isDark: isDark,
             enabled: true,
-            highlightAlpha: MiuixFloatingBarDefaults.highlightAlpha * 1.5,
+            highlightAlpha: MiuixFloatingBarDefaults.highlightAlpha,
           ),
         ),
         child: content,

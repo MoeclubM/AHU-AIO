@@ -8,7 +8,10 @@ library;
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show defaultTargetPlatform;
+import 'package:flutter/gestures.dart' show kTouchSlop;
 import 'package:flutter/material.dart';
+import 'package:flutter/physics.dart' show SpringDescription, SpringSimulation;
+import 'package:flutter/services.dart' show HapticFeedback;
 
 import 'miuix_tokens.dart';
 
@@ -21,15 +24,19 @@ export 'miuix_tokens.dart';
 
 /// Miuix 的 squircle 形状（连续圆角）。
 ///
-/// 用超椭圆 `|x/r|^n + |y/r|^n = 1`（n = 4）逼近 HyperOS 的连续圆角，
-/// 半径达到短边一半时退化为胶囊。对应 Compose 的 `squircleBackground`。
+/// 算法对齐 compose-miuix-ui `miuix-squircle` 的 `Path.addSquircleRect`：
+/// 三次贝塞尔连续曲率圆角，`control = 0.643`，角部区域 `extension = 1.1`
+/// （角部平铺边长 = `cornerRadius * 1.1`）。半径达到短边一半时退化为胶囊。
 class MiuixSquircleBorder extends OutlinedBorder {
   const MiuixSquircleBorder({this.cornerRadius = 16, super.side});
 
   final double cornerRadius;
 
-  /// 超椭圆指数：越大越接近直角矩形，4 是连续圆角的常用近似。
-  static const double _exponent = 4;
+  /// 三次贝塞尔控制柄比例，与上游 `SQUIRCLE_CONTROL` 一致。
+  static const double _control = 0.643;
+
+  /// 角部区域相对 [cornerRadius] 的倍数，与上游 `SquircleDefaults.Extension` 一致。
+  static const double extension = 1.1;
 
   @override
   EdgeInsetsGeometry get dimensions => EdgeInsets.all(side.width);
@@ -70,54 +77,62 @@ class MiuixSquircleBorder extends OutlinedBorder {
   static Path _buildPath(Rect rect, double radius) {
     final Path path = Path();
     if (rect.isEmpty) return path;
-    final double maxRadius = rect.shortestSide / 2;
-    final double r = radius.clamp(0.0, maxRadius);
-    if (r <= 0.01) {
+    final double width = rect.width;
+    final double height = rect.height;
+    final double halfMin = math.min(width, height) * 0.5;
+    final double tile = math
+        .max(0.0, radius * extension)
+        .clamp(0.0, halfMin);
+    if (tile <= 0.01) {
       path.addRect(rect);
       return path;
     }
-    // 半径为短边一半时与圆角矩形完全一致（胶囊）。
-    if (r >= maxRadius - 0.01) {
-      path.addRRect(RRect.fromRectAndRadius(rect, Radius.circular(maxRadius)));
+    // 角部区域覆盖到短边一半时是胶囊，用 RRect 保证端点完全圆。
+    if (tile >= halfMin - 0.01) {
+      path.addRRect(
+        RRect.fromRectAndRadius(rect, Radius.circular(halfMin)),
+      );
       return path;
     }
 
+    final double handle = tile * (1 - _control);
     final double left = rect.left;
     final double top = rect.top;
     final double right = rect.right;
     final double bottom = rect.bottom;
 
-    path.moveTo(left + r, top);
-    path.lineTo(right - r, top);
-    _addCorner(path, Offset(right - r, top + r), r, -math.pi / 2, 0);
-    path.lineTo(right, bottom - r);
-    _addCorner(path, Offset(right - r, bottom - r), r, 0, math.pi / 2);
-    path.lineTo(left + r, bottom);
-    _addCorner(path, Offset(left + r, bottom - r), r, math.pi / 2, math.pi);
-    path.lineTo(left, top + r);
-    _addCorner(path, Offset(left + r, top + r), r, math.pi, math.pi * 1.5);
+    path.moveTo(left + tile, top);
+    path.lineTo(right - tile, top);
+    path.cubicTo(
+      right - handle,
+      top,
+      right,
+      top + handle,
+      right,
+      top + tile,
+    );
+    path.lineTo(right, bottom - tile);
+    path.cubicTo(
+      right,
+      bottom - handle,
+      right - handle,
+      bottom,
+      right - tile,
+      bottom,
+    );
+    path.lineTo(left + tile, bottom);
+    path.cubicTo(
+      left + handle,
+      bottom,
+      left,
+      bottom - handle,
+      left,
+      bottom - tile,
+    );
+    path.lineTo(left, top + tile);
+    path.cubicTo(left, top + handle, left + handle, top, left + tile, top);
     path.close();
     return path;
-  }
-
-  /// 追加一段超椭圆圆角（角度区间 [start, end]，顺时针，y 轴向下）。
-  static void _addCorner(
-    Path path,
-    Offset center,
-    double radius,
-    double start,
-    double end,
-  ) {
-    const int steps = 10;
-    const double exp = 2 / _exponent;
-    for (int i = 0; i <= steps; i++) {
-      final double t = start + (end - start) * (i / steps);
-      final double cos = math.cos(t);
-      final double sin = math.sin(t);
-      final double x = center.dx + radius * cos.sign * math.pow(cos.abs(), exp);
-      final double y = center.dy + radius * sin.sign * math.pow(sin.abs(), exp);
-      path.lineTo(x, y);
-    }
   }
 }
 
@@ -357,7 +372,9 @@ class MiuixBasicComponent extends StatelessWidget {
 /// Miuix 开关。对应 Compose `Switch`。
 ///
 /// 轨道 49×28（胶囊）、滑块 20、关闭偏移 4 / 开启偏移 25。
-class MiuixSwitch extends StatelessWidget {
+/// 交互对齐 Kotlin 源：点按 / 水平拖拽切换、按压与拖拽时滑块放大 1.127、
+/// 位移与缩放用 `spring(0.7/0.6, 987)`，越过半程松手才提交，并带触感反馈。
+class MiuixSwitch extends StatefulWidget {
   const MiuixSwitch({
     super.key,
     required this.value,
@@ -371,54 +388,280 @@ class MiuixSwitch extends StatelessWidget {
   static const double thumbOffsetOff = 4;
   static const double thumbOffsetOn = 25;
 
+  /// 拖拽行程（与 Kotlin `coerceIn(0, 21)` 一致）。
+  static const double dragRange = thumbOffsetOn - thumbOffsetOff;
+
+  /// 按压 / 拖拽 / 悬停时的滑块放大倍数。
+  static const double thumbPressedScale = 1.127;
+
+  /// 滑块位移弹簧（官方 `spring(0.7, 987)`）。
+  static SpringDescription get thumbOffsetSpring =>
+      SpringDescription.withDampingRatio(mass: 1, stiffness: 987, ratio: 0.7);
+
+  /// 滑块缩放弹簧（官方 `spring(0.6, 987)`）。
+  static SpringDescription get thumbScaleSpring =>
+      SpringDescription.withDampingRatio(mass: 1, stiffness: 987, ratio: 0.6);
+
   final bool value;
   final ValueChanged<bool>? onChanged;
   final bool enabled;
 
   @override
+  State<MiuixSwitch> createState() => _MiuixSwitchState();
+}
+
+class _MiuixSwitchState extends State<MiuixSwitch>
+    with TickerProviderStateMixin {
+  late final AnimationController _offsetCtrl;
+  late final AnimationController _scaleCtrl;
+
+  /// 本次拖拽的原始位移（dp），仅拖拽中非零。
+  double _dragOffset = 0;
+
+  /// 进入拖拽前的累计位移，用于越过 [kTouchSlop]。
+  double _preDragDx = 0;
+  bool _dragging = false;
+  bool _pressed = false;
+  bool _hovered = false;
+  bool _hasVibrated = false;
+  bool _hasVibratedOnce = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _offsetCtrl = AnimationController.unbounded(
+      vsync: this,
+      value: widget.value
+          ? MiuixSwitch.thumbOffsetOn
+          : MiuixSwitch.thumbOffsetOff,
+    );
+    _scaleCtrl = AnimationController.unbounded(vsync: this, value: 1);
+  }
+
+  @override
+  void didUpdateWidget(MiuixSwitch oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.value != widget.value && !_dragging) {
+      _animateOffset(_targetOffset);
+    }
+  }
+
+  @override
+  void dispose() {
+    _offsetCtrl.dispose();
+    _scaleCtrl.dispose();
+    super.dispose();
+  }
+
+  double get _targetOffset {
+    final double base = widget.value
+        ? MiuixSwitch.thumbOffsetOn
+        : MiuixSwitch.thumbOffsetOff;
+    return (base + _dragOffset).clamp(
+      MiuixSwitch.thumbOffsetOff,
+      MiuixSwitch.thumbOffsetOn,
+    );
+  }
+
+  bool get _active => widget.enabled && widget.onChanged != null;
+
+  bool get _scaleUp =>
+      _active && (_pressed || _dragging || _hovered);
+
+  void _animateOffset(double target, {double velocity = 0}) {
+    _offsetCtrl.animateWith(
+      SpringSimulation(
+        MiuixSwitch.thumbOffsetSpring,
+        _offsetCtrl.value,
+        target,
+        velocity,
+      )..tolerance = const Tolerance(distance: 0.05),
+    );
+  }
+
+  void _animateScale(double target) {
+    _scaleCtrl.animateWith(
+      SpringSimulation(
+        MiuixSwitch.thumbScaleSpring,
+        _scaleCtrl.value,
+        target,
+        0,
+      )..tolerance = const Tolerance(distance: 0.001),
+    );
+  }
+
+  void _syncScale() {
+    _animateScale(_scaleUp ? MiuixSwitch.thumbPressedScale : 1);
+  }
+
+  void _commit(bool next) {
+    if (!_active || next == widget.value) return;
+    HapticFeedback.selectionClick();
+    widget.onChanged!(next);
+  }
+
+  void _onPointerDown(PointerDownEvent event) {
+    if (!_active) return;
+    _pressed = true;
+    _dragging = false;
+    _dragOffset = 0;
+    _preDragDx = 0;
+    _hasVibrated = true;
+    _hasVibratedOnce = false;
+    _syncScale();
+  }
+
+  void _onPointerMove(PointerMoveEvent event) {
+    if (!_active) return;
+    final double dx = event.localDelta.dx;
+    if (!_dragging) {
+      _preDragDx += dx;
+      if (_preDragDx.abs() <= kTouchSlop) return;
+      _dragging = true;
+      _hasVibrated = true;
+      _hasVibratedOnce = false;
+      _dragOffset = 0;
+      _syncScale();
+    }
+
+    final double raw = _dragOffset + dx;
+    _dragOffset = widget.value
+        ? raw.clamp(-MiuixSwitch.dragRange, 0.0)
+        : raw.clamp(0.0, MiuixSwitch.dragRange);
+
+    // 对应 Kotlin 的中途 / 到端触感阈值。
+    final double a = _dragOffset.abs();
+    if (a >= 10 && a <= 11) {
+      _hasVibratedOnce = false;
+    } else if (a >= 1 && a <= 20) {
+      _hasVibrated = false;
+    } else if (!_hasVibrated) {
+      final bool reached =
+          (widget.value && _dragOffset <= -MiuixSwitch.dragRange) ||
+          (!widget.value && _dragOffset >= MiuixSwitch.dragRange);
+      final bool returned =
+          (widget.value && _dragOffset >= 0) ||
+          (!widget.value && _dragOffset <= 0);
+      if (reached || returned) {
+        HapticFeedback.selectionClick();
+        _hasVibrated = true;
+        _hasVibratedOnce = true;
+      }
+    }
+
+    _offsetCtrl.value = _targetOffset;
+  }
+
+  void _onPointerUp(PointerUpEvent event) {
+    if (!_active) return;
+    final bool wasDrag = _dragging;
+    final double drag = _dragOffset;
+    _pressed = false;
+    _dragging = false;
+    _dragOffset = 0;
+    _preDragDx = 0;
+    _syncScale();
+
+    if (wasDrag) {
+      if (drag.abs() > MiuixSwitch.dragRange / 2) {
+        _commit(!widget.value);
+      } else {
+        _animateOffset(_targetOffset);
+      }
+      if (!_hasVibratedOnce && drag.abs() >= 1) {
+        HapticFeedback.selectionClick();
+      }
+      return;
+    }
+    _commit(!widget.value);
+  }
+
+  void _onPointerCancel(PointerCancelEvent event) {
+    _pressed = false;
+    _dragging = false;
+    _dragOffset = 0;
+    _preDragDx = 0;
+    _syncScale();
+    _animateOffset(_targetOffset);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final MiuixColors c = MiuixTheme.of(context).colors;
-    final bool on = value && enabled;
+    final bool on = widget.value && widget.enabled;
 
     final Color track = on
         ? c.primary
-        : (enabled ? c.secondary : c.disabledSecondary);
+        : (widget.enabled ? c.secondary : c.disabledSecondary);
     final Color thumb = on
         ? c.onPrimary
-        : (enabled ? c.onSecondary : c.disabledOnSecondary);
+        : (widget.enabled ? c.onSecondary : c.disabledOnSecondary);
 
     return Semantics(
-      toggled: value,
-      enabled: enabled,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: enabled && onChanged != null ? () => onChanged!(!value) : null,
-        child: SizedBox(
-          width: trackWidth,
-          height: trackHeight,
-          child: DecoratedBox(
-            decoration: ShapeDecoration(
-              color: track,
-              shape: const MiuixSquircleBorder(cornerRadius: trackHeight / 2),
-            ),
-            child: AnimatedAlign(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOutCubic,
-              alignment: on ? Alignment.centerRight : Alignment.centerLeft,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: thumbOffsetOff),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeOutCubic,
-                  width: thumbSize,
-                  height: thumbSize,
-                  decoration: ShapeDecoration(
-                    color: thumb,
-                    shape: const MiuixSquircleBorder(
-                      cornerRadius: thumbSize / 2,
-                    ),
-                  ),
+      toggled: widget.value,
+      enabled: widget.enabled,
+      child: MouseRegion(
+        onEnter: (_) {
+          if (!_active) return;
+          _hovered = true;
+          _syncScale();
+        },
+        onExit: (_) {
+          _hovered = false;
+          _syncScale();
+        },
+        child: Listener(
+          behavior: HitTestBehavior.opaque,
+          onPointerDown: _onPointerDown,
+          onPointerMove: _onPointerMove,
+          onPointerUp: _onPointerUp,
+          onPointerCancel: _onPointerCancel,
+          child: SizedBox(
+            width: MiuixSwitch.trackWidth,
+            height: MiuixSwitch.trackHeight,
+            child: DecoratedBox(
+              decoration: ShapeDecoration(
+                color: track,
+                shape: const MiuixSquircleBorder(
+                  cornerRadius: MiuixSwitch.trackHeight / 2,
                 ),
+              ),
+              child: AnimatedBuilder(
+                animation: Listenable.merge([_offsetCtrl, _scaleCtrl]),
+                builder: (context, _) {
+                  return Align(
+                    alignment: Alignment.centerLeft,
+                    child: Padding(
+                      padding: const EdgeInsets.only(
+                        left: MiuixSwitch.thumbOffsetOff,
+                        top:
+                            (MiuixSwitch.trackHeight - MiuixSwitch.thumbSize) /
+                            2,
+                      ),
+                      child: Transform.translate(
+                        offset: Offset(
+                          _offsetCtrl.value - MiuixSwitch.thumbOffsetOff,
+                          0,
+                        ),
+                        child: Transform.scale(
+                          scale: _scaleCtrl.value,
+                          child: DecoratedBox(
+                            decoration: ShapeDecoration(
+                              color: thumb,
+                              shape: const MiuixSquircleBorder(
+                                cornerRadius: MiuixSwitch.thumbSize / 2,
+                              ),
+                            ),
+                            child: const SizedBox(
+                              width: MiuixSwitch.thumbSize,
+                              height: MiuixSwitch.thumbSize,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ),

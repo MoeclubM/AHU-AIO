@@ -1,10 +1,9 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-
-import 'miuix_kit.dart';
 
 /// 计算玻璃区域（形状 + 取样外扩）左上角在**屏幕空间**中的位置，设备像素。
 ///
@@ -230,8 +229,10 @@ class _LiquidGlassLayerState extends State<LiquidGlassLayer> {
 
   @override
   Widget build(BuildContext context) {
-    final ShapeBorder shape = MiuixSquircleBorder(
-      cornerRadius: widget.cornerRadius,
+    // 折射 / 高光 shader 用的是圆角矩形 SDF，裁剪与描边必须同轮廓，
+    // 否则边缘弯折会和可见轮廓对不齐（参考库 shape 也是 CornerBasedShape）。
+    final ShapeBorder shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(widget.cornerRadius),
     );
 
     return LayoutBuilder(
@@ -528,11 +529,21 @@ void paintLiquidGlassHighlight(
   shader.getUniformVec4('u_color').set(color.r, color.g, color.b, color.a);
 
   final Rect rect = Offset.zero & size;
-  final ShapeBorder shape = MiuixSquircleBorder(cornerRadius: radius);
+  // 与折射 shader 的 sdRoundedRect 同轮廓。
+  final RRect outer = RRect.fromRectAndRadius(
+    rect,
+    Radius.circular(radius.clamp(0.0, size.shortestSide / 2)),
+  );
+  final RRect inner = RRect.fromRectAndRadius(
+    rect.deflate(width),
+    Radius.circular(
+      math.max(0.0, radius - width).clamp(0.0, size.shortestSide / 2),
+    ),
+  );
   final Path band = Path.combine(
     PathOperation.difference,
-    shape.getOuterPath(rect),
-    shape.getOuterPath(rect.deflate(width)),
+    Path()..addRRect(outer),
+    Path()..addRRect(inner),
   );
 
   canvas.drawPath(
