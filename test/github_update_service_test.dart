@@ -200,13 +200,16 @@ void main() {
       service.dispose();
     });
 
-    test('checkForUpdate returns null for local debug current version', () async {
-      final service = GitHubUpdateService(
-        currentVersionOverride: '1.0.9-debug.deadbee',
-      );
-      expect(await service.checkForUpdate(), isNull);
-      service.dispose();
-    });
+    test(
+      'checkForUpdate returns null for local debug current version',
+      () async {
+        final service = GitHubUpdateService(
+          currentVersionOverride: '1.0.9-debug.deadbee',
+        );
+        expect(await service.checkForUpdate(), isNull);
+        service.dispose();
+      },
+    );
 
     test('currentVersionString uses injected override', () async {
       final service = GitHubUpdateService(

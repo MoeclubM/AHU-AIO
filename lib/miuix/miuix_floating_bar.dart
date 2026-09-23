@@ -712,8 +712,7 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
                         press /
                         math.max(constraints.maxWidth, 1);
                 final double tabScale =
-                    1 +
-                    (MiuixFloatingBarDefaults.tabPressedScale - 1) * press;
+                    1 + (MiuixFloatingBarDefaults.tabPressedScale - 1) * press;
                 return Transform.scale(
                   scale: barScale,
                   child: _GlassBarSurface(

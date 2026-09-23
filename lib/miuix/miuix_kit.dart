@@ -80,18 +80,14 @@ class MiuixSquircleBorder extends OutlinedBorder {
     final double width = rect.width;
     final double height = rect.height;
     final double halfMin = math.min(width, height) * 0.5;
-    final double tile = math
-        .max(0.0, radius * extension)
-        .clamp(0.0, halfMin);
+    final double tile = math.max(0.0, radius * extension).clamp(0.0, halfMin);
     if (tile <= 0.01) {
       path.addRect(rect);
       return path;
     }
     // 角部区域覆盖到短边一半时是胶囊，用 RRect 保证端点完全圆。
     if (tile >= halfMin - 0.01) {
-      path.addRRect(
-        RRect.fromRectAndRadius(rect, Radius.circular(halfMin)),
-      );
+      path.addRRect(RRect.fromRectAndRadius(rect, Radius.circular(halfMin)));
       return path;
     }
 
@@ -103,14 +99,7 @@ class MiuixSquircleBorder extends OutlinedBorder {
 
     path.moveTo(left + tile, top);
     path.lineTo(right - tile, top);
-    path.cubicTo(
-      right - handle,
-      top,
-      right,
-      top + handle,
-      right,
-      top + tile,
-    );
+    path.cubicTo(right - handle, top, right, top + handle, right, top + tile);
     path.lineTo(right, bottom - tile);
     path.cubicTo(
       right,
@@ -465,8 +454,7 @@ class _MiuixSwitchState extends State<MiuixSwitch>
 
   bool get _active => widget.enabled && widget.onChanged != null;
 
-  bool get _scaleUp =>
-      _active && (_pressed || _dragging || _hovered);
+  bool get _scaleUp => _active && (_pressed || _dragging || _hovered);
 
   void _animateOffset(double target, {double velocity = 0}) {
     _offsetCtrl.animateWith(

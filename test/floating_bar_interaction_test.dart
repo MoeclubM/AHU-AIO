@@ -370,11 +370,7 @@ void main() {
     }
 
     final double pressedEdge = await glassLeftEdge();
-    expect(
-      pressedEdge,
-      lessThan(restEdge + 0.5),
-      reason: '按压时底栏应略胀大，左边缘不应右移',
-    );
+    expect(pressedEdge, lessThan(restEdge + 0.5), reason: '按压时底栏应略胀大，左边缘不应右移');
     // 允许缩进数像素（16dp / 栏宽 的比例缩放），但不能完全不动。
     expect(
       restEdge - pressedEdge,
