@@ -587,15 +587,27 @@ class _MiuixSwitchState extends State<MiuixSwitch>
 
   @override
   Widget build(BuildContext context) {
-    final MiuixColors c = MiuixTheme.of(context).colors;
-    final bool on = widget.value && widget.enabled;
+    final MiuixThemeData theme = MiuixTheme.of(context);
+    final MiuixColors c = theme.colors;
+    final bool on = widget.value;
 
+    // 配色对齐 Kotlin `SwitchDefaults.switchColors`：动态取色时关闭态滑块
+    // 为 onSurface@38%、禁用开启态滑块为 surface，与静态方案不同。
     final Color track = on
-        ? c.primary
+        ? (widget.enabled ? c.primary : c.disabledPrimary)
         : (widget.enabled ? c.secondary : c.disabledSecondary);
-    final Color thumb = on
-        ? c.onPrimary
-        : (widget.enabled ? c.onSecondary : c.disabledOnSecondary);
+    final Color thumb;
+    if (on) {
+      thumb = widget.enabled
+          ? c.onPrimary
+          : (theme.isDynamic ? c.surface : c.disabledOnPrimary);
+    } else {
+      thumb = widget.enabled
+          ? (theme.isDynamic
+                ? c.onSurface.withValues(alpha: 0.38)
+                : c.onSecondary)
+          : c.disabledOnSecondary;
+    }
 
     return Semantics(
       toggled: widget.value,

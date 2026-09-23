@@ -29,7 +29,7 @@ ThemeData miuixLightTheme({Color? keyColor}) {
   final c = keyColor != null
       ? miuixColorsFromSeed(seed: keyColor, dark: false)
       : lightColorScheme();
-  return _buildMiuixTheme(c, Brightness.light);
+  return _buildMiuixTheme(c, Brightness.light, isDynamic: keyColor != null);
 }
 
 /// 构建 Miuix 深色 ThemeData。
@@ -37,16 +37,20 @@ ThemeData miuixDarkTheme({Color? keyColor}) {
   final c = keyColor != null
       ? miuixColorsFromSeed(seed: keyColor, dark: true)
       : darkColorScheme();
-  return _buildMiuixTheme(c, Brightness.dark);
+  return _buildMiuixTheme(c, Brightness.dark, isDynamic: keyColor != null);
 }
 
 /// 构建 Miuix AMOLED 纯黑 ThemeData。
 ThemeData miuixAmoledTheme({Color? keyColor}) {
   final c = amoledColorScheme(keyColor: keyColor);
-  return _buildMiuixTheme(c, Brightness.dark);
+  return _buildMiuixTheme(c, Brightness.dark, isDynamic: keyColor != null);
 }
 
-ThemeData _buildMiuixTheme(MiuixColors c, Brightness brightness) {
+ThemeData _buildMiuixTheme(
+  MiuixColors c,
+  Brightness brightness, {
+  bool isDynamic = false,
+}) {
   final MiuixTextStyles ts = defaultTextStyles();
   return ThemeData(
     useMaterial3: true,
@@ -264,7 +268,7 @@ ThemeData _buildMiuixTheme(MiuixColors c, Brightness brightness) {
       }),
       checkColor: WidgetStatePropertyAll(c.onPrimary),
       side: BorderSide(color: c.outline, width: 1.5),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+      shape: const MiuixSquircleBorder(cornerRadius: 6),
     ),
   );
 }

@@ -182,9 +182,11 @@ class MiuixDangerButton extends StatelessWidget {
   }
 }
 
-/// Miuix 风格文本按钮：无底色，仅前景色与按压反馈。
+/// Miuix 风格文本按钮：对应 Compose `TextButton`。
 ///
-/// 支持 positional `text` 或 named `child`。
+/// 官方 `textButtonColors` 与默认按钮同为 `secondaryVariant` 底 +
+/// `onSecondaryVariant` 内容，只是内容收文字/图标。支持 positional
+/// `text` 或 named `child`。
 class MiuixTextButton extends StatelessWidget {
   const MiuixTextButton({
     super.key,
@@ -205,32 +207,15 @@ class MiuixTextButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final kit.MiuixThemeData theme = kit.MiuixTheme.of(context);
-    final bool active = enabled && onPressed != null;
-    final Color fg = active
-        ? theme.colors.primary
-        : theme.colors.disabledPrimary;
-
     final Widget label = child ?? Text(text ?? '');
 
     return MiuixButton(
       onPressed: onPressed,
       enabled: enabled,
       icon: icon,
-      colors: kit.MiuixButtonColors(
-        color: const Color(0x00000000),
-        disabledColor: const Color(0x00000000),
-        contentColor: fg,
-        disabledContentColor: fg,
-      ),
+      colors: kit.MiuixButtonDefaults.buttonColors(context),
       cornerRadius: borderRadius,
-      minWidth: 0,
-      minHeight: 36,
-      insideMargin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: DefaultTextStyle.merge(
-        style: TextStyle(color: fg),
-        child: label,
-      ),
+      child: label,
     );
   }
 }

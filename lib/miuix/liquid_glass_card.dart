@@ -84,6 +84,7 @@ class LiquidGlassCard extends StatelessWidget {
         highlightColor: Colors.white.withValues(alpha: 0.5),
         highlightWidth: 0.5,
         highlightAngle: 45,
+        // HyperOS 卡片边缘用 BloomStroke，不用 Kyant 的二维 rim light。
         fallbackHighlight: glassEnabled
             ? IgnorePointer(
                 child: BloomStrokeLayer(
