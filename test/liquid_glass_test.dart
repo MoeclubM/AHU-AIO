@@ -16,7 +16,6 @@ import 'package:ahu_aio/miuix/liquid_glass_layer.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  /// 像素读取辅助。
   Future<ui.Image> render(void Function(Canvas canvas) draw, Size size) async {
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
@@ -125,6 +124,60 @@ void main() {
       // 关键：不是 (0,0) 或局部坐标——那正是导致形状画到屏幕中央的错误。
       expect(origin.dx, isNot(closeTo(0, 0.01)));
       expect(origin, isNot(const Offset(0, 0)));
+    });
+
+    testWidgets('Transform.scale 下 pad 也跟着缩放，不得再全局减 pad', (
+      tester,
+    ) async {
+      const double dpr = 1.0;
+      const double pad = 24;
+      const double scale = 1.25;
+      // 布局盒 200×64，放在 (100, 200)，再整体放大 1.25（中心缩放）。
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(devicePixelRatio: dpr),
+          child: Directionality(
+            textDirection: TextDirection.ltr,
+            child: Stack(
+              children: [
+                Positioned(
+                  left: 100,
+                  top: 200,
+                  width: 200,
+                  height: 64,
+                  child: Transform.scale(
+                    scale: scale,
+                    child: const _OriginProbe(pad: pad),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final RenderBox box = tester.renderObject(
+        find.byType(_OriginProbe),
+      ) as RenderBox;
+      final Offset origin = liquidGlassRegionOrigin(box, pad: pad, dpr: dpr);
+
+      // 正确值：把 (-pad,-pad) 变换到屏幕。中心缩放时不能用
+      // localToGlobal(0) - pad（那是未缩放的 pad，会偏 24*(1.25-1)=6）。
+      final Offset expected = box.localToGlobal(const Offset(-pad, -pad)) * dpr;
+      expect(origin.dx, closeTo(expected.dx, 0.01));
+      expect(origin.dy, closeTo(expected.dy, 0.01));
+
+      // 与错误公式区分：全局减 pad 在 scale≠1 时会偏。
+      final Offset wrong =
+          (box.localToGlobal(Offset.zero) - const Offset(pad, pad)) * dpr;
+      expect(
+        (origin - wrong).distance,
+        greaterThan(0.5),
+        reason: 'scale≠1 时两种公式必须可区分，否则测不到错位回归',
+      );
+
+      final geo = liquidGlassRegionGeometry(box, pad: pad, dpr: dpr);
+      expect(geo.visualScale, closeTo(scale, 0.02));
     });
 
     testWidgets('非 Impeller 平台不做折射，退化为纯模糊', (tester) async {
@@ -275,4 +328,21 @@ void main() {
       }
     });
   });
+}
+
+/// 仅用于测量屏幕几何的空玻璃壳。
+class _OriginProbe extends StatelessWidget {
+  const _OriginProbe({required this.pad});
+
+  final double pad;
+
+  @override
+  Widget build(BuildContext context) {
+    return LiquidGlassLayer(
+      cornerRadius: 32,
+      padding: pad,
+      showHighlight: false,
+      child: const SizedBox.expand(),
+    );
+  }
 }
