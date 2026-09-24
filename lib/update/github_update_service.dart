@@ -94,6 +94,10 @@ class AppVersion implements Comparable<AppVersion> {
   final int? build;
   final String prerelease;
 
+  /// 纯主版本号（不含 prerelease 与 build）。
+  AppVersion get baseVersion =>
+      AppVersion(major: major, minor: minor, patch: patch);
+
   /// 非正式发布构建（CI beta / 本地 debug 等，版本号含 `-prerelease`）。
   ///
   /// CI beta 版本形如 `1.0.9-beta.5.abc1234`，代码可能比同号正式 Release 更新，
@@ -370,22 +374,28 @@ class GitHubUpdateService {
     );
   }
 
-  /// 检查是否有可用更新；无更新或当前为 beta 构建时返回 null。
+  /// 检查是否有可用更新；无可用更新时返回 null。
   ///
-  /// beta/debug 构建的代码通常新于同号正式 Release，禁止被 Release 包覆盖。
+  /// - 正式版：若远端 Release 版本严格更新（latest > current）则提示；
+  /// - Beta/Debug 构建：代码通常新于同号正式版（如 1.0.9-beta.5 对比 1.0.9），
+  ///   因此同号时不提示，仅当远端存在更高主版本的正式版（如 1.0.10 > 1.0.9）时才提示更新。
   Future<AppUpdateInfo?> checkForUpdate() async {
-    final current = await currentVersion();
-    if (current != null && current.isNonReleaseBuild) {
-      return null;
-    }
-
     final info = await fetchLatestRelease();
+    final current = await currentVersion();
     final latest = AppVersion.tryParse(info.version);
+
     if (current == null || latest == null) {
       // 版本解析失败时仍返回远端信息，由 UI 提示用户手动确认。
       return info;
     }
-    // 正式版：仅当 Release 严格更新时才提示。
+
+    if (current.isNonReleaseBuild) {
+      // 非正式构建：远端基础版本严格更高才提示
+      if (latest.baseVersion > current.baseVersion) return info;
+      return null;
+    }
+
+    // 正式版：按标准 SemVer 严格比较
     if (latest > current) return info;
     return null;
   }

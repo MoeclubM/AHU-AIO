@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart' as http_testing;
 import 'package:ahu_aio/update/github_update_service.dart';
 
 void main() {
@@ -189,21 +192,65 @@ void main() {
   });
 
   group('beta build skips release update', () {
-    test('checkForUpdate returns null for CI beta current version', () async {
+    test('checkForUpdate returns null for same base version release', () async {
+      final mockClient = http_testing.MockClient((req) async {
+        return http.Response(
+          jsonEncode({
+            'tag_name': 'v1.0.9',
+            'body': 'Release notes',
+            'assets': [],
+          }),
+          200,
+        );
+      });
       final service = GitHubUpdateService(
+        client: mockClient,
         currentVersionOverride: '1.0.9-beta.5.abc1234',
       );
-      // 不应发起网络请求；即便远端是同号/更低正式版也不提示。
+      // 远端为同号正式版 1.0.9，当前为 1.0.9-beta 时不提示更新
       final info = await service.checkForUpdate();
       expect(info, isNull);
       expect(await service.isNonReleaseBuild(), isTrue);
       service.dispose();
     });
 
+    test('checkForUpdate returns info for higher release version', () async {
+      final mockClient = http_testing.MockClient((req) async {
+        return http.Response(
+          jsonEncode({
+            'tag_name': 'v1.0.10',
+            'body': 'New features',
+            'assets': [],
+          }),
+          200,
+        );
+      });
+      final service = GitHubUpdateService(
+        client: mockClient,
+        currentVersionOverride: '1.0.9-beta.5.abc1234',
+      );
+      // 远端为更高正式版 1.0.10 时，提示更新
+      final info = await service.checkForUpdate();
+      expect(info, isNotNull);
+      expect(info!.version, '1.0.10');
+      service.dispose();
+    });
+
     test(
-      'checkForUpdate returns null for local debug current version',
+      'checkForUpdate returns null for local debug current version on same base',
       () async {
+        final mockClient = http_testing.MockClient((req) async {
+          return http.Response(
+            jsonEncode({
+              'tag_name': 'v1.0.9',
+              'body': 'Release notes',
+              'assets': [],
+            }),
+            200,
+          );
+        });
         final service = GitHubUpdateService(
+          client: mockClient,
           currentVersionOverride: '1.0.9-debug.deadbee',
         );
         expect(await service.checkForUpdate(), isNull);
