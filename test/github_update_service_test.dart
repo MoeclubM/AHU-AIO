@@ -25,6 +25,26 @@ void main() {
       expect(v!.prerelease, 'beta.1');
     });
 
+    test('parses CI beta version string', () {
+      // beta.yml: ${BASE_VERSION}-beta.${COMMITS_SINCE}.${SHORT_HASH}
+      final v = AppVersion.tryParse('1.0.9-beta.5.abc1234');
+      expect(v, isNotNull);
+      expect(v!.major, 1);
+      expect(v.minor, 0);
+      expect(v.patch, 9);
+      expect(v.prerelease, 'beta.5.abc1234');
+      expect(v.isNonReleaseBuild, isTrue);
+    });
+
+    test('stable is release build, debug is not', () {
+      expect(AppVersion.tryParse('1.0.9')!.isNonReleaseBuild, isFalse);
+      expect(AppVersion.tryParse('v1.0.10')!.isNonReleaseBuild, isFalse);
+      expect(
+        AppVersion.tryParse('1.0.9-debug.abc1234')!.isNonReleaseBuild,
+        isTrue,
+      );
+    });
+
     test('rejects garbage', () {
       expect(AppVersion.tryParse(''), isNull);
       expect(AppVersion.tryParse('abc'), isNull);
@@ -165,6 +185,38 @@ void main() {
       expect(info.matchedAsset?.name, 'AHU-AIO-Android-arm64-1.0.10-2.apk');
       expect(info.currentVersion, '1.0.9+10009');
       expect(info.hasDownload, isTrue);
+    });
+  });
+
+  group('beta build skips release update', () {
+    test('checkForUpdate returns null for CI beta current version', () async {
+      final service = GitHubUpdateService(
+        currentVersionOverride: '1.0.9-beta.5.abc1234',
+      );
+      // 不应发起网络请求；即便远端是同号/更低正式版也不提示。
+      final info = await service.checkForUpdate();
+      expect(info, isNull);
+      expect(await service.isNonReleaseBuild(), isTrue);
+      service.dispose();
+    });
+
+    test(
+      'checkForUpdate returns null for local debug current version',
+      () async {
+        final service = GitHubUpdateService(
+          currentVersionOverride: '1.0.9-debug.deadbee',
+        );
+        expect(await service.checkForUpdate(), isNull);
+        service.dispose();
+      },
+    );
+
+    test('currentVersionString uses injected override', () async {
+      final service = GitHubUpdateService(
+        currentVersionOverride: '1.0.9-beta.5.abc1234',
+      );
+      expect(await service.currentVersionString(), '1.0.9-beta.5.abc1234');
+      service.dispose();
     });
   });
 }

@@ -114,6 +114,8 @@ class MyApp extends StatelessWidget {
                 currentBrightness,
                 lightColors: miuixLightColors,
                 darkColors: miuixDarkColors,
+                // Miuix 模式始终走种子取色，组件默认色按动态取色分支。
+                isDynamic: themeManager.isMiuix,
               ),
               child: GetMaterialApp(
                 title: 'AHU AIO',

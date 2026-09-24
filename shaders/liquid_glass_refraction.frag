@@ -37,7 +37,7 @@ uniform float u_refraction_amount;
 // 0 = 关闭；>0 时位移同时具备指向中心的分量。
 uniform float u_depth_effect;
 
-// 0 = 关闭；>0 时开启通道色散。
+// 0 = 关闭；>0 时开启 7 抽样通道色散（对应 chromaticAberration）。
 uniform float u_dispersion;
 
 out vec4 frag_color;
@@ -116,15 +116,50 @@ void main() {
   // 取样坐标换算回屏幕空间（背景纹理坐标即屏幕设备像素）。
   vec2 screenCoord = coord + u_origin;
 
-  vec3 rgb;
+  vec4 rgba;
   if (u_dispersion > 0.0) {
-    // 简化色散：只有 R/B 沿色散方向错开（参考实现用 7 抽样，这里取等效观感）。
-    rgb.r = sampleContent(screenCoord + dispersionVec).r;
-    rgb.g = sampleContent(screenCoord).g;
-    rgb.b = sampleContent(screenCoord - dispersionVec).b;
+    // 与参考库 RoundedRectRefractionWithDispersionShaderString 一致的 7 抽样色散：
+    // 红→紫沿色散向量分布，各通道按光谱权重累加。
+    vec4 color = vec4(0.0);
+
+    vec4 red = sampleContent(screenCoord + dispersionVec);
+    color.r += red.r / 3.5;
+    color.a += red.a / 7.0;
+
+    vec4 orange = sampleContent(screenCoord + dispersionVec * (2.0 / 3.0));
+    color.r += orange.r / 3.5;
+    color.g += orange.g / 7.0;
+    color.a += orange.a / 7.0;
+
+    vec4 yellow = sampleContent(screenCoord + dispersionVec * (1.0 / 3.0));
+    color.r += yellow.r / 3.5;
+    color.g += yellow.g / 3.5;
+    color.a += yellow.a / 7.0;
+
+    vec4 green = sampleContent(screenCoord);
+    color.g += green.g / 3.5;
+    color.a += green.a / 7.0;
+
+    vec4 cyan = sampleContent(screenCoord - dispersionVec * (1.0 / 3.0));
+    color.g += cyan.g / 3.5;
+    color.b += cyan.b / 3.0;
+    color.a += cyan.a / 7.0;
+
+    vec4 blue = sampleContent(screenCoord - dispersionVec * (2.0 / 3.0));
+    color.b += blue.b / 3.0;
+    color.a += blue.a / 7.0;
+
+    vec4 purple = sampleContent(screenCoord - dispersionVec);
+    color.r += purple.r / 7.0;
+    color.b += purple.b / 3.0;
+    color.a += purple.a / 7.0;
+
+    rgba = color;
   } else {
-    rgb = sampleContent(screenCoord).rgb;
+    rgba = sampleContent(screenCoord);
   }
+
+  vec3 rgb = rgba.rgb;
 
   // vibrancy：模糊后的背景提饱和，系数与参考库 VibrantColorFilter 一致。
   float lum = dot(rgb, vec3(0.213, 0.715, 0.072));

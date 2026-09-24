@@ -40,14 +40,14 @@ class MiuixFloatingBarDefaults {
   /// 二级底栏左右外边距（稍作内收，更精致）。
   static const double subHorizontalMargin = 32;
 
-  /// 主底栏图标尺寸（参考库 `LiquidBottomTab` 内容 28dp）。
-  static const double iconSize = 28;
+  /// 主底栏图标尺寸（官方 `LiquidGlassNavigationBar` 22dp）。
+  static const double iconSize = 22;
 
   /// 二级底栏图标尺寸。
   static const double subIconSize = 17;
 
-  /// 主底栏标签字号（参考库 12sp）。
-  static const double labelFontSize = 12;
+  /// 主底栏标签字号（官方 11sp）。
+  static const double labelFontSize = 11;
 
   /// 二级底栏标签字号。
   static const double subLabelFontSize = 10;
@@ -58,23 +58,30 @@ class MiuixFloatingBarDefaults {
   /// 玻璃填充不透明度（官方 `surfaceContainer @ 0.4`）。
   static const double fillAlpha = 0.4;
 
-  /// 边缘高光基础不透明度（参考库 `Highlight.Default` = 白 50%，
-  /// 实际强度再乘以按压力度）。
-  static const double highlightAlpha = 0.5;
+  /// 边缘高光基础不透明度（官方栏体 `baseHighlight.alpha = 0.75`）。
+  static const double highlightAlpha = 0.75;
 
   /// 底栏背景模糊半径（参考库 `blur(8.dp)`）。
   static const double blurRadius = 8;
 
-  /// 高斯 sigma 与 Compose 模糊半径的换算系数。
-  static const double blurRadiusToSigma = 0.45;
-
   /// 背景模糊的高斯 sigma。
-  static const double blurSigma = blurRadius * blurRadiusToSigma;
+  ///
+  /// 参考库 `blur(8.dp)` 的 radius 直接作为 RenderEffect 的 sigma 传入，
+  /// Flutter 的 [ImageFilter.blur] 同样吃 sigma，因此 1:1 使用。
+  static const double blurSigma = blurRadius;
 
   /// 按压时胶囊的放大倍数（参考库 `pressedScale = 78f / 56f`）。
   ///
   /// 这是按压最抢眼的「液滴」效果：胶囊自身胀大，而底栏与其余条目保持不动。
   static const double pillPressedScale = 78 / 56;
+
+  /// 底栏本体在按压时的额外放大量（参考库 `layerBlock` 的 16dp 触达半径）。
+  ///
+  /// 整条栏按 `1 + 16dp / 栏宽` 同步胀大，与胶囊的 78/56 是两层缩放。
+  static const double barPressReach = 16;
+
+  /// 条目内容（图标/标签）在按压时的放大倍数（官方内层 `1 → 1.2`）。
+  static const double tabPressedScale = 1.2;
 
   /// 折射取样外扩距离（逻辑像素）。
   ///
@@ -697,99 +704,147 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
                 final double panelOffset = ltr
                     ? _rubberBandOffset(_panelCtrl.value, contentWidth)
                     : -_rubberBandOffset(_panelCtrl.value, contentWidth);
-                // 按压只让**选中胶囊**胀大（参考库的液滴效果），
-                // 底栏本身与其余条目都不缩放。
-                return _GlassBarSurface(
-                  height: widget.height,
-                  blurEnabled: blurEnabled,
-                  glassEnabled: glassEnabled,
-                  isDark: isDark,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    clipBehavior: Clip.none,
-                    children: [
-                      // 内容整体（含图标/标签）按橡皮筋偏移。
-                      Transform.translate(
-                        offset: Offset(panelOffset, 0),
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            // 选中胶囊指示器（坐标基于已内缩 4dp 的内容区，
-                            // RTL 下按内容宽度镜像）。
-                            Positioned(
-                              left: ltr
-                                  ? value * tabWidth
-                                  : contentWidth - (value + 1) * tabWidth,
-                              top: 0,
-                              width: tabWidth.clamp(0.0, double.infinity),
-                              height: pillHeight,
-                              child: Transform(
-                                alignment: Alignment.center,
-                                transform: Matrix4.identity()
-                                  ..scale(scaleX, scaleY),
-                                child: _PillIndicator(
-                                  color: mc.primary.withValues(
-                                    alpha: MiuixFloatingBarDefaults.pillAlpha,
-                                  ),
-                                  radius: pillHeight / 2,
-                                  press: press,
-                                  blurEnabled: blurEnabled,
-                                  glassEnabled: glassEnabled,
-                                  isDark: isDark,
-                                ),
-                              ),
-                            ),
-                            Row(
-                              children: [
-                                for (int i = 0; i < count; i++)
-                                  Expanded(
-                                    child: _MiuixFloatingBarItem(
-                                      data: widget.items[i],
-                                      selected: value.round() == i,
-                                      highlight: (1.0 - (value - i).abs())
-                                          .clamp(0.0, 1.0),
-                                      iconSize: widget.iconSize,
-                                      fontSize: widget.fontSize,
-                                      showLabel: widget.showLabels,
-                                      onTap: () => _select(i),
+                // 官方 layerBlock：底栏整体按 `1 + 16dp / 宽` 胀大；
+                // 胶囊另按 78/56 独立放大（液滴效果）。
+                final double barScale =
+                    1 +
+                    MiuixFloatingBarDefaults.barPressReach *
+                        press /
+                        math.max(constraints.maxWidth, 1);
+                final double tabScale =
+                    1 + (MiuixFloatingBarDefaults.tabPressedScale - 1) * press;
+                return Transform.scale(
+                  scale: barScale,
+                  child: _GlassBarSurface(
+                    height: widget.height,
+                    blurEnabled: blurEnabled,
+                    glassEnabled: glassEnabled,
+                    isDark: isDark,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      clipBehavior: Clip.none,
+                      children: [
+                        // 内容整体（含图标/标签）按橡皮筋偏移。
+                        Transform.translate(
+                          offset: Offset(panelOffset, 0),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              // 强调色条目层：画在胶囊之下，供 lens 折射取样
+                              // （对应官方 alpha=0 的 layerBackdrop 内层）。
+                              // 裁到胶囊区域，避免在栏体其他位置露出。
+                              if (glassEnabled && press > 0.01)
+                                Positioned(
+                                  left: ltr
+                                      ? value * tabWidth
+                                      : contentWidth - (value + 1) * tabWidth,
+                                  top: 0,
+                                  width: tabWidth.clamp(0.0, double.infinity),
+                                  height: pillHeight,
+                                  child: IgnorePointer(
+                                    child: ClipPath(
+                                      clipper: ShapeBorderClipper(
+                                        shape: MiuixSquircleBorder(
+                                          cornerRadius: pillHeight / 2,
+                                        ),
+                                      ),
+                                      child: Transform.scale(
+                                        scale: tabScale,
+                                        child: _AccentTabLayer(
+                                          items: widget.items,
+                                          tabWidth: tabWidth,
+                                          contentWidth: contentWidth,
+                                          value: value,
+                                          ltr: ltr,
+                                          iconSize: widget.iconSize,
+                                          fontSize: widget.fontSize,
+                                          showLabels: widget.showLabels,
+                                          color: mc.primary,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      // 按压高光：与选中胶囊轮廓吻合的圆弧胶囊形亮斑。
-                      if (blurEnabled && _highlightCtrl.value > 0.01)
-                        Positioned.fill(
-                          child: IgnorePointer(
-                            child: ClipPath(
-                              clipper: ShapeBorderClipper(
-                                shape: MiuixSquircleBorder(
-                                  cornerRadius: widget.height / 2,
+                                ),
+                              // 选中胶囊指示器（坐标基于已内缩 4dp 的内容区，
+                              // RTL 下按内容宽度镜像）。
+                              Positioned(
+                                left: ltr
+                                    ? value * tabWidth
+                                    : contentWidth - (value + 1) * tabWidth,
+                                top: 0,
+                                width: tabWidth.clamp(0.0, double.infinity),
+                                height: pillHeight,
+                                child: Transform(
+                                  alignment: Alignment.center,
+                                  transform: Matrix4.identity()
+                                    ..scale(scaleX, scaleY),
+                                  child: _PillIndicator(
+                                    color: mc.primary.withValues(
+                                      alpha: MiuixFloatingBarDefaults.pillAlpha,
+                                    ),
+                                    radius: pillHeight / 2,
+                                    press: press,
+                                    blurEnabled: blurEnabled,
+                                    glassEnabled: glassEnabled,
+                                    isDark: isDark,
+                                  ),
                                 ),
                               ),
-                              child: CustomPaint(
-                                painter: _InteractiveHighlightPainter(
-                                  // 光晕中心落在当前选中胶囊中心，跟随位移与橡皮筋偏移。
-                                  position: Offset(
-                                    (ltr
-                                            ? (value + 0.5) * tabWidth
-                                            : contentWidth -
-                                                  (value + 0.5) * tabWidth) +
-                                        panelOffset,
-                                    pillHeight / 2,
+                              Row(
+                                children: [
+                                  for (int i = 0; i < count; i++)
+                                    Expanded(
+                                      child: Transform.scale(
+                                        scale: tabScale,
+                                        child: _MiuixFloatingBarItem(
+                                          data: widget.items[i],
+                                          selected: value.round() == i,
+                                          highlight: (1.0 - (value - i).abs())
+                                              .clamp(0.0, 1.0),
+                                          iconSize: widget.iconSize,
+                                          fontSize: widget.fontSize,
+                                          showLabel: widget.showLabels,
+                                          onTap: () => _select(i),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        // 按压高光：与选中胶囊轮廓吻合的圆弧胶囊形亮斑。
+                        if (blurEnabled && _highlightCtrl.value > 0.01)
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              child: ClipPath(
+                                clipper: ShapeBorderClipper(
+                                  shape: MiuixSquircleBorder(
+                                    cornerRadius: widget.height / 2,
                                   ),
-                                  width: tabWidth * scaleX,
-                                  height: pillHeight * scaleY,
-                                  radius: (pillHeight / 2) * scaleY,
-                                  progress: _highlightCtrl.value,
+                                ),
+                                child: CustomPaint(
+                                  painter: _InteractiveHighlightPainter(
+                                    // 光晕中心落在当前选中胶囊中心，跟随位移与橡皮筋偏移。
+                                    position: Offset(
+                                      (ltr
+                                              ? (value + 0.5) * tabWidth
+                                              : contentWidth -
+                                                    (value + 0.5) * tabWidth) +
+                                          panelOffset,
+                                      pillHeight / 2,
+                                    ),
+                                    width: tabWidth * scaleX,
+                                    height: pillHeight * scaleY,
+                                    radius: (pillHeight / 2) * scaleY,
+                                    progress: _highlightCtrl.value,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
                 );
               },
@@ -807,6 +862,78 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
     if (fraction == 0) return 0;
     final double eased = Curves.easeOut.transform(fraction.abs());
     return MiuixFloatingBarDefaults.panelRubberBand * fraction.sign * eased;
+  }
+}
+
+/// 强调色条目层：供胶囊 lens 折射取样（官方 alpha=0 的 layerBackdrop 内层）。
+///
+/// 只画在胶囊裁剪区内，颜色固定为 primary，配合按压缩放形成「液滴放大」。
+class _AccentTabLayer extends StatelessWidget {
+  const _AccentTabLayer({
+    required this.items,
+    required this.tabWidth,
+    required this.contentWidth,
+    required this.value,
+    required this.ltr,
+    required this.iconSize,
+    required this.fontSize,
+    required this.showLabels,
+    required this.color,
+  });
+
+  final List<MiuixFloatingBarItemData> items;
+  final double tabWidth;
+  final double contentWidth;
+  final double value;
+  final bool ltr;
+  final double iconSize;
+  final double fontSize;
+  final bool showLabels;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final double offset = ltr ? -value * tabWidth : value * tabWidth;
+    final double rowWidth = tabWidth.clamp(0.0, double.infinity) * items.length;
+    // 整行比胶囊宽，必须允许布局溢出：外层 ClipPath 负责裁到胶囊，
+    // 这里用 OverflowBox 避免 RenderFlex overflow 断言。
+    return OverflowBox(
+      minWidth: 0,
+      maxWidth: rowWidth,
+      minHeight: 0,
+      maxHeight: double.infinity,
+      alignment: Alignment.centerLeft,
+      child: Transform.translate(
+        offset: Offset(offset, 0),
+        child: SizedBox(
+          width: rowWidth,
+          child: Row(
+            children: [
+              for (final MiuixFloatingBarItemData item in items)
+                SizedBox(
+                  width: tabWidth.clamp(0.0, double.infinity),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(item.activeIcon, color: color, size: iconSize),
+                      if (showLabels) ...[
+                        const SizedBox(height: 1),
+                        Text(
+                          item.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: fontSize, color: color),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -885,7 +1012,7 @@ class _PillIndicator extends StatelessWidget {
         : const SizedBox.shrink();
 
     // 液态玻璃：参考库在**按压时**才给胶囊加透镜
-    // （`lens(10dp * progress, 14dp * progress, chromaticAberration = true)`），
+    // （`lens(10dp * progress, 14dp * progress, depthEffect = true, chromaticAberration = 0.5)`），
     // 静止时只有面纱，所以这里用按压进度驱动折射参数。
     if (glassEnabled) {
       final Widget glass = LiquidGlassLayer(
@@ -893,6 +1020,7 @@ class _PillIndicator extends StatelessWidget {
         // 参考库的选中胶囊只做 lens，不额外模糊（模糊由底栏那层负责）。
         refractionHeight: 10 * press,
         refractionAmount: 14 * press,
+        depthEffect: press,
         dispersion: 0.5 * press,
         // 胶囊嵌在底栏内，可用取样外扩有限，取小一点避免越界。
         padding: 8,
@@ -901,6 +1029,7 @@ class _PillIndicator extends StatelessWidget {
         highlightColor: Colors.white.withValues(alpha: 0.5 * press),
         highlightWidth: 0.5,
         highlightAngle: 45,
+        // HyperOS 胶囊边缘用 BloomStroke（随按压亮起）。
         fallbackHighlight: pressing
             ? IgnorePointer(
                 child: BloomStrokeLayer(
@@ -1080,7 +1209,7 @@ class _GlassBarSurface extends StatelessWidget {
             radius: height / 2,
             isDark: isDark,
             enabled: true,
-            highlightAlpha: MiuixFloatingBarDefaults.highlightAlpha * 1.5,
+            highlightAlpha: MiuixFloatingBarDefaults.highlightAlpha,
           ),
         ),
         child: content,
@@ -1089,7 +1218,7 @@ class _GlassBarSurface extends StatelessWidget {
   }
 }
 
-/// 底栏模糊滤镜：官方 blur 半径 4dp，按 `radius * 0.45` 换算 sigma。
+/// 胶囊透镜层的局部模糊：官方 `blur(4.dp)`，radius 即 sigma。
 final ImageFilter _barBlurFilter = liquidGlassImageFilter(blurSigma: 4);
 
 /// 单个底栏项：图标 + 可选标签，选中态按指示器位置连续着色。

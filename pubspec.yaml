@@ -51,6 +51,7 @@ dependencies:
   path_provider: ^2.1.6
   material_color_utilities: ^0.13.0
   dynamic_color: ^1.9.0
+  package_info_plus: ^10.2.1
 
 dev_dependencies:
   flutter_test:

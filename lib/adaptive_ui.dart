@@ -76,7 +76,7 @@ class AdaptiveCard extends StatelessWidget {
     required this.child,
     this.padding,
     this.margin,
-    this.borderRadius = 20,
+    this.borderRadius = 16,
     this.color,
     this.onTap,
     this.elevation,

@@ -335,7 +335,7 @@ void main() {
     expect(bars, isNotEmpty, reason: '底栏应常开 lens(24dp, 24dp)，这是玻璃质感的主体');
     expect(bars.first.blurSigma, greaterThan(0), reason: '底栏背景应带模糊');
   });
-  testWidgets('按压时底栏本身不缩放，只有胶囊胀大', (tester) async {
+  testWidgets('按压时底栏整体微胀（官方 layerBlock 16dp 触达）', (tester) async {
     final probe = await pumpProbe(tester);
     final Rect barRect = tester.getRect(find.byType(MiuixFloatingTabBar));
 
@@ -357,7 +357,8 @@ void main() {
       reason: '静止时玻璃左边缘应落在左边距处',
     );
 
-    // 按住最后一个条目：胶囊在右侧胀大，不会影响左侧边缘。
+    // 按住条目：官方 layerBlock 让整条栏按 `1 + 16dp / 宽` 胀大，
+    // 左边缘会略向左移（比胶囊的 78/56 温和得多）。
     final gesture = await tester.startGesture(
       Offset(
         barRect.right - MiuixFloatingBarDefaults.horizontalMargin - 20,
@@ -368,10 +369,13 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
     }
 
+    final double pressedEdge = await glassLeftEdge();
+    expect(pressedEdge, lessThan(restEdge + 0.5), reason: '按压时底栏应略胀大，左边缘不应右移');
+    // 允许缩进数像素（16dp / 栏宽 的比例缩放），但不能完全不动。
     expect(
-      await glassLeftEdge(),
-      closeTo(restEdge, 2),
-      reason: '按压只让胶囊胀大（液滴效果），底栏整体不能缩放',
+      restEdge - pressedEdge,
+      greaterThan(0.2),
+      reason: '官方 layerBlock 底栏会随按压微胀（16dp 触达半径）',
     );
 
     await gesture.up();

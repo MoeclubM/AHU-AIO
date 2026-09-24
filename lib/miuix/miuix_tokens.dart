@@ -797,6 +797,7 @@ class MiuixThemeData {
     required this.textStyles,
     required this.brightness,
     this.fontWeightAdjustment = 0,
+    this.isDynamic = false,
   });
 
   final MiuixColors colors;
@@ -805,6 +806,11 @@ class MiuixThemeData {
 
   /// 全局字重偏移量（100 为一档），通常由系统「粗体文字」驱动。
   final int fontWeightAdjustment;
+
+  /// 是否为种子动态取色（对应 Kotlin `MiuixTheme.isDynamicColor`）。
+  ///
+  /// 动态取色时 Switch 关闭态滑块等组件有独立默认色，与静态方案不同。
+  final bool isDynamic;
 
   factory MiuixThemeData.light({
     MiuixColors? colors,
@@ -835,6 +841,7 @@ class MiuixThemeData {
     MiuixColors? darkColors,
     MiuixTextStyles? textStyles,
     int fontWeightAdjustment = 0,
+    bool isDynamic = false,
   }) {
     final bool isDark = brightness == Brightness.dark;
     return MiuixThemeData(
@@ -844,6 +851,7 @@ class MiuixThemeData {
       textStyles: textStyles ?? defaultTextStyles(),
       brightness: brightness,
       fontWeightAdjustment: fontWeightAdjustment,
+      isDynamic: isDynamic,
     );
   }
 
@@ -852,11 +860,13 @@ class MiuixThemeData {
     MiuixTextStyles? textStyles,
     Brightness? brightness,
     int? fontWeightAdjustment,
+    bool? isDynamic,
   }) => MiuixThemeData(
     colors: colors ?? this.colors,
     textStyles: textStyles ?? this.textStyles,
     brightness: brightness ?? this.brightness,
     fontWeightAdjustment: fontWeightAdjustment ?? this.fontWeightAdjustment,
+    isDynamic: isDynamic ?? this.isDynamic,
   );
 
   @override
@@ -866,11 +876,17 @@ class MiuixThemeData {
           other.colors == colors &&
           other.textStyles == textStyles &&
           other.brightness == brightness &&
-          other.fontWeightAdjustment == fontWeightAdjustment);
+          other.fontWeightAdjustment == fontWeightAdjustment &&
+          other.isDynamic == isDynamic);
 
   @override
-  int get hashCode =>
-      Object.hash(colors, textStyles, brightness, fontWeightAdjustment);
+  int get hashCode => Object.hash(
+    colors,
+    textStyles,
+    brightness,
+    fontWeightAdjustment,
+    isDynamic,
+  );
 }
 
 /// 向子树提供 [MiuixThemeData]。对应 Kotlin 的 `MiuixTheme { ... }`。

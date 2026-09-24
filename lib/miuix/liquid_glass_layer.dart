@@ -1,10 +1,9 @@
+import 'dart:math' as math;
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-
-import 'miuix_kit.dart';
 
 /// 计算玻璃区域（形状 + 取样外扩）左上角在**屏幕空间**中的位置，设备像素。
 ///
@@ -105,8 +104,10 @@ class LiquidGlassLayer extends StatefulWidget {
 
   final bool showHighlight;
 
-  /// 非 Impeller 平台使用的高光实现（如 BloomStroke 光晕）；
-  /// 为 null 时不画高光。
+  /// 自定义边缘高光（如 miuix-blur 的 BloomStroke）。
+  ///
+  /// 非 null 时优先于内置 SDF 高光——HyperOS 玻璃用的是 BloomStroke
+  /// 立体边缘，不是 Kyant 的二维 rim light。为 null 时才回退到 SDF 高光。
   final Widget? fallbackHighlight;
 
   /// 当前后端是否支持真折射（Impeller）。
@@ -230,8 +231,10 @@ class _LiquidGlassLayerState extends State<LiquidGlassLayer> {
 
   @override
   Widget build(BuildContext context) {
-    final ShapeBorder shape = MiuixSquircleBorder(
-      cornerRadius: widget.cornerRadius,
+    // 折射 / 高光 shader 用的是圆角矩形 SDF，裁剪与描边必须同轮廓，
+    // 否则边缘弯折会和可见轮廓对不齐（参考库 shape 也是 CornerBasedShape）。
+    final ShapeBorder shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(widget.cornerRadius),
     );
 
     return LayoutBuilder(
@@ -287,12 +290,12 @@ class _LiquidGlassLayerState extends State<LiquidGlassLayer> {
               )
             : const SizedBox.shrink();
 
-        // 真折射可用时用 SDF 边缘高光，否则退回调用方给的光晕实现。
-        final Widget effectiveHighlight = widget.showHighlight
-            ? (_usesRefraction
-                  ? highlight
-                  : (widget.fallbackHighlight ?? highlight))
-            : const SizedBox.shrink();
+        // 调用方给了自定义高光（如 miuix-blur 的 BloomStroke）就优先用它——
+        // 那才是 HyperOS 的玻璃边缘样式；SDF 高光是 Kyant 的简化 rim light，
+        // 只在未提供自定义高光时使用。
+        final Widget effectiveHighlight = !widget.showHighlight
+            ? const SizedBox.shrink()
+            : (widget.fallbackHighlight ?? highlight);
 
         final Widget inner = Stack(
           fit: StackFit.expand,
@@ -528,11 +531,21 @@ void paintLiquidGlassHighlight(
   shader.getUniformVec4('u_color').set(color.r, color.g, color.b, color.a);
 
   final Rect rect = Offset.zero & size;
-  final ShapeBorder shape = MiuixSquircleBorder(cornerRadius: radius);
+  // 与折射 shader 的 sdRoundedRect 同轮廓。
+  final RRect outer = RRect.fromRectAndRadius(
+    rect,
+    Radius.circular(radius.clamp(0.0, size.shortestSide / 2)),
+  );
+  final RRect inner = RRect.fromRectAndRadius(
+    rect.deflate(width),
+    Radius.circular(
+      math.max(0.0, radius - width).clamp(0.0, size.shortestSide / 2),
+    ),
+  );
   final Path band = Path.combine(
     PathOperation.difference,
-    shape.getOuterPath(rect),
-    shape.getOuterPath(rect.deflate(width)),
+    Path()..addRRect(outer),
+    Path()..addRRect(inner),
   );
 
   canvas.drawPath(

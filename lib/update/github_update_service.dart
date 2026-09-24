@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app_version.dart';
@@ -92,6 +93,12 @@ class AppVersion implements Comparable<AppVersion> {
   final int patch;
   final int? build;
   final String prerelease;
+
+  /// 非正式发布构建（CI beta / 本地 debug 等，版本号含 `-prerelease`）。
+  ///
+  /// CI beta 版本形如 `1.0.9-beta.5.abc1234`，代码可能比同号正式 Release 更新，
+  /// 不应用 GitHub Release 覆盖安装。
+  bool get isNonReleaseBuild => prerelease.isNotEmpty;
 
   /// 解析 `1.2.3` / `v1.2.3` / `1.2.3+45` / `1.2.3-beta.1` 等。
   static AppVersion? tryParse(String? raw) {
@@ -251,17 +258,40 @@ String _normalizedArch() {
 
 /// 从 GitHub 拉取并解析最新 Release。网络/解析失败抛 [UpdateException]。
 class GitHubUpdateService {
-  GitHubUpdateService({http.Client? client})
+  GitHubUpdateService({http.Client? client, this.currentVersionOverride})
     : _client = client ?? http.Client();
 
   final http.Client _client;
 
-  /// 当前应用版本（含构建号），如 `1.0.9+10009`。
-  Future<String> currentVersionString() async => kAppVersionDisplay;
+  /// 单元测试注入的版本号；为空时读运行时/源码声明版本。
+  final String? currentVersionOverride;
+
+  /// 当前应用版本（含构建号或 beta 后缀），如 `1.0.9+10009` / `1.0.9-beta.5.abc`。
+  Future<String> currentVersionString() async {
+    final override = currentVersionOverride;
+    if (override != null && override.isNotEmpty) return override;
+    try {
+      final info = await PackageInfo.fromPlatform();
+      final v = info.version.trim();
+      final b = info.buildNumber.trim();
+      if (v.isNotEmpty) {
+        return b.isEmpty ? v : '$v+$b';
+      }
+    } catch (_) {
+      // 插件不可用时回退到源码声明版本。
+    }
+    return kAppVersionDisplay;
+  }
 
   /// 解析后的当前版本。
   Future<AppVersion?> currentVersion() async {
     return AppVersion.tryParse(await currentVersionString());
+  }
+
+  /// 当前是否为 beta/debug 等非正式发布构建。
+  Future<bool> isNonReleaseBuild() async {
+    final v = await currentVersion();
+    return v?.isNonReleaseBuild ?? false;
   }
 
   /// 拉取最新 Release 并组装 [AppUpdateInfo]。
@@ -340,15 +370,22 @@ class GitHubUpdateService {
     );
   }
 
-  /// 检查是否有可用更新；无更新返回 null。
+  /// 检查是否有可用更新；无更新或当前为 beta 构建时返回 null。
+  ///
+  /// beta/debug 构建的代码通常新于同号正式 Release，禁止被 Release 包覆盖。
   Future<AppUpdateInfo?> checkForUpdate() async {
-    final info = await fetchLatestRelease();
     final current = await currentVersion();
+    if (current != null && current.isNonReleaseBuild) {
+      return null;
+    }
+
+    final info = await fetchLatestRelease();
     final latest = AppVersion.tryParse(info.version);
     if (current == null || latest == null) {
       // 版本解析失败时仍返回远端信息，由 UI 提示用户手动确认。
       return info;
     }
+    // 正式版：仅当 Release 严格更新时才提示。
     if (latest > current) return info;
     return null;
   }
