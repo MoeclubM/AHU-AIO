@@ -273,35 +273,211 @@ ThemeData _buildMiuixTheme(
   );
 }
 
-/// Material 3 浅色主题：完全使用框架默认值，仅固定种子色、调色板风格与居中标题。
-/// Material 3 浅色主题：**完全交给框架默认值**。
+/// Material 3 形状刻度（官方 corner radius tokens，单位 dp）。
+abstract final class M3ShapeScale {
+  static const double extraSmall = 4;
+  static const double small = 8;
+  static const double medium = 12;
+  static const double large = 16;
+  static const double extraLarge = 28;
+
+  /// 按钮族胶囊圆角（完整半圆）。
+  static const double full = 100;
+}
+
+/// Material 3 字阶（Type Scale，官方 text appearance tokens）。
 ///
-/// 只固定种子色与调色板推导算法；顶栏标题对齐、高度、转场等一律不覆盖，
-/// 由 Flutter 按平台与 M3 规范决定（Android 上标题左对齐、工具栏高 64）。
-ThemeData material3LightTheme({
-  Color? keyColor,
-  DynamicSchemeVariant variant = DynamicSchemeVariant.tonalSpot,
-}) {
-  return ThemeData(
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: keyColor ?? const Color(0xFF3482FF),
-      brightness: Brightness.light,
-      dynamicSchemeVariant: variant,
+/// Flutter 的 [TextTheme] 字段与 M3 角色一一对应；这里固定字号/字重/行高，
+/// 避免各版本 ThemeData 默认值漂移。
+TextTheme m3TextTheme(Brightness brightness, ColorScheme scheme) {
+  // brightness 保留签名一致性；颜色一律从 scheme 取，避免暗色下写死。
+  Color ink() => scheme.onSurface;
+  Color muted() => scheme.onSurfaceVariant;
+
+  return TextTheme(
+    displayLarge: TextStyle(
+      fontSize: 57,
+      height: 64 / 57,
+      fontWeight: FontWeight.w400,
+      color: ink(),
+    ),
+    displayMedium: TextStyle(
+      fontSize: 45,
+      height: 52 / 45,
+      fontWeight: FontWeight.w400,
+      color: ink(),
+    ),
+    displaySmall: TextStyle(
+      fontSize: 36,
+      height: 44 / 36,
+      fontWeight: FontWeight.w400,
+      color: ink(),
+    ),
+    headlineLarge: TextStyle(
+      fontSize: 32,
+      height: 40 / 32,
+      fontWeight: FontWeight.w400,
+      color: ink(),
+    ),
+    headlineMedium: TextStyle(
+      fontSize: 28,
+      height: 36 / 28,
+      fontWeight: FontWeight.w400,
+      color: ink(),
+    ),
+    headlineSmall: TextStyle(
+      fontSize: 24,
+      height: 32 / 24,
+      fontWeight: FontWeight.w400,
+      color: ink(),
+    ),
+    titleLarge: TextStyle(
+      fontSize: 22,
+      height: 28 / 22,
+      fontWeight: FontWeight.w400,
+      color: ink(),
+    ),
+    titleMedium: TextStyle(
+      fontSize: 16,
+      height: 24 / 16,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.15,
+      color: ink(),
+    ),
+    titleSmall: TextStyle(
+      fontSize: 14,
+      height: 20 / 14,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.1,
+      color: ink(),
+    ),
+    bodyLarge: TextStyle(
+      fontSize: 16,
+      height: 24 / 16,
+      fontWeight: FontWeight.w400,
+      letterSpacing: 0.5,
+      color: ink(),
+    ),
+    bodyMedium: TextStyle(
+      fontSize: 14,
+      height: 20 / 14,
+      fontWeight: FontWeight.w400,
+      letterSpacing: 0.25,
+      color: ink(),
+    ),
+    bodySmall: TextStyle(
+      fontSize: 12,
+      height: 16 / 12,
+      fontWeight: FontWeight.w400,
+      letterSpacing: 0.4,
+      color: muted(),
+    ),
+    labelLarge: TextStyle(
+      fontSize: 14,
+      height: 20 / 14,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.1,
+      color: ink(),
+    ),
+    labelMedium: TextStyle(
+      fontSize: 12,
+      height: 16 / 12,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.5,
+      color: muted(),
+    ),
+    labelSmall: TextStyle(
+      fontSize: 11,
+      height: 16 / 11,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.5,
+      color: muted(),
     ),
   );
 }
 
-/// Material 3 深色主题：同浅色，只用框架默认值。
+/// Material 3 主题基座：种子取色 + 显式字阶/形状刻度。
+ThemeData _material3Base({
+  required Color seed,
+  required Brightness brightness,
+  DynamicSchemeVariant variant = DynamicSchemeVariant.tonalSpot,
+}) {
+  final ColorScheme scheme = ColorScheme.fromSeed(
+    seedColor: seed,
+    brightness: brightness,
+    dynamicSchemeVariant: variant,
+  );
+  return ThemeData(
+    useMaterial3: true,
+    colorScheme: scheme,
+    textTheme: m3TextTheme(brightness, scheme),
+    // 形状刻度对齐 M3：卡片 large(16)、按钮 medium(12)/large(16)、
+    // 对话框 extraLarge(28)、输入框 extraSmall(4) 由组件默认承担。
+    cardTheme: CardThemeData(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(M3ShapeScale.large),
+      ),
+      elevation: 1,
+    ),
+    dialogTheme: DialogThemeData(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(M3ShapeScale.extraLarge),
+      ),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(M3ShapeScale.full),
+        ),
+      ),
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(M3ShapeScale.full),
+        ),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(M3ShapeScale.full),
+        ),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(M3ShapeScale.full),
+        ),
+      ),
+    ),
+    // M3 状态层：按压/悬停用 primary 的 8%/10%（框架 overlay 默认已接近）。
+    splashFactory: InkSparkle.splashFactory,
+  );
+}
+
+/// Material 3 浅色主题：种子取色 + 显式 M3 字阶/形状刻度。
+ThemeData material3LightTheme({
+  Color? keyColor,
+  DynamicSchemeVariant variant = DynamicSchemeVariant.tonalSpot,
+}) {
+  return _material3Base(
+    seed: keyColor ?? const Color(0xFF3482FF),
+    brightness: Brightness.light,
+    variant: variant,
+  );
+}
+
+/// Material 3 深色主题：同浅色。
 ThemeData material3DarkTheme({
   Color? keyColor,
   DynamicSchemeVariant variant = DynamicSchemeVariant.tonalSpot,
 }) {
-  return ThemeData(
-    colorScheme: ColorScheme.fromSeed(
-      seedColor: keyColor ?? const Color(0xFF277AF7),
-      brightness: Brightness.dark,
-      dynamicSchemeVariant: variant,
-    ),
+  return _material3Base(
+    seed: keyColor ?? const Color(0xFF277AF7),
+    brightness: Brightness.dark,
+    variant: variant,
   );
 }
 

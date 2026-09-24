@@ -15,8 +15,8 @@ import 'miuix_theme.dart';
 ///
 /// [title] 收 [Widget] 而不是 `String`，这样调用处可以直接写
 /// `title: const Text('设置')`，两种模式各自套用自己的文字规格。
-class LiquidGlassAppBar extends StatelessWidget implements PreferredSizeWidget {
-  const LiquidGlassAppBar({
+class AdaptiveTopAppBar extends StatelessWidget implements PreferredSizeWidget {
+  const AdaptiveTopAppBar({
     super.key,
     required this.title,
     this.leading,

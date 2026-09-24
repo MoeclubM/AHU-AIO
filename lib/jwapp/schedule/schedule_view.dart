@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../adaptive_ui.dart';
 import '../../adaptive_dropdown.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../../miuix/adaptive_top_app_bar.dart';
 import '../api/getallsemesters.dart';
 import '../utils/time_utils.dart';
 import 'schedule_logic.dart';
@@ -112,7 +112,7 @@ class _SchedulePageState extends State<SchedulePage>
     return Scaffold(
       // Miuix 用自研 SmallTopAppBar 规格（实色 surface + 居中标题）；
       // MD3 完全走框架 AppBar 默认值。
-      appBar: widget.embed ? null : const LiquidGlassAppBar(title: Text('课程表')),
+      appBar: widget.embed ? null : const AdaptiveTopAppBar(title: Text('课程表')),
       body: Obx(() {
         final isLoading = _logic.isLoading.value;
         final errorText = _logic.errorMessage.value;

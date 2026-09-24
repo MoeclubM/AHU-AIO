@@ -748,19 +748,16 @@ class _MiuixFloatingTabBarState extends State<MiuixFloatingTabBar>
                                           cornerRadius: pillHeight / 2,
                                         ),
                                       ),
-                                      child: Transform.scale(
-                                        scale: tabScale,
-                                        child: _AccentTabLayer(
-                                          items: widget.items,
-                                          tabWidth: tabWidth,
-                                          contentWidth: contentWidth,
-                                          value: value,
-                                          ltr: ltr,
-                                          iconSize: widget.iconSize,
-                                          fontSize: widget.fontSize,
-                                          showLabels: widget.showLabels,
-                                          color: mc.primary,
-                                        ),
+                                      child: _AccentTabLayer(
+                                        items: widget.items,
+                                        tabWidth: tabWidth,
+                                        value: value,
+                                        ltr: ltr,
+                                        iconSize: widget.iconSize,
+                                        fontSize: widget.fontSize,
+                                        showLabels: widget.showLabels,
+                                        color: mc.primary,
+                                        tabScale: tabScale,
                                       ),
                                     ),
                                   ),
@@ -872,31 +869,34 @@ class _AccentTabLayer extends StatelessWidget {
   const _AccentTabLayer({
     required this.items,
     required this.tabWidth,
-    required this.contentWidth,
     required this.value,
     required this.ltr,
     required this.iconSize,
     required this.fontSize,
     required this.showLabels,
     required this.color,
+    required this.tabScale,
   });
 
   final List<MiuixFloatingBarItemData> items;
   final double tabWidth;
-  final double contentWidth;
   final double value;
   final bool ltr;
   final double iconSize;
   final double fontSize;
   final bool showLabels;
   final Color color;
+  final double tabScale;
 
   @override
   Widget build(BuildContext context) {
     final double offset = ltr ? -value * tabWidth : value * tabWidth;
-    final double rowWidth = tabWidth.clamp(0.0, double.infinity) * items.length;
+    final double w = tabWidth.clamp(0.0, double.infinity);
+    final double rowWidth = w * items.length;
     // 整行比胶囊宽，必须允许布局溢出：外层 ClipPath 负责裁到胶囊，
     // 这里用 OverflowBox 避免 RenderFlex overflow 断言。
+    // 缩放加在**每个条目**上（对应官方 Column 的 graphicsLayer），
+    // 不能整行一起缩放，否则拖动中途图标会相对胶囊错位。
     return OverflowBox(
       minWidth: 0,
       maxWidth: rowWidth,
@@ -911,22 +911,25 @@ class _AccentTabLayer extends StatelessWidget {
             children: [
               for (final MiuixFloatingBarItemData item in items)
                 SizedBox(
-                  width: tabWidth.clamp(0.0, double.infinity),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(item.activeIcon, color: color, size: iconSize),
-                      if (showLabels) ...[
-                        const SizedBox(height: 1),
-                        Text(
-                          item.label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(fontSize: fontSize, color: color),
-                        ),
+                  width: w,
+                  child: Transform.scale(
+                    scale: tabScale,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(item.activeIcon, color: color, size: iconSize),
+                        if (showLabels) ...[
+                          const SizedBox(height: 1),
+                          Text(
+                            item.label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(fontSize: fontSize, color: color),
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
                 ),
             ],

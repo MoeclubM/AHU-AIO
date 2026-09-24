@@ -3,7 +3,7 @@ import '../api/jw_api.dart';
 import '../models/jw_models.dart';
 import '../../adaptive_ui.dart';
 import '../../adaptive_dropdown.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../../miuix/adaptive_top_app_bar.dart';
 
 class JwGradesPage extends StatefulWidget {
   final bool embed;
@@ -129,7 +129,7 @@ class _JwGradesPageState extends State<JwGradesPage>
     return Scaffold(
       appBar: widget.embed
           ? null
-          : LiquidGlassAppBar(title: const Text('成绩查询')),
+          : AdaptiveTopAppBar(title: const Text('成绩查询')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

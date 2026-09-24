@@ -3,7 +3,7 @@ import '../models/jw_models.dart';
 import '../services/jw_schedule_service.dart';
 import '../../adaptive_ui.dart';
 import '../../adaptive_dropdown.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../../miuix/adaptive_top_app_bar.dart';
 
 /// 安大新教务系统课表页面（jw.ahu.edu.cn 数据源）。
 ///
@@ -106,7 +106,7 @@ class _JwSchedulePageState extends State<JwSchedulePage>
     return Scaffold(
       appBar: widget.embed
           ? null
-          : LiquidGlassAppBar(
+          : AdaptiveTopAppBar(
               title: Text(
                 _service.scheduleData?.studentName.isNotEmpty == true
                     ? '${_service.scheduleData!.studentName}的课表'

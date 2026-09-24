@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../globals.dart' as globals;
 import '../../adaptive_ui.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../../miuix/adaptive_top_app_bar.dart';
 import '../api/api_manager.dart';
 
 /// 通知公告页面
@@ -88,7 +88,7 @@ class _NoticePageState extends State<NoticePage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: LiquidGlassAppBar(
+      appBar: AdaptiveTopAppBar(
         title: const Text('通知公告'),
         actions: [
           AdaptiveIconButton(

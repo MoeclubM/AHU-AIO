@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../globals.dart' as globals;
 import '../../adaptive_ui.dart';
 import '../../adaptive_dropdown.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../../miuix/adaptive_top_app_bar.dart';
 import '../api/getcalendar.dart';
 import '../models/calendar_model.dart';
 
@@ -115,7 +115,7 @@ class _CalendarPageState extends State<CalendarPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const LiquidGlassAppBar(title: Text('校历查询')),
+      appBar: const AdaptiveTopAppBar(title: Text('校历查询')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

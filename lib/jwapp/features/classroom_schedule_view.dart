@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../globals.dart' as globals;
 import '../../adaptive_ui.dart';
 import '../../adaptive_dropdown.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../../miuix/adaptive_top_app_bar.dart';
 import '../api/sendrequest.dart';
 
 /// 教室课表查询页面（原版系统风格）
@@ -115,7 +115,7 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: LiquidGlassAppBar(
+      appBar: AdaptiveTopAppBar(
         title: const Text('教室课表'),
         actions: [
           AdaptiveIconButton(
@@ -474,7 +474,7 @@ class _ClassroomScheduleDetailPageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: LiquidGlassAppBar(title: Text('${widget.roomName} - 课表')),
+      appBar: AdaptiveTopAppBar(title: Text('${widget.roomName} - 课表')),
       body: RefreshIndicator(
         onRefresh: _loadScheduleData,
         child: Column(

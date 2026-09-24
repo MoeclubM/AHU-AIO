@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../adaptive_ui.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../../miuix/adaptive_top_app_bar.dart';
 import '../../theme_manager.dart';
 import 'finance_home_view.dart';
 import '../pages/finance_pay_code_page.dart';
@@ -65,7 +65,7 @@ class _FinanceMainTabsState extends State<FinanceMainTabs>
     final showTitle = _themeManager.showAppBarTitle;
     return Scaffold(
       appBar: showTitle
-          ? LiquidGlassAppBar(
+          ? AdaptiveTopAppBar(
               title: const Text('一卡通系统'),
               actions: [
                 if (_currentPage == 2)

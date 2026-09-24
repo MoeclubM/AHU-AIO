@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:ahu_aio/adaptive_ui.dart';
-import 'package:ahu_aio/miuix/liquid_glass_app_bar.dart';
+import 'package:ahu_aio/miuix/adaptive_top_app_bar.dart';
 import 'package:ahu_aio/miuix/miuix_theme.dart';
 import 'package:ahu_aio/theme_manager.dart';
 
@@ -101,7 +101,7 @@ void main() {
           theme: ThemeManager().isMaterial3
               ? material3LightTheme()
               : miuixLightTheme(),
-          home: const Scaffold(appBar: LiquidGlassAppBar(title: Text('课程表'))),
+          home: const Scaffold(appBar: AdaptiveTopAppBar(title: Text('课程表'))),
         ),
       );
       await tester.pumpAndSettle();
@@ -142,7 +142,7 @@ void main() {
           MaterialApp(
             theme: miuixLightTheme(),
             home: Scaffold(
-              appBar: LiquidGlassAppBar(
+              appBar: AdaptiveTopAppBar(
                 title: const Text('课程表'),
                 actions: withActions
                     ? <Widget>[
@@ -223,12 +223,12 @@ void main() {
       );
     });
 
-    test('顶栏统一走 LiquidGlassAppBar，不再裸用 AppBar', () {
+    test('顶栏统一走 AdaptiveTopAppBar，不再裸用 AppBar', () {
       final RegExp raw = RegExp(r'(?<![A-Za-z_])AppBar\(');
       final List<String> offenders = <String>[];
       for (final File file in libSources()) {
         // 顶栏适配层自己当然要用 AppBar。
-        if (file.path.endsWith('liquid_glass_app_bar.dart')) continue;
+        if (file.path.endsWith('adaptive_top_app_bar.dart')) continue;
         final String text = file.readAsStringSync();
         if (raw.hasMatch(text)) offenders.add(file.path);
       }

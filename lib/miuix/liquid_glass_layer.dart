@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -9,14 +8,44 @@ import 'package:flutter/rendering.dart';
 ///
 /// 这是与着色器的坐标契约：作为 backdrop filter 时 `FlutterFragCoord` 是屏幕
 /// 空间设备像素，所以 shader 需要区域在屏幕中的绝对位置才能算出局部坐标。
-/// 单独提成函数是为了能被测试直接覆盖——只按局部坐标算会在屏幕中央糊出一个
-/// 巨大形状（曾经的真实 bug）。
+/// 必须用 [RenderBox.localToGlobal] 变换 `(-pad, -pad)`，而不能
+/// `localToGlobal(0) - pad` —— 外层有 [Transform.scale] 时 pad 也要跟着变，
+/// 后者会把形状画偏（错位）。
 Offset liquidGlassRegionOrigin(
   RenderBox box, {
   required double pad,
   required double dpr,
 }) {
-  return (box.localToGlobal(Offset.zero) - Offset(pad, pad)) * dpr;
+  return box.localToGlobal(Offset(-pad, -pad)) * dpr;
+}
+
+/// 玻璃取样区域的完整屏幕几何：原点、设备像素尺寸、视觉缩放。
+///
+/// [visualScale] 是布局尺寸到屏幕尺寸的等比缩放（Transform.scale 等）。
+/// 着色器里的圆角 / 折射量按逻辑像素声明、再乘 `u_dpr`，因此外层缩放后
+/// 应把 `u_dpr` 设为 `dpr * visualScale`，避免轮廓与折射相对可见形状错位。
+({Offset originDevice, Size regionDevice, double visualScale})
+liquidGlassRegionGeometry(
+  RenderBox box, {
+  required double pad,
+  required double dpr,
+}) {
+  final Size layout = box.size;
+  final Offset topLeft = box.localToGlobal(Offset(-pad, -pad));
+  final Offset bottomRight = box.localToGlobal(
+    Offset(layout.width + pad, layout.height + pad),
+  );
+  final double spanX = (bottomRight.dx - topLeft.dx).abs();
+  final double spanY = (bottomRight.dy - topLeft.dy).abs();
+  final double baseW = layout.width + pad * 2;
+  final double baseH = layout.height + pad * 2;
+  final double sx = baseW > 0 ? spanX / baseW : 1.0;
+  final double sy = baseH > 0 ? spanY / baseH : 1.0;
+  return (
+    originDevice: topLeft * dpr,
+    regionDevice: Size(spanX * dpr, spanY * dpr),
+    visualScale: (sx + sy) * 0.5,
+  );
 }
 
 /// 液态玻璃渲染层。
@@ -201,28 +230,31 @@ class _LiquidGlassLayerState extends State<LiquidGlassLayer> {
   /// 区域位置显式传给 shader，不能假设 fragCoord 是局部的。
   /// 尚未完成布局时返回 null —— 此时**不做折射**，退化为纯模糊，
   /// 避免用错误几何画出巨大的形状。
-  Offset? _regionOriginDevice(double pad, double dpr) {
-    final RenderObject? ro = context.findRenderObject();
-    if (ro is! RenderBox || !ro.hasSize) return null;
-    return liquidGlassRegionOrigin(ro, pad: pad, dpr: dpr);
-  }
-
   /// 写入折射参数。
   ///
   /// 用按名字绑定的 uniform 槽位（`getUniformFloat` 等），避免依赖声明顺序。
   /// `u_size` 由引擎每帧写入背景纹理尺寸，这里不碰。
+  /// [visualScale] 折叠进 `u_dpr`，让圆角与折射量跟着外层缩放走。
   void _updateShaderUniforms(
     ui.FragmentShader shader, {
     required Offset originDevice,
     required Size regionDevice,
     required double dpr,
+    double visualScale = 1,
   }) {
     shader.getUniformVec2('u_origin').set(originDevice.dx, originDevice.dy);
     shader
         .getUniformVec2('u_region_size')
         .set(regionDevice.width, regionDevice.height);
-    shader.getUniformFloat('u_dpr').set(dpr);
-    shader.getUniformFloat('u_radius').set(widget.cornerRadius);
+    shader.getUniformFloat('u_dpr').set(dpr * visualScale);
+    shader
+        .getUniformVec4('u_radius')
+        .set(
+          widget.cornerRadius,
+          widget.cornerRadius,
+          widget.cornerRadius,
+          widget.cornerRadius,
+        );
     shader.getUniformFloat('u_refraction_height').set(widget.refractionHeight);
     shader.getUniformFloat('u_refraction_amount').set(widget.refractionAmount);
     shader.getUniformFloat('u_depth_effect').set(widget.depthEffect);
@@ -246,20 +278,18 @@ class _LiquidGlassLayerState extends State<LiquidGlassLayer> {
         final double dpr = MediaQuery.devicePixelRatioOf(context);
         // 只有真正走折射时才外扩：形状周围需要背景纹理供边缘取样，且必须
         // 先拿到区域在屏幕中的位置（否则几何不可信，宁可退回纯模糊）。
-        final Offset? originDevice = _usesRefraction
-            ? _regionOriginDevice(widget.padding, dpr)
-            : null;
-        final bool refract = originDevice != null;
+        final RenderObject? ro = context.findRenderObject();
+        final bool canSample = _usesRefraction && ro is RenderBox && ro.hasSize;
+        final bool refract = canSample;
         final double pad = refract ? widget.padding : 0;
-        if (refract) {
+        if (refract && ro is RenderBox) {
+          final geo = liquidGlassRegionGeometry(ro, pad: pad, dpr: dpr);
           _updateShaderUniforms(
             _refractionShader!,
-            originDevice: originDevice,
-            regionDevice: Size(
-              (box.width + pad * 2) * dpr,
-              (box.height + pad * 2) * dpr,
-            ),
+            originDevice: geo.originDevice,
+            regionDevice: geo.regionDevice,
             dpr: dpr,
+            visualScale: geo.visualScale,
           );
         }
 
@@ -474,22 +504,32 @@ class _RenderLiquidGlassShaderSync extends RenderProxyBox {
   @override
   void paint(PaintingContext context, Offset offset) {
     final ui.FragmentShader? s = shader;
-    if (s != null && (refractionHeight > 0 || refractionAmount > 0)) {
-      final Float64List matrix = context.canvas.getTransform();
-      final double scaleX = matrix[0];
-      final double scaleY = matrix[5];
-      final double transX = matrix[12] + offset.dx * scaleX;
-      final double transY = matrix[13] + offset.dy * scaleY;
-      final double originX = (transX - pad) * dpr;
-      final double originY = (transY - pad) * dpr;
-      final double regionW = (size.width + pad * 2) * dpr;
-      final double regionH = (size.height + pad * 2) * dpr;
+    if (s != null &&
+        (refractionHeight > 0 || refractionAmount > 0) &&
+        !size.isEmpty) {
+      // 与 liquidGlassRegionGeometry 一致：用 localToGlobal 取屏幕坐标。
+      // 转场位移、Transform.scale 都会反映在这里；手写矩阵分解在缩放中心
+      // 不在原点时会把 u_origin 算偏，表现为玻璃内容与背景错位。
+      final Offset topLeft = localToGlobal(Offset(-pad, -pad));
+      final Offset bottomRight = localToGlobal(
+        Offset(size.width + pad, size.height + pad),
+      );
+      final double spanX = (bottomRight.dx - topLeft.dx).abs();
+      final double spanY = (bottomRight.dy - topLeft.dy).abs();
+      final double baseW = size.width + pad * 2;
+      final double baseH = size.height + pad * 2;
+      final double visualScale =
+          (((baseW > 0 ? spanX / baseW : 1.0) +
+              (baseH > 0 ? spanY / baseH : 1.0)) /
+          2);
 
       s
-        ..getUniformVec2('u_origin').set(originX, originY)
-        ..getUniformVec2('u_region_size').set(regionW, regionH)
-        ..getUniformFloat('u_dpr').set(dpr)
-        ..getUniformFloat('u_radius').set(cornerRadius)
+        ..getUniformVec2('u_origin').set(topLeft.dx * dpr, topLeft.dy * dpr)
+        ..getUniformVec2('u_region_size').set(spanX * dpr, spanY * dpr)
+        ..getUniformFloat('u_dpr').set(dpr * visualScale)
+        ..getUniformVec4(
+          'u_radius',
+        ).set(cornerRadius, cornerRadius, cornerRadius, cornerRadius)
         ..getUniformFloat('u_refraction_height').set(refractionHeight)
         ..getUniformFloat('u_refraction_amount').set(refractionAmount)
         ..getUniformFloat('u_depth_effect').set(depthEffect)

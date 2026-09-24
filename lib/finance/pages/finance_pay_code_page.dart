@@ -9,7 +9,7 @@ import '../api/synjones_client.dart';
 import '../api/synjones_offline_code.dart';
 import '../../adaptive_ui.dart';
 import '../../adaptive_dropdown.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../../miuix/adaptive_top_app_bar.dart';
 
 class FinancePayCodePage extends StatefulWidget {
   final bool embed;
@@ -208,7 +208,7 @@ class _FinancePayCodePageState extends State<FinancePayCodePage>
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
-      appBar: widget.embed ? null : LiquidGlassAppBar(title: const Text('一码通')),
+      appBar: widget.embed ? null : AdaptiveTopAppBar(title: const Text('一码通')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
