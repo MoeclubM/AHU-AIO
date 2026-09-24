@@ -424,3 +424,344 @@ double? toDouble(dynamic value) {
 // 内部别名（向后兼容模型类内部调用）
 int? _toInt(dynamic value) => toInt(value);
 double? _toDouble(dynamic value) => toDouble(value);
+
+// ============================================================
+// 安大新教务（jw.ahu.edu.cn）排课与课表数据模型
+// ============================================================
+
+/// 学期元数据模型。
+///
+/// 注意：[id] 为官方后端整型 ID（如 132、72、52），请求课表时必须使用此 ID。
+class JwSemesterInfo {
+  final int id;
+  final String code;
+  final String schoolYear;
+  final String nameZh;
+  final String? startDate;
+  final String? endDate;
+  final String? season;
+
+  const JwSemesterInfo({
+    required this.id,
+    required this.code,
+    required this.schoolYear,
+    required this.nameZh,
+    this.startDate,
+    this.endDate,
+    this.season,
+  });
+
+  factory JwSemesterInfo.fromJson(Map<String, dynamic> json) {
+    return JwSemesterInfo(
+      id: json['id'] is int
+          ? json['id'] as int
+          : int.tryParse('${json['id']}') ?? 0,
+      code: json['code']?.toString() ?? '',
+      schoolYear: json['schoolYear']?.toString() ?? '',
+      nameZh: json['nameZh']?.toString() ?? json['name']?.toString() ?? '未知学期',
+      startDate: json['startDate']?.toString(),
+      endDate: json['endDate']?.toString(),
+      season: json['season']?.toString(),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'code': code,
+    'schoolYear': schoolYear,
+    'nameZh': nameZh,
+    'startDate': startDate,
+    'endDate': endDate,
+    'season': season,
+  };
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is JwSemesterInfo &&
+          runtimeType == other.runtimeType &&
+          id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
+
+  @override
+  String toString() => nameZh;
+}
+
+/// 单次排课活动数据模型（解析自 `/print-data` 返回的 `activities` 数组元素）。
+class JwCourseActivity {
+  final int lessonId;
+  final String courseName;
+  final String courseCode;
+  final String room;
+  final String building;
+  final String campus;
+  final int weekday; // 1 ~ 7 对应周一至周日
+  final int startUnit; // 1 ~ 13
+  final int endUnit; // 1 ~ 13
+  final List<int> weekIndexes; // 该课程上课的教学周列表，如 [1, 2, 3, 4]
+  final List<String> teachers;
+  final num? credits;
+  final String? courseTypeName;
+
+  const JwCourseActivity({
+    required this.lessonId,
+    required this.courseName,
+    required this.courseCode,
+    required this.room,
+    required this.building,
+    required this.campus,
+    required this.weekday,
+    required this.startUnit,
+    required this.endUnit,
+    required this.weekIndexes,
+    required this.teachers,
+    this.credits,
+    this.courseTypeName,
+  });
+
+  factory JwCourseActivity.fromJson(Map<String, dynamic> json) {
+    final weeks =
+        (json['weekIndexes'] as List?)
+            ?.map((e) => int.tryParse('$e') ?? 0)
+            .where((w) => w > 0)
+            .toList() ??
+        [];
+
+    final tList =
+        ((json['teacherNames'] ?? json['teachers']) as List?)
+            ?.map((e) => e.toString().trim())
+            .where((t) => t.isNotEmpty)
+            .toList() ??
+        [];
+
+    String? typeName;
+    if (json['courseType'] is Map) {
+      typeName = json['courseType']['nameZh']?.toString();
+    } else if (json['courseType'] != null) {
+      typeName = json['courseType'].toString();
+    }
+
+    return JwCourseActivity(
+      lessonId: json['lessonId'] is int
+          ? json['lessonId'] as int
+          : int.tryParse('${json['lessonId']}') ?? 0,
+      courseName: json['courseName']?.toString() ?? '未知课程',
+      courseCode: json['courseCode']?.toString() ?? '',
+      room: json['room']?.toString() ?? '待定地点',
+      building: json['building']?.toString() ?? '',
+      campus: json['campus']?.toString() ?? '',
+      weekday: json['weekday'] is int
+          ? json['weekday'] as int
+          : int.tryParse('${json['weekday']}') ?? 1,
+      startUnit: json['startUnit'] is int
+          ? json['startUnit'] as int
+          : int.tryParse('${json['startUnit']}') ?? 1,
+      endUnit: json['endUnit'] is int
+          ? json['endUnit'] as int
+          : int.tryParse('${json['endUnit']}') ?? 1,
+      weekIndexes: weeks,
+      teachers: tList,
+      credits: json['credits'] is num ? json['credits'] as num : null,
+      courseTypeName: typeName,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'lessonId': lessonId,
+    'courseName': courseName,
+    'courseCode': courseCode,
+    'room': room,
+    'building': building,
+    'campus': campus,
+    'weekday': weekday,
+    'startUnit': startUnit,
+    'endUnit': endUnit,
+    'weekIndexes': weekIndexes,
+    'teachers': teachers,
+    'credits': credits,
+    'courseTypeName': courseTypeName,
+  };
+
+  bool hasWeek(int week) => weekIndexes.contains(week);
+}
+
+/// 课表格子排布渲染单元实体（支持重叠合并显示）。
+class JwScheduleEntry {
+  final int weekday;
+  final int startUnit;
+  final int endUnit;
+  final String courseName;
+  final String teacherName;
+  final String roomName;
+  final List<JwCourseActivity> activities;
+
+  const JwScheduleEntry({
+    required this.weekday,
+    required this.startUnit,
+    required this.endUnit,
+    required this.courseName,
+    required this.teacherName,
+    required this.roomName,
+    required this.activities,
+  });
+
+  /// 安徽大学作息标准开始时间
+  String get startTime {
+    return switch (startUnit) {
+      1 => '08:00',
+      2 => '08:50',
+      3 => '09:55',
+      4 => '10:45',
+      5 => '11:35',
+      6 => '14:00',
+      7 => '14:50',
+      8 => '15:55',
+      9 => '16:45',
+      10 => '17:35',
+      11 => '19:00',
+      12 => '19:50',
+      13 => '20:40',
+      _ => '08:00',
+    };
+  }
+
+  /// 安徽大学作息标准结束时间
+  String get endTime {
+    return switch (endUnit) {
+      1 => '08:45',
+      2 => '09:35',
+      3 => '10:40',
+      4 => '11:30',
+      5 => '12:20',
+      6 => '14:45',
+      7 => '15:35',
+      8 => '16:40',
+      9 => '17:30',
+      10 => '18:20',
+      11 => '19:45',
+      12 => '20:35',
+      13 => '21:25',
+      _ => '09:35',
+    };
+  }
+}
+
+/// 全学期完整排课数据聚合对象。
+class JwScheduleData {
+  final int studentId;
+  final String studentName;
+  final String studentCode;
+  final String? adminclass;
+  final String? major;
+  final List<JwCourseActivity> activities;
+
+  const JwScheduleData({
+    required this.studentId,
+    required this.studentName,
+    required this.studentCode,
+    this.adminclass,
+    this.major,
+    required this.activities,
+  });
+
+  factory JwScheduleData.fromJson(Map<String, dynamic> json) {
+    final vms = (json['studentTableVms'] as List?) ?? [];
+    if (vms.isEmpty || vms.first is! Map) {
+      return const JwScheduleData(
+        studentId: 0,
+        studentName: '',
+        studentCode: '',
+        activities: [],
+      );
+    }
+
+    final stdMap = Map<String, dynamic>.from(vms.first as Map);
+    final rawActs = (stdMap['activities'] as List?) ?? [];
+    final actList = rawActs
+        .whereType<Map>()
+        .map((m) => JwCourseActivity.fromJson(Map<String, dynamic>.from(m)))
+        .toList();
+
+    return JwScheduleData(
+      studentId: stdMap['id'] is int
+          ? stdMap['id'] as int
+          : int.tryParse('${stdMap['id']}') ?? 0,
+      studentName: stdMap['name']?.toString() ?? '',
+      studentCode: stdMap['code']?.toString() ?? '',
+      adminclass: stdMap['adminclass']?.toString(),
+      major: stdMap['major']?.toString(),
+      activities: actList,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'studentTableVms': [
+      {
+        'id': studentId,
+        'name': studentName,
+        'code': studentCode,
+        'adminclass': adminclass,
+        'major': major,
+        'activities': activities.map((a) => a.toJson()).toList(),
+      },
+    ],
+  };
+
+  /// 过滤指定教学周，并排布生成周一至周日（1~7）的排课列表。
+  Map<int, List<JwScheduleEntry>> buildWeekSchedule(int week) {
+    final result = <int, List<JwScheduleEntry>>{
+      for (var d = 1; d <= 7; d++) d: <JwScheduleEntry>[],
+    };
+
+    final weekActs = activities.where((a) => a.hasWeek(week)).toList();
+
+    for (var weekday = 1; weekday <= 7; weekday++) {
+      final dayActs = weekActs.where((a) => a.weekday == weekday).toList();
+      dayActs.sort((a, b) => a.startUnit.compareTo(b.startUnit));
+
+      final entries = <JwScheduleEntry>[];
+      for (final act in dayActs) {
+        // 重叠时间合并处理
+        final overlapIdx = entries.indexWhere(
+          (e) => (act.startUnit <= e.endUnit && act.endUnit >= e.startUnit),
+        );
+
+        if (overlapIdx >= 0) {
+          final existing = entries[overlapIdx];
+          entries[overlapIdx] = JwScheduleEntry(
+            weekday: weekday,
+            startUnit: existing.startUnit < act.startUnit
+                ? existing.startUnit
+                : act.startUnit,
+            endUnit: existing.endUnit > act.endUnit
+                ? existing.endUnit
+                : act.endUnit,
+            courseName: '${existing.courseName} / ${act.courseName}',
+            teacherName: '${existing.teacherName} / ${act.teachers.join(",")}',
+            roomName: existing.roomName == act.room
+                ? existing.roomName
+                : '${existing.roomName} / ${act.room}',
+            activities: [...existing.activities, act],
+          );
+        } else {
+          entries.add(
+            JwScheduleEntry(
+              weekday: weekday,
+              startUnit: act.startUnit,
+              endUnit: act.endUnit,
+              courseName: act.courseName,
+              teacherName: act.teachers.join(', '),
+              roomName: act.room,
+              activities: [act],
+            ),
+          );
+        }
+      }
+      result[weekday] = entries;
+    }
+
+    return result;
+  }
+}

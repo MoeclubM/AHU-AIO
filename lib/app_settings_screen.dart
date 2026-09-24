@@ -30,7 +30,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
 
   String _appVersion = '';
   bool _checkingUpdate = false;
-  bool _isNonReleaseBuild = false;
+  bool _enableAutoUpdateCheck = false;
 
   @override
   void initState() {
@@ -38,16 +38,27 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     _themeManager.addListener(_onThemeChanged);
     _authManager.addListener(_onThemeChanged);
     _loadVersion();
+    _loadAutoUpdateSetting();
+  }
+
+  Future<void> _loadAutoUpdateSetting() async {
+    final prefs = await SharedPreferences.getInstance();
+    final enabled = prefs.getBool('enable_auto_update_check') ?? false;
+    if (mounted) {
+      setState(() => _enableAutoUpdateCheck = enabled);
+    }
+  }
+
+  Future<void> _toggleAutoUpdateCheck(bool value) async {
+    setState(() => _enableAutoUpdateCheck = value);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('enable_auto_update_check', value);
   }
 
   Future<void> _loadVersion() async {
     final v = await _updateService.currentVersionString();
-    final nonRelease = await _updateService.isNonReleaseBuild();
     if (mounted) {
-      setState(() {
-        _appVersion = v;
-        _isNonReleaseBuild = nonRelease;
-      });
+      setState(() => _appVersion = v);
     }
   }
 
@@ -55,14 +66,6 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     if (_checkingUpdate) return;
     setState(() => _checkingUpdate = true);
     try {
-      // beta/debug 构建不提示正式版更新（避免被较旧 Release 覆盖）。
-      if (await _updateService.isNonReleaseBuild()) {
-        if (mounted) {
-          await showPrereleaseBuildDialog(context, version: _appVersion);
-        }
-        return;
-      }
-
       final info = await _updateService.checkForUpdate();
       if (!mounted) return;
       if (info == null) {
@@ -206,12 +209,23 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
 
           const AdaptiveSectionTitle('软件更新'),
           AdaptiveCard(
+            child: AdaptiveSwitchTile(
+              title: '启用更新检查',
+              summary: '开启后在应用启动时自动检测新版本',
+              leading: Icon(
+                Icons.notifications_active_outlined,
+                color: scheme.primary,
+              ),
+              value: _enableAutoUpdateCheck,
+              onChanged: _toggleAutoUpdateCheck,
+            ),
+          ),
+          const SizedBox(height: 10),
+          AdaptiveCard(
             child: AdaptiveSettingsTile(
               title: '检查更新',
               summary: _appVersion.isEmpty
                   ? '正在读取版本…'
-                  : _isNonReleaseBuild
-                  ? '当前版本 $_appVersion · Beta 构建，不检查正式更新'
                   : '当前版本 $_appVersion · 来自 GitHub Releases',
               leading: Icon(
                 Icons.system_update_outlined,

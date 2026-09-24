@@ -1,11 +1,15 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import '../api/jw_api.dart';
 import '../models/jw_models.dart';
+import '../services/jw_schedule_service.dart';
 import '../../adaptive_ui.dart';
+import '../../adaptive_dropdown.dart';
 import '../../miuix/adaptive_top_app_bar.dart';
 
+/// 安大新教务系统课表页面（jw.ahu.edu.cn 数据源）。
+///
+/// 支持独立全屏页面或二级标签栏嵌入模式（[embed] = true）。
+/// 包含 1~25 周横向滑动 PageView、安徽大学 13 节次作息时间轴、
+/// 公历月日表头（当天高亮）、双向联动选择器以及 150ms 快速弹出的课程详情底栏。
 class JwSchedulePage extends StatefulWidget {
   final bool embed;
   const JwSchedulePage({super.key, this.embed = false});
@@ -16,24 +20,11 @@ class JwSchedulePage extends StatefulWidget {
 
 class _JwSchedulePageState extends State<JwSchedulePage>
     with AutomaticKeepAliveClientMixin {
-  final _api = JwApi();
-  CourseTableData? _tableData;
-  int _currentWeek = 1;
-  bool _isLoading = true;
-  String? _error;
-  bool _isCached = false;
-  int? _realCurrentWeek;
-
-  List<dynamic> _semesters = [];
-  int? _selectedSemesterId;
-  String? _selectedSemesterName;
-  bool _isUserManuallySelected = false;
-
+  late final JwScheduleService _service;
+  late final PageController _pageController;
+  bool _isAnimating = false;
   static const _weekdays = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-  static const _maxSlots = 11;
-  double _slotHeight = 95.0;
-  double _baseScaleSlotHeight = 95.0;
-  static const _timeColumnWidth = 48.0;
+  static const int _maxWeeks = 25;
 
   @override
   bool get wantKeepAlive => true;
@@ -41,782 +32,592 @@ class _JwSchedulePageState extends State<JwSchedulePage>
   @override
   void initState() {
     super.initState();
-    _loadSavedHeight();
-    _loadData();
+    _service = JwScheduleService();
+    final initWeek = (_service.selectedWeek - 1).clamp(0, _maxWeeks - 1);
+    _pageController = PageController(initialPage: initWeek);
+    _service.addListener(_onServiceUpdate);
+    _service.initAndLoad();
   }
 
-  Future<void> _loadSavedHeight() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedHeight = prefs.getDouble('jw_schedule_slot_height');
-      if (savedHeight != null) {
-        setState(() {
-          _slotHeight = savedHeight;
-          _baseScaleSlotHeight = savedHeight;
-        });
-      }
-    } catch (_) {}
+  @override
+  void dispose() {
+    _service.removeListener(_onServiceUpdate);
+    _pageController.dispose();
+    _service.dispose();
+    super.dispose();
   }
 
-  Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-    try {
-      final weekRaw = await _api.getCurrentTeachWeek();
-      final weekInfo = TeachWeekInfo.fromJson(weekRaw);
-      _realCurrentWeek = weekInfo.weekIndex;
-
-      // 从成绩 API 获取学期列表
-      final semList = await _api.getSemesters();
-      _semesters = semList;
-
-      final currentName = weekInfo.currentSemester ?? '';
-      final matchedCurrentSemId = _findMatchingSemesterId(semList, currentName);
-
-      // 如果未曾手动切换学期，默认自动定位到当前教学周所在学期；
-      // 若当前教学周未匹配到，则默认定位到列表中的最新学期（first），避免误降级到最旧的 2024 学期
-      if (!_isUserManuallySelected || _selectedSemesterId == null) {
-        final targetSemId =
-            matchedCurrentSemId ??
-            (semList.isNotEmpty ? toInt(semList.first['id']) : null) ??
-            192; // 默认最新 2026 第一学期
-        _selectedSemesterId = targetSemId;
-        _currentWeek =
-            (weekInfo.weekIndex != null &&
-                weekInfo.weekIndex! >= 1 &&
-                weekInfo.weekIndex! <= 25)
-            ? weekInfo.weekIndex!
-            : 1;
-      } else {
-        if (_selectedSemesterId == matchedCurrentSemId) {
-          _currentWeek =
-              (weekInfo.weekIndex != null &&
-                  weekInfo.weekIndex! >= 1 &&
-                  weekInfo.weekIndex! <= 25)
-              ? weekInfo.weekIndex!
-              : 1;
-        } else if (_currentWeek < 1 || _currentWeek > 25) {
-          _currentWeek = 1;
-        }
-      }
-
-      // 获取当前选中的学期名称
-      if (_selectedSemesterId != null) {
-        dynamic currentSem;
-        for (final s in semList) {
-          if (toInt(s['id']) == _selectedSemesterId) {
-            currentSem = s;
-            break;
+  void _onServiceUpdate() {
+    if (!mounted) return;
+    final curWeek = _service.selectedWeek;
+    if (_pageController.hasClients && !_isAnimating) {
+      final curPage = _pageController.page?.round();
+      if (curPage != null && curPage != curWeek - 1) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_pageController.hasClients &&
+              !_isAnimating &&
+              _pageController.page?.round() != curWeek - 1) {
+            _pageController.jumpToPage(curWeek - 1);
           }
-        }
-        if (currentSem != null) {
-          _selectedSemesterName =
-              currentSem['nameZh']?.toString() ??
-              currentSem['nameEn']?.toString() ??
-              '未知学期';
-        }
-      }
-
-      final prefs = await SharedPreferences.getInstance();
-      final cacheKey = 'jw_schedule_cache_$_selectedSemesterId';
-      final cachedStr = prefs.getString(cacheKey);
-      if (cachedStr != null) {
-        try {
-          final cachedData = CourseTableData.fromJson(jsonDecode(cachedStr));
-          setState(() {
-            _tableData = cachedData;
-            _isCached = true;
-            _isLoading = false;
-          });
-        } catch (_) {}
-      }
-
-      final raw = await _api.getCourseTablePrintData(_selectedSemesterId!);
-      final freshData = CourseTableData.fromJson(raw);
-
-      await prefs.setString(cacheKey, jsonEncode(raw));
-
-      setState(() {
-        _tableData = freshData;
-        _isCached = false;
-        _isLoading = false;
-        _error = null;
-      });
-    } catch (e) {
-      if (_tableData != null) {
-        setState(() {
-          _isCached = true;
-          _isLoading = false;
-          _error = '网络连接失败，当前展示本地缓存课表（下拉可重试）';
-        });
-      } else {
-        setState(() {
-          _error = '加载失败: $e';
-          _isLoading = false;
         });
       }
+    }
+    setState(() {});
+  }
+
+  /// 自动计算契合视口高度的单节高度
+  double _getSlotHeight(BuildContext context) {
+    final screenH = MediaQuery.sizeOf(context).height;
+    final topP = MediaQuery.paddingOf(context).top;
+    final botP = MediaQuery.paddingOf(context).bottom;
+    final available = screenH - topP - botP - (widget.embed ? 220 : 120);
+    if (available > 0) {
+      return (available / 13 * 1.25).clamp(48.0, 78.0);
+    }
+    return 58.0;
+  }
+
+  Future<void> _animateToWeek(int week) async {
+    final targetPage = (week - 1).clamp(0, _maxWeeks - 1);
+    if (!_pageController.hasClients) {
+      _service.selectWeek(week);
+      return;
+    }
+    _isAnimating = true;
+    try {
+      await _pageController.animateToPage(
+        targetPage,
+        duration: const Duration(milliseconds: 260),
+        curve: Curves.easeInOutCubic,
+      );
+    } finally {
+      _isAnimating = false;
+      _service.selectWeek(week);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final bottomPad = adaptiveBottomPadding(context, withSubBar: widget.embed);
+
     return Scaffold(
       appBar: widget.embed
           ? null
           : AdaptiveTopAppBar(
               title: Text(
-                _tableData?.studentName != null
-                    ? '${_tableData!.studentName}的课表'
-                    : '我的课表',
+                _service.scheduleData?.studentName.isNotEmpty == true
+                    ? '${_service.scheduleData!.studentName}的课表'
+                    : '安大教务课表',
               ),
             ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: _isLoading || _tableData == null
-          ? null
-          : _buildFloatingWeekSelector(),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null && _tableData == null
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(_error!, style: const TextStyle(color: Colors.red)),
-                  const SizedBox(height: 16),
-                  ElevatedButton(onPressed: _loadData, child: const Text('重试')),
-                ],
-              ),
-            )
-          : _buildSchedule(),
+      body: SafeArea(
+        top: !widget.embed,
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: () async {
+            if (_service.selectedSemester != null) {
+              await _service.fetchScheduleData(_service.selectedSemester!.id);
+            }
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              children: [
+                _buildTopSelectors(theme, isDark),
+                _buildWeekCapsules(theme),
+                if (_service.isLoading) const LinearProgressIndicator(),
+                if (_service.isOfflineCache)
+                  _buildCacheBanner(
+                    theme: theme,
+                    icon: Icons.cloud_off_outlined,
+                    text: '网络连接失败，当前展示本地缓存课表（下拉可重试）',
+                    warn: true,
+                  )
+                else if (_service.isCached)
+                  _buildCacheBanner(
+                    theme: theme,
+                    icon: Icons.info_outline,
+                    text: '当前为本地缓存数据，正在加载最新数据...',
+                    warn: false,
+                  ),
+                if (_service.errorMessage != null &&
+                    _service.scheduleData == null)
+                  _buildErrorCard(theme),
+                _buildGridContent(theme, isDark),
+                SizedBox(height: bottomPad > 20 ? bottomPad : 20),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
-  Widget _buildSchedule() {
-    final activities =
-        _tableData?.activities
-            .where((a) => a.weekIndexes.contains(_currentWeek))
-            .where(
-              (a) =>
-                  a.courseName != null &&
-                  a.courseName!.trim().isNotEmpty &&
-                  a.courseName != '未知课程',
-            )
-            .toList() ??
-        [];
-
-    return RefreshIndicator(
-      onRefresh: _loadData,
+  Widget _buildErrorCard(ThemeData theme) {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.errorContainer.withOpacity(0.4),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.error.withOpacity(0.4)),
+      ),
       child: Column(
         children: [
-          if (_isCached)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
-              color: Theme.of(
-                context,
-              ).colorScheme.primaryContainer.withOpacity(0.7),
-              child: Row(
-                children: [
-                  Icon(
-                    _error != null
-                        ? Icons.cloud_off_outlined
-                        : Icons.info_outline,
-                    size: 14,
-                    color: Theme.of(context).colorScheme.onPrimaryContainer,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      _error ?? '当前为本地缓存数据，正在加载最新数据...',
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: Theme.of(context).colorScheme.onPrimaryContainer,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          _buildSemesterHeader(activities),
-          Expanded(child: _buildGrid(activities)),
+          Text(
+            '加载课表失败: ${_service.errorMessage}',
+            style: TextStyle(color: theme.colorScheme.error, fontSize: 13),
+          ),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: () {
+              if (_service.selectedSemester != null) {
+                _service.fetchScheduleData(_service.selectedSemester!.id);
+              }
+            },
+            icon: const Icon(Icons.refresh, size: 16),
+            label: const Text('重试'),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildSemesterHeader(List<CourseActivity> activities) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final todayCount = activities
-        .where((a) => a.weekday == DateTime.now().weekday)
-        .length;
-    final semName = _selectedSemesterName ?? '加载中...';
+  /// 本地缓存状态横幅：加载中提示 vs 离线回退提示（与微教务课表保持完全一致的视觉与交互）
+  Widget _buildCacheBanner({
+    required ThemeData theme,
+    required IconData icon,
+    required String text,
+    required bool warn,
+  }) {
+    final colorScheme = theme.colorScheme;
+    final bgColor = warn
+        ? colorScheme.errorContainer.withOpacity(0.55)
+        : colorScheme.primaryContainer.withOpacity(0.7);
+    final fgColor = warn
+        ? colorScheme.onErrorContainer
+        : colorScheme.onPrimaryContainer;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
+      color: bgColor,
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: fgColor),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 11.5,
+                color: fgColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 顶部学期与周次下拉选择区
+  Widget _buildTopSelectors(ThemeData theme, bool isDark) {
+    final semesters = _service.allSemesters;
+    final selSem = _service.selectedSemester;
+    final curWeek = _service.selectedWeek;
+
+    final selectedSemValue = semesters.any((s) => s.id == selSem?.id)
+        ? selSem
+        : (semesters.isNotEmpty ? semesters.first : null);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: theme.cardColor,
+      child: Row(
+        children: [
+          // 学期下拉
+          Expanded(
+            flex: 6,
+            child: Container(
+              height: 40,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withOpacity(
+                  0.5,
+                ),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+                  width: 0.6,
+                ),
+              ),
+              child: AdaptiveDropdown<JwSemesterInfo>(
+                value: selectedSemValue,
+                isExpanded: true,
+                items: semesters.map((s) {
+                  return AdaptiveDropdownItem<JwSemesterInfo>(
+                    value: s,
+                    label: s.nameZh,
+                  );
+                }).toList(),
+                onChanged: (s) {
+                  if (s != null) _service.selectSemester(s);
+                },
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          // 周次下拉
+          Expanded(
+            flex: 4,
+            child: Container(
+              height: 40,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withOpacity(
+                  0.5,
+                ),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+                  width: 0.6,
+                ),
+              ),
+              child: AdaptiveDropdown<int>(
+                value: curWeek.clamp(1, _maxWeeks),
+                isExpanded: true,
+                items: List.generate(_maxWeeks, (i) {
+                  final w = i + 1;
+                  final isNow = w == _service.currentWeek;
+                  return AdaptiveDropdownItem<int>(
+                    value: w,
+                    label: isNow ? '第$w周(本周)' : '第$w周',
+                  );
+                }),
+                onChanged: (w) {
+                  if (w != null) _animateToWeek(w);
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 水平滑动周次胶囊条
+  Widget _buildWeekCapsules(ThemeData theme) {
+    return SizedBox(
+      height: 36,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        itemCount: _maxWeeks,
+        itemBuilder: (context, i) {
+          final w = i + 1;
+          final isSel = w == _service.selectedWeek;
+          final isCur = w == _service.currentWeek;
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2.5),
+            child: ChoiceChip(
+              label: Text('第$w周'),
+              selected: isSel,
+              onSelected: (_) => _animateToWeek(w),
+              labelStyle: TextStyle(
+                fontSize: 11,
+                fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
+                color: isSel ? theme.colorScheme.onPrimary : null,
+              ),
+              selectedColor: theme.colorScheme.primary,
+              backgroundColor: isCur
+                  ? theme.colorScheme.primary.withOpacity(0.12)
+                  : null,
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              visualDensity: VisualDensity.compact,
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  /// 课表主体网格区域（支持 1~25 周横向平滑翻页）
+  Widget _buildGridContent(ThemeData theme, bool isDark) {
+    final slotH = _getSlotHeight(context);
+    const totalSlots = 13;
+    final totalGridH = totalSlots * slotH;
+    const headerH = 48.0;
+    final tableH = totalGridH + headerH + 2.0;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final totalW = constraints.maxWidth;
+        const timeColW = 34.0;
+        final dayW = (totalW - timeColW) / 7.0;
+
+        return SizedBox(
+          height: tableH,
+          child: PageView.builder(
+            controller: _pageController,
+            itemCount: _maxWeeks,
+            onPageChanged: (page) {
+              final newW = page + 1;
+              if (_service.selectedWeek != newW) {
+                _service.selectWeek(newW);
+              }
+            },
+            itemBuilder: (context, page) {
+              final week = page + 1;
+              final weekData =
+                  _service.scheduleData?.buildWeekSchedule(week) ?? {};
+
+              return Column(
+                children: [
+                  _buildHeader(theme, dayW, timeColW, week),
+                  _buildTimeline(
+                    theme,
+                    isDark,
+                    weekData,
+                    dayW,
+                    timeColW,
+                    slotH,
+                    totalSlots,
+                    totalGridH,
+                    week,
+                  ),
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  /// 顶部星期与公历日期表头
+  Widget _buildHeader(ThemeData theme, double dayW, double timeColW, int week) {
+    final sem = _service.selectedSemester;
+    DateTime? monday;
+    if (sem?.startDate != null) {
+      try {
+        final start = DateTime.parse(sem!.startDate!);
+        monday = start.add(Duration(days: (week - 1) * 7));
+      } catch (_) {}
+    }
+    final month = monday?.month ?? DateTime.now().month;
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      height: 48,
       decoration: BoxDecoration(
-        color: colorScheme.surface.withOpacity(0.4),
+        color: theme.cardColor,
         border: Border(
           bottom: BorderSide(
-            color: colorScheme.outlineVariant.withOpacity(0.3),
-            width: 0.5,
+            color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+            width: 0.8,
           ),
         ),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // 左侧：学期选择按钮
-          InkWell(
-            onTap: _showSemesterPicker,
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.school_outlined,
-                    size: 16,
-                    color: colorScheme.primary,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    semName,
-                    style: TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                  Icon(
-                    Icons.arrow_drop_down,
-                    size: 20,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                ],
+          SizedBox(
+            width: timeColW,
+            child: Center(
+              child: Text(
+                '$month\n月',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
-          // 右侧：课数统计
-          Text(
-            '本周 ${activities.length} 节 · 今日 $todayCount 节',
-            style: TextStyle(
-              fontSize: 12,
-              color: colorScheme.onSurfaceVariant.withOpacity(0.8),
-            ),
-          ),
+          ...List.generate(7, (i) {
+            final weekday = i + 1;
+            final dayDate = monday?.add(Duration(days: i));
+            final isToday =
+                DateTime.now().weekday == weekday &&
+                week == _service.currentWeek;
+
+            return Container(
+              width: dayW,
+              height: 47,
+              decoration: BoxDecoration(
+                color: isToday
+                    ? theme.colorScheme.primary.withOpacity(
+                        isDark ? 0.22 : 0.16,
+                      )
+                    : null,
+                border: Border(
+                  right: BorderSide(
+                    color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+                    width: 0.5,
+                  ),
+                ),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    _weekdays[weekday],
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                      color: isToday ? theme.colorScheme.primary : null,
+                    ),
+                  ),
+                  if (dayDate != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 1,
+                      ),
+                      decoration: isToday
+                          ? BoxDecoration(
+                              color: theme.colorScheme.primary,
+                              borderRadius: BorderRadius.circular(8),
+                            )
+                          : null,
+                      child: Text(
+                        '${dayDate.day}',
+                        style: TextStyle(
+                          fontSize: 9.5,
+                          color: isToday ? theme.colorScheme.onPrimary : null,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          }),
         ],
       ),
     );
   }
 
-  int? _findMatchingSemesterId(List<dynamic> semList, String currentName) {
-    if (currentName.isEmpty || semList.isEmpty) return null;
-
-    // 1. 精确匹配 code, nameZh, nameEn
-    for (final s in semList) {
-      final code = s['code']?.toString() ?? '';
-      final nameZh = s['nameZh']?.toString() ?? '';
-      final nameEn = s['nameEn']?.toString() ?? '';
-      if (code == currentName ||
-          nameZh == currentName ||
-          nameEn == currentName) {
-        final id = toInt(s['id']);
-        if (id != null) return id;
-      }
-    }
-
-    // 2. 规范化提取匹配：如 currentName="2026-2027-1", nameZh="2026-2027学年第1学期"
-    final match = RegExp(r'(\d{4}-\d{4})[^\d]*([123])').firstMatch(currentName);
-    if (match != null) {
-      final year = match.group(1)!;
-      final semNum = match.group(2)!;
-      final semNumZh = semNum == '1' ? '一' : (semNum == '2' ? '二' : '三');
-
-      for (final s in semList) {
-        final text =
-            '${s['code']} ${s['nameZh']} ${s['nameEn']} ${s['schoolYear']}';
-        if (text.contains(year) &&
-            (text.contains(semNum) || text.contains(semNumZh))) {
-          final id = toInt(s['id']);
-          if (id != null) return id;
-        }
-      }
-    }
-
-    // 3. 匹配学年
-    final yearMatch = RegExp(r'\d{4}-\d{4}').firstMatch(currentName);
-    if (yearMatch != null) {
-      final year = yearMatch.group(0)!;
-      for (final s in semList) {
-        final text =
-            '${s['code']} ${s['nameZh']} ${s['nameEn']} ${s['schoolYear']}';
-        if (text.contains(year)) {
-          final id = toInt(s['id']);
-          if (id != null) return id;
-        }
-      }
-    }
-
-    return null;
-  }
-
-  void _switchSemester(int? semId) {
-    if (semId == null || _selectedSemesterId == semId) return;
-    _isUserManuallySelected = true;
-    setState(() {
-      _selectedSemesterId = semId;
-      _tableData = null; // 清空旧数据以展示加载中
-      _currentWeek = 1; // 默认重置回第 1 周
-    });
-    _loadData();
-  }
-
-  void _showSemesterPicker() {
-    if (_semesters.isEmpty) return;
-    showModalBottomSheet(
-      context: context,
-      showDragHandle: false,
-      backgroundColor: Colors.transparent,
-      sheetAnimationStyle: const AnimationStyle(
-        duration: Duration(milliseconds: 150),
-        reverseDuration: Duration(milliseconds: 120),
-      ),
-      builder: (ctx) {
-        final colorScheme = Theme.of(ctx).colorScheme;
-        return Material(
-          color: colorScheme.surface,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
+  /// 绘制 13 节次时间轴与纵向课程卡片
+  Widget _buildTimeline(
+    ThemeData theme,
+    bool isDark,
+    Map<int, List<JwScheduleEntry>> weekData,
+    double dayW,
+    double timeColW,
+    double slotH,
+    int totalSlots,
+    double totalH,
+    int week,
+  ) {
+    return SizedBox(
+      height: totalH,
+      child: Row(
+        children: [
+          // 左侧节次
+          Container(
+            width: timeColW,
+            height: totalH,
+            decoration: BoxDecoration(
+              border: Border(
+                right: BorderSide(
+                  color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+                ),
+              ),
             ),
-          ),
-          child: SafeArea(
             child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 4.5,
-                    margin: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: BoxDecoration(
-                      color: colorScheme.onSurfaceVariant.withOpacity(0.4),
-                      borderRadius: BorderRadius.circular(2.25),
+              children: List.generate(totalSlots, (slotIdx) {
+                final slot = slotIdx + 1;
+                return Container(
+                  height: slotH,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: theme.colorScheme.outlineVariant.withOpacity(
+                          0.3,
+                        ),
+                        width: 0.5,
+                      ),
                     ),
                   ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 12),
                   child: Text(
-                    '选择学期',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const Divider(height: 1),
-                Flexible(
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: _semesters.length,
-                    itemBuilder: (context, index) {
-                      final s = _semesters[index];
-                      final semId = toInt(s['id']);
-                      final semName =
-                          s['nameZh']?.toString() ??
-                          s['nameEn']?.toString() ??
-                          '';
-                      final isSelected = semId == _selectedSemesterId;
-                      return ListTile(
-                        title: Text(
-                          semName,
-                          style: TextStyle(
-                            fontWeight: isSelected
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                            color: isSelected
-                                ? Theme.of(context).colorScheme.primary
-                                : null,
-                          ),
-                        ),
-                        trailing: isSelected
-                            ? Icon(
-                                Icons.check,
-                                color: Theme.of(context).colorScheme.primary,
-                              )
-                            : null,
-                        onTap: () {
-                          Navigator.pop(context);
-                          _switchSemester(semId);
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildFloatingWeekSelector() {
-    final colorScheme = Theme.of(context).colorScheme;
-    final bottomPad = adaptiveBottomPadding(context, withSubBar: widget.embed);
-
-    return SafeArea(
-      top: false,
-      bottom: true,
-      child: Padding(
-        padding: EdgeInsets.only(bottom: bottomPad > 24 ? bottomPad - 16 : 8),
-        child: Container(
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 6),
-          decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest.withOpacity(0.92),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: colorScheme.outlineVariant.withOpacity(0.4),
-              width: 0.8,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.12),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.chevron_left),
-                iconSize: 20,
-                color: colorScheme.onSurface,
-                onPressed: _currentWeek > 1
-                    ? () => setState(() => _currentWeek--)
-                    : null,
-              ),
-              GestureDetector(
-                onTap: _showWeekPicker,
-                child: Container(
-                  constraints: const BoxConstraints(minWidth: 88),
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  alignment: Alignment.center,
-                  child: Text(
-                    '第 $_currentWeek 周',
-                    style: TextStyle(
-                      color: colorScheme.primary,
-                      fontSize: 14,
+                    '$slot',
+                    style: const TextStyle(
+                      fontSize: 11,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.chevron_right),
-                iconSize: 20,
-                color: colorScheme.onSurface,
-                onPressed: _currentWeek < 25
-                    ? () => setState(() => _currentWeek++)
-                    : null,
-              ),
-            ],
+                );
+              }),
+            ),
           ),
-        ),
-      ),
-    );
-  }
+          // 7 列
+          ...List.generate(7, (dIdx) {
+            final weekday = dIdx + 1;
+            final entries = weekData[weekday] ?? [];
+            final isToday =
+                DateTime.now().weekday == weekday &&
+                week == _service.currentWeek;
 
-  Future<void> _showWeekPicker() async {
-    final selectedWeek = await showModalBottomSheet<int>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      sheetAnimationStyle: const AnimationStyle(
-        duration: Duration(milliseconds: 150),
-        reverseDuration: Duration(milliseconds: 120),
-      ),
-      builder: (ctx) {
-        final bottomPadding = MediaQuery.of(ctx).viewPadding.bottom;
-        return Container(
-          padding: EdgeInsets.fromLTRB(16, 12, 16, 12 + bottomPadding),
-          decoration: BoxDecoration(
-            color: Theme.of(ctx).colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-          ),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: List.generate(25, (index) {
-              final week = index + 1;
-              final isSelected = week == _currentWeek;
-              final isRealCurrent = week == _realCurrentWeek;
-              return ChoiceChip(
-                avatar: isRealCurrent
-                    ? Icon(
-                        Icons.star,
-                        size: 14,
-                        color: isSelected
-                            ? Theme.of(ctx).colorScheme.onPrimary
-                            : Theme.of(ctx).colorScheme.primary,
+            return Container(
+              width: dayW,
+              height: totalH,
+              decoration: BoxDecoration(
+                color: isToday
+                    ? theme.colorScheme.primary.withOpacity(
+                        isDark ? 0.12 : 0.08,
                       )
                     : null,
-                label: Text(
-                  isRealCurrent ? '第 $week 周(本周)' : '第 $week 周',
-                  style: TextStyle(
-                    fontWeight: isRealCurrent
-                        ? FontWeight.bold
-                        : FontWeight.normal,
+                border: Border(
+                  right: BorderSide(
+                    color: theme.colorScheme.outlineVariant.withOpacity(0.35),
+                    width: 0.5,
                   ),
                 ),
-                selected: isSelected,
-                onSelected: (_) => Navigator.pop(ctx, week),
-              );
-            }),
-          ),
-        );
-      },
-    );
-
-    if (selectedWeek != null && mounted) {
-      setState(() => _currentWeek = selectedWeek);
-    }
-  }
-
-  Widget _buildGrid(List<CourseActivity> weekActivities) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final bottomPad = adaptiveBottomPadding(context, withSubBar: widget.embed);
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final totalWidth = constraints.maxWidth;
-        final timeColumnWidth = _timeColumnWidth;
-        final dayWidth = (totalWidth - timeColumnWidth) / 7;
-
-        return GestureDetector(
-          onScaleStart: (details) {
-            _baseScaleSlotHeight = _slotHeight;
-          },
-          onScaleUpdate: (details) {
-            final newHeight = (_baseScaleSlotHeight * details.verticalScale)
-                .clamp(45.0, 240.0);
-            setState(() {
-              _slotHeight = newHeight;
-            });
-            SharedPreferences.getInstance().then((prefs) {
-              prefs.setDouble('jw_schedule_slot_height', newHeight);
-            });
-          },
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(0, 4, 0, bottomPad + 36),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: timeColumnWidth,
-                      height: 44,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: colorScheme.surfaceContainerHighest,
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(16),
-                        ),
-                      ),
-                      child: const Text(
-                        '节次',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    ...List.generate(7, (dayIdx) {
-                      final wd = dayIdx + 1;
-                      final isToday = DateTime.now().weekday == wd;
-                      final count = weekActivities
-                          .where((a) => a.weekday == wd)
-                          .length;
-                      return Container(
-                        width: dayWidth,
-                        height: 44,
-                        alignment: Alignment.center,
+              ),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  ...List.generate(totalSlots, (sIdx) {
+                    return Positioned(
+                      top: sIdx * slotH,
+                      left: 0,
+                      right: 0,
+                      height: slotH,
+                      child: Container(
                         decoration: BoxDecoration(
-                          color: isToday
-                              ? colorScheme.primaryContainer
-                              : colorScheme.surfaceContainerHighest,
-                          borderRadius: dayIdx == 6
-                              ? const BorderRadius.only(
-                                  topRight: Radius.circular(16),
-                                )
-                              : BorderRadius.zero,
                           border: Border(
-                            left: BorderSide(
-                              color: colorScheme.outlineVariant,
+                            bottom: BorderSide(
+                              color: theme.colorScheme.outlineVariant
+                                  .withOpacity(0.2),
                               width: 0.5,
                             ),
                           ),
                         ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _weekdays[wd],
-                              style: TextStyle(
-                                color: isToday
-                                    ? colorScheme.primary
-                                    : colorScheme.onSurface,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            Text(
-                              isToday ? '今天 · $count 节' : '$count 节',
-                              style: TextStyle(
-                                color: colorScheme.onSurfaceVariant,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }),
-                  ],
-                ),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Column(
-                      children: List.generate(_maxSlots, (i) {
-                        return Container(
-                          width: timeColumnWidth,
-                          height: _slotHeight,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            border: Border(
-                              bottom: BorderSide(
-                                color: colorScheme.outlineVariant.withOpacity(
-                                  0.4,
-                                ),
-                                width: 0.5,
-                              ),
-                              right: BorderSide(
-                                color: colorScheme.outlineVariant.withOpacity(
-                                  0.4,
-                                ),
-                                width: 0.5,
-                              ),
-                            ),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                '${i + 1}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
-                                ),
-                              ),
-                              Text(
-                                _slotTime(i + 1),
-                                style: TextStyle(
-                                  fontSize: 9,
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
-                    ),
-                    ...List.generate(7, (dayIdx) {
-                      final wd = dayIdx + 1;
-                      final dayActivities = weekActivities
-                          .where((a) => a.weekday == wd)
-                          .toList();
-                      return SizedBox(
-                        width: dayWidth,
-                        height: _maxSlots * _slotHeight,
-                        child: _buildDayColumn(dayActivities, dayWidth),
-                      );
-                    }),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
+                      ),
+                    );
+                  }),
+                  ...entries.map((entry) {
+                    final start = entry.startUnit.clamp(1, totalSlots);
+                    final end = entry.endUnit.clamp(start, totalSlots);
+                    final span = (end - start + 1).clamp(1, totalSlots);
+                    final top = (start - 1) * slotH + 1.5;
+                    final h = span * slotH - 3.0;
 
-  String _slotTime(int slot) {
-    const times = [
-      '08:20',
-      '09:15',
-      '10:20',
-      '11:15',
-      '14:00',
-      '14:55',
-      '15:50',
-      '16:45',
-      '19:00',
-      '19:55',
-      '20:50',
-    ];
-    if (slot >= 1 && slot <= times.length) return times[slot - 1];
-    return '';
-  }
-
-  Widget _buildDayColumn(List<CourseActivity> activities, double width) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(
-          right: BorderSide(
-            color: colorScheme.outlineVariant.withOpacity(0.3),
-            width: 0.5,
-          ),
-        ),
-      ),
-      child: Stack(
-        children: [
-          ...List.generate(_maxSlots, (i) {
-            return Positioned(
-              top: i * _slotHeight,
-              left: 0,
-              right: 0,
-              height: _slotHeight,
-              child: Container(
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(
-                      color: colorScheme.outlineVariant.withOpacity(0.3),
-                      width: 0.5,
-                    ),
-                  ),
-                ),
+                    return Positioned(
+                      top: top,
+                      left: 1.5,
+                      right: 1.5,
+                      height: h,
+                      child: _buildCourseCard(entry, theme, isDark),
+                    );
+                  }),
+                ],
               ),
-            );
-          }),
-          ...activities.map((a) {
-            final start = (a.startUnit ?? 1).clamp(1, _maxSlots);
-            final end = (a.endUnit ?? start).clamp(start, _maxSlots);
-            final top = (start - 1) * _slotHeight;
-            final height = (end - start + 1) * _slotHeight;
-            return Positioned(
-              top: top + 3,
-              left: 1.5,
-              right: 1.5,
-              height: height - 6,
-              child: _buildActivityCard(a),
             );
           }),
         ],
@@ -824,94 +625,54 @@ class _JwSchedulePageState extends State<JwSchedulePage>
     );
   }
 
-  Color _courseColor(CourseActivity a) {
-    const colors = [
-      Color(0xFF2563EB),
-      Color(0xFF059669),
-      Color(0xFFEA580C),
-      Color(0xFF7C3AED),
-      Color(0xFF0891B2),
-      Color(0xFFDB2777),
-      Color(0xFF4F46E5),
-    ];
-    final key = a.courseCode ?? a.courseName ?? '';
-    var sum = 0;
-    for (final unit in key.codeUnits) {
-      sum += unit;
-    }
-    return colors[sum % colors.length];
-  }
-
-  String _formatCourseName(String name) {
-    if (name.isEmpty) return name;
-    final StringBuffer buffer = StringBuffer();
-    for (int i = 0; i < name.length; i++) {
-      buffer.write(name[i]);
-      if ((i + 1) % 3 == 0 && (i + 1) < name.length) {
-        buffer.write('\n');
-      }
-    }
-    return buffer.toString();
-  }
-
-  Widget _buildActivityCard(CourseActivity a) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final color = _courseColor(a);
-    final duration = (a.endUnit ?? 0) - (a.startUnit ?? 0) + 1;
-    final maxLines = duration > 1
-        ? duration * 3
-        : (_slotHeight > 160
-              ? 8
-              : (_slotHeight > 100 ? 5 : (_slotHeight > 70 ? 4 : 3)));
+  Widget _buildCourseCard(JwScheduleEntry entry, ThemeData theme, bool isDark) {
+    final hash = entry.courseName.hashCode.abs();
+    final hue = (hash % 360).toDouble();
+    final bg = isDark
+        ? HSLColor.fromAHSL(0.35, hue, 0.65, 0.28).toColor()
+        : HSLColor.fromAHSL(0.22, hue, 0.70, 0.85).toColor();
+    final textColor = isDark
+        ? HSLColor.fromAHSL(1.0, hue, 0.75, 0.80).toColor()
+        : HSLColor.fromAHSL(1.0, hue, 0.75, 0.30).toColor();
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
+        onTap: () => _showDetailModal(entry),
         borderRadius: BorderRadius.circular(6),
-        onTap: () => _showCourseDetail(a),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+          padding: const EdgeInsets.symmetric(horizontal: 2.5, vertical: 3),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.13),
+            color: bg,
             borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: color.withOpacity(0.35)),
+            border: Border.all(color: textColor.withOpacity(0.25), width: 0.6),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                _formatCourseName(a.courseName ?? ''),
+                entry.courseName,
                 style: TextStyle(
-                  color: color,
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 9.5,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
                   height: 1.1,
                 ),
-                maxLines: maxLines,
+                maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 3),
-              if (a.room != null)
+              if (entry.roomName.isNotEmpty) ...[
+                const SizedBox(height: 1.5),
                 Text(
-                  a.room!,
+                  '@ ${entry.roomName}',
                   style: TextStyle(
-                    color: colorScheme.onSurfaceVariant,
-                    fontSize: 9.0,
+                    fontSize: 8.0,
+                    color: textColor.withOpacity(0.85),
                   ),
-                  maxLines: _slotHeight > 160 ? 3 : (duration > 1 ? 2 : 1),
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-              if (a.teacherStr.isNotEmpty)
-                Text(
-                  a.teacherStr,
-                  style: TextStyle(
-                    color: colorScheme.onSurfaceVariant,
-                    fontSize: 9.0,
-                  ),
-                  maxLines: _slotHeight > 160 ? 3 : (duration > 1 ? 2 : 1),
-                  overflow: TextOverflow.ellipsis,
-                ),
+              ],
             ],
           ),
         ),
@@ -919,28 +680,24 @@ class _JwSchedulePageState extends State<JwSchedulePage>
     );
   }
 
-  void _showCourseDetail(CourseActivity a) {
+  /// 遵循 AGENTS.md 约束，使用 sheetAnimationStyle 控制 150ms 进场与 120ms 退场
+  void _showDetailModal(JwScheduleEntry entry) {
+    final theme = Theme.of(context);
     showModalBottomSheet(
       context: context,
-      showDragHandle: false,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
       sheetAnimationStyle: const AnimationStyle(
         duration: Duration(milliseconds: 150),
         reverseDuration: Duration(milliseconds: 120),
       ),
       builder: (ctx) {
-        final colorScheme = Theme.of(ctx).colorScheme;
         return Material(
-          color: colorScheme.surface,
-          shape: const RoundedRectangleBorder(
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(20),
-              topRight: Radius.circular(20),
-            ),
-          ),
+          color: theme.colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -948,56 +705,52 @@ class _JwSchedulePageState extends State<JwSchedulePage>
                   Center(
                     child: Container(
                       width: 36,
-                      height: 4.5,
-                      margin: const EdgeInsets.symmetric(vertical: 8),
+                      height: 4,
                       decoration: BoxDecoration(
-                        color: colorScheme.onSurfaceVariant.withOpacity(0.4),
-                        borderRadius: BorderRadius.circular(2.25),
+                        color: theme.colorScheme.outlineVariant,
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                   ),
+                  const SizedBox(height: 16),
                   Text(
-                    a.courseName ?? '课程详情',
+                    entry.courseName,
                     style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 14),
-                  _detailRow('课程代码', a.courseCode),
-                  _detailRow(
-                    '教师',
-                    a.teacherStr.isNotEmpty ? a.teacherStr : null,
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: [
+                      Chip(
+                        label: Text(
+                          '${_weekdays[entry.weekday]} 第${entry.startUnit}-${entry.endUnit}节 (${entry.startTime}~${entry.endTime})',
+                        ),
+                      ),
+                      if (entry.roomName.isNotEmpty)
+                        Chip(label: Text(entry.roomName)),
+                      if (entry.teacherName.isNotEmpty)
+                        Chip(label: Text(entry.teacherName)),
+                    ],
                   ),
-                  _detailRow('教室', a.room),
-                  _detailRow('校区', a.campus),
-                  _detailRow('上课时间', '${a.weekdayStr} ${a.slotRange}'),
-                  _detailRow('周次', a.weeksStr ?? a.weekIndexes.join(', ')),
-                  if (a.credits != null)
-                    _detailRow('学分', a.credits!.toStringAsFixed(1)),
+                  const Divider(height: 24),
+                  ...entry.activities.map(
+                    (act) => Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Text(
+                        '• ${act.courseCode} ${act.room} (第${act.weekIndexes.join(",")}周)',
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
         );
       },
-    );
-  }
-
-  Widget _detailRow(String label, String? value) {
-    if (value == null || value.isEmpty) return const SizedBox();
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 70,
-            child: Text('$label:', style: const TextStyle(color: Colors.grey)),
-          ),
-          Expanded(child: Text(value)),
-        ],
-      ),
     );
   }
 }
