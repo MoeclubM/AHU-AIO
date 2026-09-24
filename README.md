@@ -1,49 +1,54 @@
-# AHU-AIO (安徽大学校园多合一助手)
+# AHU-AIO
 
-AHU-AIO 是一款专为安徽大学学子打造的校园生活多合一移动客户端。它将课表查询、成绩管理、一卡通付款及校园通知等常用功能聚合在一起，为你提供流畅、现代、无广告的校园服务体验。
+安徽大学校园多合一客户端。课表、成绩、一卡通、通知，一个 App 搞定。
 
----
+[![Release](https://img.shields.io/github/v/release/MoeclubM/AHU-AIO)](https://github.com/MoeclubM/AHU-AIO/releases)
+[![License](https://img.shields.io/github/license/MoeclubM/AHU-AIO)](LICENSE)
+[![Flutter](https://img.shields.io/badge/Flutter-3.44+-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
 
-## 🌟 核心功能
+## 功能
 
-- 📅 **智能课表**：支持周次自由切换，自动高亮当前周，完美过滤未知课程。
-- 💳 **一卡通/付款码**：支持校园一码通，可快速刷码支付及查询账户余额与充值。
-- 🏆 **成绩与方案**：支持安大教务与微教务的成绩一键查询，并包含培养方案。
-- 🏫 **空闲教室查询**：快速检索各校区、教学楼在不同时段的空闲教室，自习找座神器。
-- 🔔 **通知公告**：实时同步学校重要教务通知与公告，不再遗漏任何重要资讯。
+| 模块 | 说明 |
+|------|------|
+| 课表 | 周次切换、当前周高亮、过滤未知课程 |
+| 成绩 / 培养方案 | 教务与微教务双通道查询 |
+| 一卡通 | 一码通支付、余额查询、充值 |
+| 空闲教室 | 按校区 / 教学楼 / 时段检索 |
+| 通知公告 | 教务通知与校内公告同步 |
 
----
+界面提供 **Miuix（HyperOS）** 与 **Material 3** 双风格，支持动态取色、液态玻璃与 AMOLED。
 
-## 🚀 快速上手
+## 安装
 
-### 1. 下载与安装
-你可以在本项目的 **[GitHub Releases](https://github.com/MoeclubM/AHU-AIO/releases)** 页面中下载最新打包的 `AHU-AIO-Beta-Android-arm64.apk` 直接安装至你的安卓手机。
+从 [Releases](https://github.com/MoeclubM/AHU-AIO/releases) 下载最新 `AHU-AIO-Beta-Android-arm64.apk` 安装到 Android 设备。
 
-### 2. 账号登录
-- **微教务 / 一卡通**：使用你的统一身份认证（学号）登录即可。
-- **安大教务**：使用教务系统的账号密码登录，若登录失效，系统会自动提示并引导重新登录。
+**登录**
 
----
+| 入口 | 凭据 |
+|------|------|
+| 微教务 / 一卡通 | 统一身份认证（学号） |
+| 安大教务 | 教务系统账号密码（失效会引导重登） |
 
-## 🛠️ 简易开发指南
+## 开发
 
-如果你是开发者并想在本地运行或贡献代码，只需按以下步骤操作：
+```bash
+# 依赖
+flutter pub get
 
-1. **环境准备**：本地安装 [Flutter SDK](https://docs.flutter.dev/get-started/install)。
-2. **获取依赖**：
-   ```bash
-   flutter pub get
-   ```
-3. **运行项目**：
-   ```bash
-   flutter run
-   ```
+# 运行
+flutter run
 
-> [!NOTE]
-> 在提交修改前，建议在本地运行 `flutter analyze` 确保无代码规范警告。
+# 静态检查（提交前请确保通过）
+flutter analyze
 
----
+# 测试
+flutter test
+```
 
-## 🤝 贡献与反馈
+要求：Flutter `>=3.44`，Dart `>=3.12`。
 
-欢迎提交 Issue 或 Pull Request 来一起完善 AHU-AIO！如果你在使用过程中遇到任何问题，欢迎在 GitHub 反馈。
+发布流程见 [CI 说明](.github/CI_README.md)。
+
+## 贡献
+
+Issue / PR 均欢迎。改代码前请跑通 `flutter analyze` 与 `flutter test`。
