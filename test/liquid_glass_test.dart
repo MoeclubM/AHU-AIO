@@ -126,9 +126,7 @@ void main() {
       expect(origin, isNot(const Offset(0, 0)));
     });
 
-    testWidgets('Transform.scale 下 pad 也跟着缩放，不得再全局减 pad', (
-      tester,
-    ) async {
+    testWidgets('Transform.scale 下 pad 也跟着缩放，不得再全局减 pad', (tester) async {
       const double dpr = 1.0;
       const double pad = 24;
       const double scale = 1.25;
@@ -156,9 +154,8 @@ void main() {
         ),
       );
 
-      final RenderBox box = tester.renderObject(
-        find.byType(_OriginProbe),
-      ) as RenderBox;
+      final RenderBox box =
+          tester.renderObject(find.byType(_OriginProbe)) as RenderBox;
       final Offset origin = liquidGlassRegionOrigin(box, pad: pad, dpr: dpr);
 
       // 正确值：把 (-pad,-pad) 变换到屏幕。中心缩放时不能用

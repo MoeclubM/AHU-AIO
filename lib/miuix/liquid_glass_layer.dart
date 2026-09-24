@@ -279,8 +279,7 @@ class _LiquidGlassLayerState extends State<LiquidGlassLayer> {
         // 只有真正走折射时才外扩：形状周围需要背景纹理供边缘取样，且必须
         // 先拿到区域在屏幕中的位置（否则几何不可信，宁可退回纯模糊）。
         final RenderObject? ro = context.findRenderObject();
-        final bool canSample =
-            _usesRefraction && ro is RenderBox && ro.hasSize;
+        final bool canSample = _usesRefraction && ro is RenderBox && ro.hasSize;
         final bool refract = canSample;
         final double pad = refract ? widget.padding : 0;
         if (refract && ro is RenderBox) {
@@ -521,19 +520,16 @@ class _RenderLiquidGlassShaderSync extends RenderProxyBox {
       final double baseH = size.height + pad * 2;
       final double visualScale =
           (((baseW > 0 ? spanX / baseW : 1.0) +
-                  (baseH > 0 ? spanY / baseH : 1.0)) /
-              2);
+              (baseH > 0 ? spanY / baseH : 1.0)) /
+          2);
 
       s
         ..getUniformVec2('u_origin').set(topLeft.dx * dpr, topLeft.dy * dpr)
         ..getUniformVec2('u_region_size').set(spanX * dpr, spanY * dpr)
         ..getUniformFloat('u_dpr').set(dpr * visualScale)
-        ..getUniformVec4('u_radius').set(
-          cornerRadius,
-          cornerRadius,
-          cornerRadius,
-          cornerRadius,
-        )
+        ..getUniformVec4(
+          'u_radius',
+        ).set(cornerRadius, cornerRadius, cornerRadius, cornerRadius)
         ..getUniformFloat('u_refraction_height').set(refractionHeight)
         ..getUniformFloat('u_refraction_amount').set(refractionAmount)
         ..getUniformFloat('u_depth_effect').set(depthEffect)

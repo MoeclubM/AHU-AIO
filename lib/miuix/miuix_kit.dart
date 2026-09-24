@@ -175,9 +175,7 @@ class MiuixSquircleBorder extends OutlinedBorder {
         tTR >= halfMin - 0.01 &&
         tBR >= halfMin - 0.01 &&
         tBL >= halfMin - 0.01) {
-      path.addRRect(
-        RRect.fromRectAndRadius(rect, Radius.circular(halfMin)),
-      );
+      path.addRRect(RRect.fromRectAndRadius(rect, Radius.circular(halfMin)));
       return path;
     }
 
@@ -546,7 +544,11 @@ class MiuixSwitch extends StatefulWidget {
 
   /// 轨道变色弹簧（官方 `spring(0.99, 438.6)`）。
   static SpringDescription get trackColorSpring =>
-      SpringDescription.withDampingRatio(mass: 1, stiffness: 438.6, ratio: 0.99);
+      SpringDescription.withDampingRatio(
+        mass: 1,
+        stiffness: 438.6,
+        ratio: 0.99,
+      );
 
   final bool value;
   final ValueChanged<bool>? onChanged;
@@ -1243,8 +1245,7 @@ class _MiuixNavigationBarItemState extends State<MiuixNavigationBarItem> {
               children: [
                 Padding(
                   padding: EdgeInsets.only(
-                    top: widget.mode ==
-                            MiuixNavigationBarDisplayMode.iconOnly
+                    top: widget.mode == MiuixNavigationBarDisplayMode.iconOnly
                         ? (MiuixNavigationBar.itemHeight -
                                   MiuixNavigationBar.iconSize) /
                               2
@@ -1252,10 +1253,10 @@ class _MiuixNavigationBarItemState extends State<MiuixNavigationBarItem> {
                                   MiuixNavigationBarDisplayMode
                                       .iconWithSelectedLabel &&
                               !widget.selected)
-                            ? (MiuixNavigationBar.itemHeight -
-                                      MiuixNavigationBar.iconSize) /
-                                  2
-                            : MiuixNavigationBar.iconTopPadding,
+                        ? (MiuixNavigationBar.itemHeight -
+                                  MiuixNavigationBar.iconSize) /
+                              2
+                        : MiuixNavigationBar.iconTopPadding,
                   ),
                   child: IconTheme.merge(
                     data: IconThemeData(
@@ -1346,11 +1347,7 @@ class MiuixSuperArrow extends StatelessWidget {
     final MiuixColors c = theme.colors;
     final Widget arrow =
         chevron ??
-        Icon(
-          Icons.chevron_right,
-          size: 20,
-          color: c.onSurfaceVariantActions,
-        );
+        Icon(Icons.chevron_right, size: 20, color: c.onSurfaceVariantActions);
     return MiuixBasicComponent(
       title: title,
       summary: summary,
