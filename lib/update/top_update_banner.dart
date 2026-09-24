@@ -12,10 +12,7 @@ import 'github_update_service.dart';
 /// - 支持手势向上、向左或向右直接划走（Dismissible）；
 /// - 背景透明点击穿透，不阻断底层正常交互；
 /// - 纯粹提示，不含任何自动下载逻辑。
-void showTopUpdateBanner(
-  BuildContext context, {
-  required AppUpdateInfo info,
-}) {
+void showTopUpdateBanner(BuildContext context, {required AppUpdateInfo info}) {
   final overlayState = Overlay.maybeOf(context, rootOverlay: true);
   if (overlayState == null) return;
 
@@ -41,10 +38,7 @@ class _TopUpdateBannerWidget extends StatefulWidget {
   final AppUpdateInfo info;
   final VoidCallback onDismissed;
 
-  const _TopUpdateBannerWidget({
-    required this.info,
-    required this.onDismissed,
-  });
+  const _TopUpdateBannerWidget({required this.info, required this.onDismissed});
 
   @override
   State<_TopUpdateBannerWidget> createState() => _TopUpdateBannerWidgetState();
@@ -154,7 +148,9 @@ class _TopUpdateBannerWidgetState extends State<_TopUpdateBannerWidget>
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(isDark ? 0.28 : 0.10),
+                            color: Colors.black.withOpacity(
+                              isDark ? 0.28 : 0.10,
+                            ),
                             blurRadius: 10,
                             offset: const Offset(0, 3),
                           ),

@@ -30,7 +30,8 @@ void main() {
               builder: (context) {
                 return Center(
                   child: ElevatedButton(
-                    onPressed: () => showTopUpdateBanner(context, info: dummyInfo),
+                    onPressed: () =>
+                        showTopUpdateBanner(context, info: dummyInfo),
                     child: const Text('触发提示'),
                   ),
                 );
@@ -61,7 +62,8 @@ void main() {
               builder: (context) {
                 return Center(
                   child: ElevatedButton(
-                    onPressed: () => showTopUpdateBanner(context, info: dummyInfo),
+                    onPressed: () =>
+                        showTopUpdateBanner(context, info: dummyInfo),
                     child: const Text('触发提示'),
                   ),
                 );
