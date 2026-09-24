@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../api/synjones_client.dart';
 import 'finance_recharge_detail_page.dart';
 import '../../adaptive_ui.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../../miuix/adaptive_top_app_bar.dart';
 
 /// 充值缴费页面视图模式通知器（false: 网格大方块, true: 列表左图标右文字）
 final ValueNotifier<bool> financeRechargeIsListViewNotifier =
@@ -152,7 +152,7 @@ class _FinanceRechargePageState extends State<FinanceRechargePage>
     return Scaffold(
       appBar: widget.embed
           ? null
-          : LiquidGlassAppBar(
+          : AdaptiveTopAppBar(
               title: const Text('充值入口'),
               actions: [
                 ValueListenableBuilder<bool>(

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../api/getplan.dart';
 import '../../globals.dart' as globals;
 import '../../adaptive_ui.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../../miuix/adaptive_top_app_bar.dart';
 
 /// 培养方案完成情况页面（原版教务系统风格）
 class AcademicWarningPage extends StatefulWidget {
@@ -52,7 +52,7 @@ class _AcademicWarningPageState extends State<AcademicWarningPage>
     final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: LiquidGlassAppBar(
+      appBar: AdaptiveTopAppBar(
         title: const Text('培养方案完成情况'),
         actions: [
           AdaptiveIconButton(

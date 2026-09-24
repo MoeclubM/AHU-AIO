@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../api/jw_api.dart';
 import '../models/jw_models.dart';
 import '../../adaptive_ui.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../../miuix/adaptive_top_app_bar.dart';
 
 class JwProgramPage extends StatefulWidget {
   final bool embed;
@@ -58,7 +58,7 @@ class _JwProgramPageState extends State<JwProgramPage>
     return Scaffold(
       appBar: widget.embed
           ? null
-          : LiquidGlassAppBar(title: const Text('培养方案')),
+          : AdaptiveTopAppBar(title: const Text('培养方案')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

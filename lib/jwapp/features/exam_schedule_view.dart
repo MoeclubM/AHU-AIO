@@ -3,7 +3,7 @@ import 'package:intl/intl.dart';
 import '../../globals.dart' as globals;
 import '../../adaptive_ui.dart';
 import '../../adaptive_dropdown.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../../miuix/adaptive_top_app_bar.dart';
 import '../api/api_manager.dart';
 import '../api/api_models.dart';
 
@@ -130,7 +130,7 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: LiquidGlassAppBar(
+      appBar: AdaptiveTopAppBar(
         title: const Text('考试安排'),
         bottom: AdaptiveTabBar(
           controller: _tabController,

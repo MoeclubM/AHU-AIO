@@ -4,7 +4,7 @@ import '../models/room_model.dart';
 import '../../globals.dart' as globals;
 import '../../adaptive_ui.dart';
 import '../../adaptive_dropdown.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../../miuix/adaptive_top_app_bar.dart';
 
 class RoomPage extends StatefulWidget {
   final bool embed;
@@ -131,7 +131,7 @@ class _RoomPageState extends State<RoomPage>
     return Scaffold(
       appBar: widget.embed
           ? null
-          : LiquidGlassAppBar(title: const Text('空闲教室查询')),
+          : AdaptiveTopAppBar(title: const Text('空闲教室查询')),
       body: Column(
         children: [
           _buildFilterSection(),

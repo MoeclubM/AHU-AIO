@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../adaptive_ui.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../../miuix/adaptive_top_app_bar.dart';
 import '../features/grades_view.dart';
 import '../features/room_view.dart';
 
@@ -11,7 +11,7 @@ class FuncPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: embed ? null : LiquidGlassAppBar(title: const Text('更多功能')),
+      appBar: embed ? null : AdaptiveTopAppBar(title: const Text('更多功能')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: GridView.builder(

@@ -1,7 +1,7 @@
 // Flutter runtime effect port of miuix-blur BloomStroke AGSL shader.
 // Rounded-rect SDF + 3D hemispheric rim normal lit by two directional lights.
 // See compose-miuix-ui/miuix miuix-blur internal/Shaders.kt (Apache-2.0).
-// Preset lights (GlassStrokeMiddle) hardcoded for a minimal uniform set.
+// Preset lights (iOS specular / dualPeak) hardcoded for a minimal uniform set.
 #include <flutter/runtime_effect.glsl>
 
 uniform vec2 u_size;          // fragment coordinate space size
@@ -63,26 +63,27 @@ void main() {
     float outMask = smoothstep(0.0, -1.0, sdf);
     float strokeAlpha = smoothstep(-u_stroke_width, -u_stroke_width + 1.0, sdf);
 
-    // GlassStrokeMiddle preset: stroke color white, alpha 0.05/0.06.
+    // GlassStrokeMiddle / iOS specular: stroke color white, dual-peak rim.
     float strokeAlphaMul = 0.12;
     vec3 rgb = vec3(strokeAlphaMul * strokeAlpha * strokeAlpha);
 
     vec3 n = getNormal(fragCoord, sdf, R, halfView);
 
-    // Primary light (0.5, 0.5, -0.5), intensity 0.4 / 0.5.
-    vec3 primaryLightDir = normalize(vec3(0.5 - LIGHT_REF_X, 0.5 - LIGHT_REF_Y, -0.5));
-    vec2 primaryAxis = normalize(vec2(primaryLightDir.x, primaryLightDir.y));
-    float pIntensity = mix(0.4, 0.5, u_dark);
-    float falloff1 = max(dot(vec3(primaryAxis, 0.0), n), 0.0);
-    float light1 = clamp(dot(n, primaryLightDir) * falloff1, 0.0, 1.0);
+    // iOS specular primary light (0.5, -0.3, -0.05), intensity 1.0.
+    // dualPeak：用 abs(dot) 形成对称双瓣高光，更接近参考库 BloomStroke。
+    vec3 primaryLightDir = normalize(vec3(0.5 - LIGHT_REF_X, -0.3 - LIGHT_REF_Y, -0.05));
+    vec2 primaryAxis = normalize(vec2(primaryLightDir.x, primaryLightDir.y) + vec2(1e-5, 0.0));
+    float falloff1 = abs(dot(vec3(primaryAxis, 0.0), n));
+    float light1 = clamp(abs(dot(n, primaryLightDir)) * falloff1, 0.0, 1.0);
+    float pIntensity = mix(0.85, 1.0, u_dark);
     rgb += vec3(light1 * light1 * pIntensity);
 
-    // Secondary light (0.5, 0.8, -0.5), intensity 0.25.
+    // Secondary light (0.5, 0.8, -0.5), intensity 0.4.
     vec3 secondaryLightDir = normalize(vec3(0.5 - LIGHT_REF_X, 0.8 - LIGHT_REF_Y, -0.5));
-    vec2 secondaryAxis = normalize(vec2(secondaryLightDir.x, secondaryLightDir.y));
-    float falloff2 = max(dot(vec3(secondaryAxis, 0.0), n), 0.0);
-    float light2 = clamp(dot(n, secondaryLightDir) * falloff2, 0.0, 1.0);
-    rgb += vec3(light2 * light2 * 0.25);
+    vec2 secondaryAxis = normalize(vec2(secondaryLightDir.x, secondaryLightDir.y) + vec2(1e-5, 0.0));
+    float falloff2 = abs(dot(vec3(secondaryAxis, 0.0), n));
+    float light2 = clamp(abs(dot(n, secondaryLightDir)) * falloff2, 0.0, 1.0);
+    rgb += vec3(light2 * light2 * 0.4);
 
     // 仅边缘带可见：矩形内部深处与外部均透明，
     // 避免整块覆盖内容导致黑屏并遮挡点击。

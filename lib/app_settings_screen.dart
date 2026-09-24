@@ -10,7 +10,7 @@ import 'auth/auth_manager.dart';
 import 'jw/login/jw_login_service.dart';
 import 'finance/api/synjones_client.dart';
 import 'auth/cas_auth_cache.dart';
-import 'miuix/liquid_glass_app_bar.dart';
+import 'miuix/adaptive_top_app_bar.dart';
 import 'update/github_update_service.dart';
 import 'update/update_dialog.dart';
 
@@ -140,7 +140,7 @@ class _AppSettingsScreenState extends State<AppSettingsScreen> {
     final chevron = Icon(Icons.chevron_right, color: scheme.onSurfaceVariant);
 
     return Scaffold(
-      appBar: const LiquidGlassAppBar(title: Text('系统设置')),
+      appBar: const AdaptiveTopAppBar(title: Text('系统设置')),
       body: ListView(
         padding: adaptivePagePadding(
           context,

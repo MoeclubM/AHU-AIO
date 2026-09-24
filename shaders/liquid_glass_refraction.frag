@@ -27,8 +27,8 @@ uniform vec2 u_region_size;
 // 设备像素比：把逻辑像素参数换算成片上单位。
 uniform float u_dpr;
 
-// 圆角半径（逻辑像素）。
-uniform float u_radius;
+// 圆角半径（逻辑像素）。支持四角独立：x=TL, y=TR, z=BR, w=BL。
+uniform vec4 u_radius;
 
 // 折射高度与强度（逻辑像素），对应 Kotlin 的 refractionHeight / refractionAmount。
 uniform float u_refraction_height;
@@ -41,6 +41,15 @@ uniform float u_depth_effect;
 uniform float u_dispersion;
 
 out vec4 frag_color;
+
+float radiusAt(vec2 coord, vec4 radii) {
+  if (coord.x >= 0.0) {
+    if (coord.y <= 0.0) return radii.y;
+    return radii.z;
+  }
+  if (coord.y <= 0.0) return radii.x;
+  return radii.w;
+}
 
 float sdRoundedRect(vec2 coord, vec2 halfSize, float radius) {
   vec2 cornerCoord = abs(coord) - (halfSize - vec2(radius));
@@ -78,8 +87,12 @@ void main() {
   vec2 local = FlutterFragCoord().xy - u_origin;
 
   vec2 halfSize = max(u_region_size * 0.5, vec2(1.0));
-  float radius = clamp(u_radius * u_dpr, 0.0, min(halfSize.x, halfSize.y));
   vec2 centered = local - halfSize;
+  float radius = clamp(
+    radiusAt(centered, u_radius) * u_dpr,
+    0.0,
+    min(halfSize.x, halfSize.y)
+  );
 
   float sd = sdRoundedRect(centered, halfSize, radius);
 

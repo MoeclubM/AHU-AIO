@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../adaptive_ui.dart';
 import '../../auth/unified_login_page.dart';
 import '../../globals.dart' as globals;
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../../miuix/adaptive_top_app_bar.dart';
 import '../../theme_manager.dart';
 import '../api/getuserinfo_extended.dart';
 import '../api/unauthorized_exception.dart';
@@ -106,7 +106,7 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: LiquidGlassAppBar(title: const Text('设置')),
+      appBar: AdaptiveTopAppBar(title: const Text('设置')),
       body: FutureBuilder(
         future: _loadUserInfo(),
         builder: (context, snapshot) {

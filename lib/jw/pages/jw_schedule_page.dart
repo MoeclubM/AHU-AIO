@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../api/jw_api.dart';
 import '../models/jw_models.dart';
 import '../../adaptive_ui.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../../miuix/adaptive_top_app_bar.dart';
 
 class JwSchedulePage extends StatefulWidget {
   final bool embed;
@@ -166,7 +166,7 @@ class _JwSchedulePageState extends State<JwSchedulePage>
     return Scaffold(
       appBar: widget.embed
           ? null
-          : LiquidGlassAppBar(
+          : AdaptiveTopAppBar(
               title: Text(
                 _tableData?.studentName != null
                     ? '${_tableData!.studentName}的课表'

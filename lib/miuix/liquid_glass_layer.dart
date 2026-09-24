@@ -247,7 +247,14 @@ class _LiquidGlassLayerState extends State<LiquidGlassLayer> {
         .getUniformVec2('u_region_size')
         .set(regionDevice.width, regionDevice.height);
     shader.getUniformFloat('u_dpr').set(dpr * visualScale);
-    shader.getUniformFloat('u_radius').set(widget.cornerRadius);
+    shader
+        .getUniformVec4('u_radius')
+        .set(
+          widget.cornerRadius,
+          widget.cornerRadius,
+          widget.cornerRadius,
+          widget.cornerRadius,
+        );
     shader.getUniformFloat('u_refraction_height').set(widget.refractionHeight);
     shader.getUniformFloat('u_refraction_amount').set(widget.refractionAmount);
     shader.getUniformFloat('u_depth_effect').set(widget.depthEffect);
@@ -521,7 +528,12 @@ class _RenderLiquidGlassShaderSync extends RenderProxyBox {
         ..getUniformVec2('u_origin').set(topLeft.dx * dpr, topLeft.dy * dpr)
         ..getUniformVec2('u_region_size').set(spanX * dpr, spanY * dpr)
         ..getUniformFloat('u_dpr').set(dpr * visualScale)
-        ..getUniformFloat('u_radius').set(cornerRadius)
+        ..getUniformVec4('u_radius').set(
+          cornerRadius,
+          cornerRadius,
+          cornerRadius,
+          cornerRadius,
+        )
         ..getUniformFloat('u_refraction_height').set(refractionHeight)
         ..getUniformFloat('u_refraction_amount').set(refractionAmount)
         ..getUniformFloat('u_depth_effect').set(depthEffect)

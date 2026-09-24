@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../adaptive_ui.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../../miuix/adaptive_top_app_bar.dart';
 import '../api/jw_api.dart';
 
 class JwNoticePage extends StatefulWidget {
@@ -78,7 +78,7 @@ class _JwNoticePageState extends State<JwNoticePage>
     return Scaffold(
       appBar: widget.embed
           ? null
-          : LiquidGlassAppBar(
+          : AdaptiveTopAppBar(
               title: const Text('通知公告'),
               actions: [
                 AdaptiveIconButton(

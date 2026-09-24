@@ -46,7 +46,7 @@ void main() {
           shader.getUniformVec2('u_origin').set(48, 1800);
           shader.getUniformVec2('u_region_size').set(680, 300);
           shader.getUniformFloat('u_dpr').set(2.75);
-          shader.getUniformFloat('u_radius').set(32);
+          shader.getUniformVec4('u_radius').set(32, 32, 32, 32);
           shader.getUniformFloat('u_refraction_height').set(24);
           shader.getUniformFloat('u_refraction_amount').set(24);
           shader.getUniformFloat('u_depth_effect').set(0);

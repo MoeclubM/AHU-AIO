@@ -5,7 +5,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../adaptive_ui.dart';
 import '../../adaptive_dropdown.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../../miuix/adaptive_top_app_bar.dart';
 import '../api/synjones_client.dart';
 
 class FinanceRechargeDetailPage extends StatefulWidget {
@@ -815,7 +815,7 @@ class _FinanceRechargeDetailPageState extends State<FinanceRechargeDetailPage> {
   Widget build(BuildContext context) {
     final title = _title(widget.entry);
     return Scaffold(
-      appBar: LiquidGlassAppBar(title: Text(title)),
+      appBar: AdaptiveTopAppBar(title: Text(title)),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

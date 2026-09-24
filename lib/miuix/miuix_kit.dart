@@ -28,28 +28,66 @@ export 'miuix_tokens.dart';
 /// 三次贝塞尔连续曲率圆角，`control = 0.643`，角部区域 `extension = 1.1`
 /// （角部平铺边长 = `cornerRadius * 1.1`）。半径达到短边一半时退化为胶囊。
 class MiuixSquircleBorder extends OutlinedBorder {
-  const MiuixSquircleBorder({this.cornerRadius = 16, super.side});
+  const MiuixSquircleBorder({
+    this.cornerRadius = 16,
+    this.topLeft,
+    this.topRight,
+    this.bottomRight,
+    this.bottomLeft,
+    this.extension = defaultExtension,
+    super.side,
+  });
 
+  /// 统一半径；四角未单独指定时使用。
   final double cornerRadius;
+
+  /// 每角独立半径（LTR：左上/右上/右下/左下）。
+  final double? topLeft;
+  final double? topRight;
+  final double? bottomRight;
+  final double? bottomLeft;
+
+  /// 角部区域相对半径的倍数，范围 [1, 2]，默认 1.1。
+  final double extension;
 
   /// 三次贝塞尔控制柄比例，与上游 `SQUIRCLE_CONTROL` 一致。
   static const double _control = 0.643;
 
-  /// 角部区域相对 [cornerRadius] 的倍数，与上游 `SquircleDefaults.Extension` 一致。
-  static const double extension = 1.1;
+  /// 上游 `SquircleDefaults.Extension`。
+  static const double defaultExtension = 1.1;
+
+  double get _tl => topLeft ?? cornerRadius;
+  double get _tr => topRight ?? cornerRadius;
+  double get _br => bottomRight ?? cornerRadius;
+  double get _bl => bottomLeft ?? cornerRadius;
 
   @override
   EdgeInsetsGeometry get dimensions => EdgeInsets.all(side.width);
 
   @override
-  Path getOuterPath(Rect rect, {TextDirection? textDirection}) =>
-      _buildPath(rect, cornerRadius);
+  Path getOuterPath(Rect rect, {TextDirection? textDirection}) => _buildPath(
+    rect,
+    _tl,
+    _tr,
+    _br,
+    _bl,
+    extension.clamp(1.0, 2.0),
+    textDirection ?? TextDirection.ltr,
+  );
 
   @override
-  Path getInnerPath(Rect rect, {TextDirection? textDirection}) => _buildPath(
-    rect.deflate(side.width),
-    math.max(0, cornerRadius - side.width),
-  );
+  Path getInnerPath(Rect rect, {TextDirection? textDirection}) {
+    final double inset = side.width;
+    return _buildPath(
+      rect.deflate(inset),
+      math.max(0, _tl - inset),
+      math.max(0, _tr - inset),
+      math.max(0, _br - inset),
+      math.max(0, _bl - inset),
+      extension.clamp(1.0, 2.0),
+      textDirection ?? TextDirection.ltr,
+    );
+  }
 
   @override
   void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
@@ -58,68 +96,138 @@ class MiuixSquircleBorder extends OutlinedBorder {
   }
 
   @override
-  ShapeBorder scale(double t) =>
-      MiuixSquircleBorder(cornerRadius: cornerRadius * t, side: side.scale(t));
+  ShapeBorder scale(double t) => MiuixSquircleBorder(
+    cornerRadius: cornerRadius * t,
+    topLeft: topLeft != null ? topLeft! * t : null,
+    topRight: topRight != null ? topRight! * t : null,
+    bottomRight: bottomRight != null ? bottomRight! * t : null,
+    bottomLeft: bottomLeft != null ? bottomLeft! * t : null,
+    extension: extension,
+    side: side.scale(t),
+  );
 
   @override
-  OutlinedBorder copyWith({BorderSide? side}) =>
-      MiuixSquircleBorder(cornerRadius: cornerRadius, side: side ?? this.side);
+  OutlinedBorder copyWith({BorderSide? side}) => MiuixSquircleBorder(
+    cornerRadius: cornerRadius,
+    topLeft: topLeft,
+    topRight: topRight,
+    bottomRight: bottomRight,
+    bottomLeft: bottomLeft,
+    extension: extension,
+    side: side ?? this.side,
+  );
 
   @override
   bool operator ==(Object other) =>
       other is MiuixSquircleBorder &&
       other.cornerRadius == cornerRadius &&
+      other.topLeft == topLeft &&
+      other.topRight == topRight &&
+      other.bottomRight == bottomRight &&
+      other.bottomLeft == bottomLeft &&
+      other.extension == extension &&
       other.side == side;
 
   @override
-  int get hashCode => Object.hash(cornerRadius, side);
+  int get hashCode => Object.hash(
+    cornerRadius,
+    topLeft,
+    topRight,
+    bottomRight,
+    bottomLeft,
+    extension,
+    side,
+  );
 
-  static Path _buildPath(Rect rect, double radius) {
+  static Path _buildPath(
+    Rect rect,
+    double tl,
+    double tr,
+    double br,
+    double bl,
+    double ext,
+    TextDirection textDirection,
+  ) {
     final Path path = Path();
     if (rect.isEmpty) return path;
-    final double width = rect.width;
-    final double height = rect.height;
-    final double halfMin = math.min(width, height) * 0.5;
-    final double tile = math.max(0.0, radius * extension).clamp(0.0, halfMin);
-    if (tile <= 0.01) {
+    // RTL：把 start/end 映射到物理角。
+    final double rTL = textDirection == TextDirection.ltr ? tl : tr;
+    final double rTR = textDirection == TextDirection.ltr ? tr : tl;
+    final double rBR = textDirection == TextDirection.ltr ? br : bl;
+    final double rBL = textDirection == TextDirection.ltr ? bl : br;
+
+    final double w = rect.width;
+    final double h = rect.height;
+    final double halfMin = math.min(w, h) * 0.5;
+    double tileOf(double r) =>
+        math.max(0.0, r * ext).clamp(0.0, halfMin).toDouble();
+    final double tTL = tileOf(rTL);
+    final double tTR = tileOf(rTR);
+    final double tBR = tileOf(rBR);
+    final double tBL = tileOf(rBL);
+
+    if (tTL <= 0.01 && tTR <= 0.01 && tBR <= 0.01 && tBL <= 0.01) {
       path.addRect(rect);
       return path;
     }
-    // 角部区域覆盖到短边一半时是胶囊，用 RRect 保证端点完全圆。
-    if (tile >= halfMin - 0.01) {
-      path.addRRect(RRect.fromRectAndRadius(rect, Radius.circular(halfMin)));
+    // 四角都收到胶囊时用 RRect（取最大半径端点）。
+    if (tTL >= halfMin - 0.01 &&
+        tTR >= halfMin - 0.01 &&
+        tBR >= halfMin - 0.01 &&
+        tBL >= halfMin - 0.01) {
+      path.addRRect(
+        RRect.fromRectAndRadius(rect, Radius.circular(halfMin)),
+      );
       return path;
     }
 
-    final double handle = tile * (1 - _control);
+    double handleOf(double tile) => tile * (1 - _control);
     final double left = rect.left;
     final double top = rect.top;
     final double right = rect.right;
     final double bottom = rect.bottom;
 
-    path.moveTo(left + tile, top);
-    path.lineTo(right - tile, top);
-    path.cubicTo(right - handle, top, right, top + handle, right, top + tile);
-    path.lineTo(right, bottom - tile);
+    // 顶边 → 右上角
+    path.moveTo(left + tTL, top);
+    path.lineTo(right - tTR, top);
+    path.cubicTo(
+      right - handleOf(tTR),
+      top,
+      right,
+      top + handleOf(tTR),
+      right,
+      top + tTR,
+    );
+    // 右边 → 右下角
+    path.lineTo(right, bottom - tBR);
     path.cubicTo(
       right,
-      bottom - handle,
-      right - handle,
+      bottom - handleOf(tBR),
+      right - handleOf(tBR),
       bottom,
-      right - tile,
+      right - tBR,
       bottom,
     );
-    path.lineTo(left + tile, bottom);
+    // 底边 → 左下角
+    path.lineTo(left + tBL, bottom);
     path.cubicTo(
-      left + handle,
+      left + handleOf(tBL),
       bottom,
       left,
-      bottom - handle,
+      bottom - handleOf(tBL),
       left,
-      bottom - tile,
+      bottom - tBL,
     );
-    path.lineTo(left, top + tile);
-    path.cubicTo(left, top + handle, left + handle, top, left + tile, top);
+    // 左边 → 左上角
+    path.lineTo(left, top + tTL);
+    path.cubicTo(
+      left,
+      top + handleOf(tTL),
+      left + handleOf(tTL),
+      top,
+      left + tTL,
+      top,
+    );
     path.close();
     return path;
   }
@@ -184,6 +292,7 @@ class MiuixCard extends StatelessWidget {
     this.insideMargin = EdgeInsets.zero,
     this.colors,
     this.onTap,
+    this.pressFeedback = MiuixPressFeedback.none,
   });
 
   final Widget child;
@@ -191,6 +300,9 @@ class MiuixCard extends StatelessWidget {
   final EdgeInsetsGeometry insideMargin;
   final MiuixCardColors? colors;
   final VoidCallback? onTap;
+
+  /// 可点击时的按压反馈（对应 Compose `PressFeedbackType`）。
+  final MiuixPressFeedback pressFeedback;
 
   @override
   Widget build(BuildContext context) {
@@ -216,13 +328,29 @@ class MiuixCard extends StatelessWidget {
     );
 
     if (onTap == null) return content;
-    return MiuixNoRipple(onTap: onTap!, child: content);
+    return MiuixNoRipple(
+      onTap: onTap!,
+      pressFeedback: pressFeedback,
+      child: content,
+    );
   }
 }
 
 // ---------------------------------------------------------------------------
 // 可点击容器
 // ---------------------------------------------------------------------------
+
+/// 按压反馈类型。对应 Compose `PressFeedbackType`。
+enum MiuixPressFeedback {
+  /// 无几何反馈，仅可选压暗。
+  none,
+
+  /// 整体下沉（Sink）：轻微缩小，模拟被按进表面。
+  sink,
+
+  /// 倾斜（Tilt）：轻微不均匀缩放，模拟被压偏。
+  tilt,
+}
 
 /// 无涟漪点按包装：HyperOS 的列表项与卡片不显示水波纹，只有按压反馈。
 class MiuixNoRipple extends StatefulWidget {
@@ -231,11 +359,17 @@ class MiuixNoRipple extends StatefulWidget {
     required this.onTap,
     required this.child,
     this.onLongPress,
+    this.pressFeedback = MiuixPressFeedback.none,
+    this.showIndication = true,
   });
 
   final VoidCallback onTap;
   final VoidCallback? onLongPress;
   final Widget child;
+  final MiuixPressFeedback pressFeedback;
+
+  /// 是否叠一层 4% 压暗（官方列表项默认有按压变暗）。
+  final bool showIndication;
 
   @override
   State<MiuixNoRipple> createState() => _MiuixNoRippleState();
@@ -251,6 +385,23 @@ class _MiuixNoRippleState extends State<MiuixNoRipple> {
 
   @override
   Widget build(BuildContext context) {
+    Widget child = widget.child;
+    if (_pressed && widget.showIndication) {
+      child = ColoredBox(color: const Color(0x0A000000), child: child);
+    }
+    if (_pressed) {
+      child = switch (widget.pressFeedback) {
+        MiuixPressFeedback.none => child,
+        // SinkFeedback：约 2% 下沉。
+        MiuixPressFeedback.sink => Transform.scale(scale: 0.98, child: child),
+        // TiltFeedback：纵向略压、横向略胀。
+        MiuixPressFeedback.tilt => Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.identity()..scale(1.02, 0.97),
+          child: child,
+        ),
+      };
+    }
     return Semantics(
       button: true,
       child: GestureDetector(
@@ -260,9 +411,7 @@ class _MiuixNoRippleState extends State<MiuixNoRipple> {
         onTapCancel: () => _set(false),
         onTap: widget.onTap,
         onLongPress: widget.onLongPress,
-        child: _pressed
-            ? ColoredBox(color: const Color(0x0A000000), child: widget.child)
-            : widget.child,
+        child: child,
       ),
     );
   }
@@ -350,7 +499,11 @@ class MiuixBasicComponent extends StatelessWidget {
 
     final Widget padded = Padding(padding: insideMargin, child: row);
     if (onClick == null) return padded;
-    return MiuixNoRipple(onTap: onClick!, child: padded);
+    return MiuixNoRipple(
+      onTap: onClick!,
+      pressFeedback: MiuixPressFeedback.none,
+      child: padded,
+    );
   }
 }
 
@@ -390,6 +543,10 @@ class MiuixSwitch extends StatefulWidget {
   /// 滑块缩放弹簧（官方 `spring(0.6, 987)`）。
   static SpringDescription get thumbScaleSpring =>
       SpringDescription.withDampingRatio(mass: 1, stiffness: 987, ratio: 0.6);
+
+  /// 轨道变色弹簧（官方 `spring(0.99, 438.6)`）。
+  static SpringDescription get trackColorSpring =>
+      SpringDescription.withDampingRatio(mass: 1, stiffness: 438.6, ratio: 0.99);
 
   final bool value;
   final ValueChanged<bool>? onChanged;
@@ -619,50 +776,58 @@ class _MiuixSwitchState extends State<MiuixSwitch>
           child: SizedBox(
             width: MiuixSwitch.trackWidth,
             height: MiuixSwitch.trackHeight,
-            child: DecoratedBox(
-              decoration: ShapeDecoration(
-                color: track,
-                shape: const MiuixSquircleBorder(
-                  cornerRadius: MiuixSwitch.trackHeight / 2,
-                ),
-              ),
-              child: AnimatedBuilder(
-                animation: Listenable.merge([_offsetCtrl, _scaleCtrl]),
-                builder: (context, _) {
-                  return Align(
-                    alignment: Alignment.centerLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.only(
-                        left: MiuixSwitch.thumbOffsetOff,
-                        top:
-                            (MiuixSwitch.trackHeight - MiuixSwitch.thumbSize) /
-                            2,
-                      ),
-                      child: Transform.translate(
-                        offset: Offset(
-                          _offsetCtrl.value - MiuixSwitch.thumbOffsetOff,
-                          0,
-                        ),
-                        child: Transform.scale(
-                          scale: _scaleCtrl.value,
-                          child: DecoratedBox(
-                            decoration: ShapeDecoration(
-                              color: thumb,
-                              shape: const MiuixSquircleBorder(
-                                cornerRadius: MiuixSwitch.thumbSize / 2,
-                              ),
+            child: TweenAnimationBuilder<Color?>(
+              tween: ColorTween(end: track),
+              duration: const Duration(milliseconds: 240),
+              curve: Curves.easeOutCubic,
+              builder: (context, animatedTrack, _) {
+                return DecoratedBox(
+                  decoration: ShapeDecoration(
+                    color: animatedTrack ?? track,
+                    shape: const MiuixSquircleBorder(
+                      cornerRadius: MiuixSwitch.trackHeight / 2,
+                    ),
+                  ),
+                  child: AnimatedBuilder(
+                    animation: Listenable.merge([_offsetCtrl, _scaleCtrl]),
+                    builder: (context, _) {
+                      return Align(
+                        alignment: Alignment.centerLeft,
+                        child: Padding(
+                          padding: const EdgeInsets.only(
+                            left: MiuixSwitch.thumbOffsetOff,
+                            top:
+                                (MiuixSwitch.trackHeight -
+                                    MiuixSwitch.thumbSize) /
+                                2,
+                          ),
+                          child: Transform.translate(
+                            offset: Offset(
+                              _offsetCtrl.value - MiuixSwitch.thumbOffsetOff,
+                              0,
                             ),
-                            child: const SizedBox(
-                              width: MiuixSwitch.thumbSize,
-                              height: MiuixSwitch.thumbSize,
+                            child: Transform.scale(
+                              scale: _scaleCtrl.value,
+                              child: DecoratedBox(
+                                decoration: ShapeDecoration(
+                                  color: thumb,
+                                  shape: const MiuixSquircleBorder(
+                                    cornerRadius: MiuixSwitch.thumbSize / 2,
+                                  ),
+                                ),
+                                child: const SizedBox(
+                                  width: MiuixSwitch.thumbSize,
+                                  height: MiuixSwitch.thumbSize,
+                                ),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                  );
-                },
-              ),
+                      );
+                    },
+                  ),
+                );
+              },
             ),
           ),
         ),
@@ -995,6 +1160,18 @@ class MiuixNavigationBar extends StatelessWidget {
   }
 }
 
+/// 贴底导航条目展示模式。对应 Compose `NavigationBarDisplayMode`。
+enum MiuixNavigationBarDisplayMode {
+  /// 图标 + 文字。
+  iconAndText,
+
+  /// 仅图标。
+  iconOnly,
+
+  /// 始终图标，仅选中时显示文字。
+  iconWithSelectedLabel,
+}
+
 /// 贴底导航栏条目。对应 Compose `NavigationBarItem`。
 class MiuixNavigationBarItem extends StatefulWidget {
   const MiuixNavigationBarItem({
@@ -1004,6 +1181,8 @@ class MiuixNavigationBarItem extends StatefulWidget {
     required this.icon,
     required this.label,
     this.enabled = true,
+    this.mode = MiuixNavigationBarDisplayMode.iconAndText,
+    this.badge,
   });
 
   final bool selected;
@@ -1011,6 +1190,10 @@ class MiuixNavigationBarItem extends StatefulWidget {
   final Widget icon;
   final String label;
   final bool enabled;
+  final MiuixNavigationBarDisplayMode mode;
+
+  /// 可选角标（红点或数字），叠在图标右上角。
+  final Widget? badge;
 
   @override
   State<MiuixNavigationBarItem> createState() => _MiuixNavigationBarItemState();
@@ -1059,8 +1242,20 @@ class _MiuixNavigationBarItemState extends State<MiuixNavigationBarItem> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Padding(
-                  padding: const EdgeInsets.only(
-                    top: MiuixNavigationBar.iconTopPadding,
+                  padding: EdgeInsets.only(
+                    top: widget.mode ==
+                            MiuixNavigationBarDisplayMode.iconOnly
+                        ? (MiuixNavigationBar.itemHeight -
+                                  MiuixNavigationBar.iconSize) /
+                              2
+                        : (widget.mode ==
+                                  MiuixNavigationBarDisplayMode
+                                      .iconWithSelectedLabel &&
+                              !widget.selected)
+                            ? (MiuixNavigationBar.itemHeight -
+                                      MiuixNavigationBar.iconSize) /
+                                  2
+                            : MiuixNavigationBar.iconTopPadding,
                   ),
                   child: IconTheme.merge(
                     data: IconThemeData(
@@ -1069,31 +1264,147 @@ class _MiuixNavigationBarItemState extends State<MiuixNavigationBarItem> {
                     ),
                     child: SizedBox.square(
                       dimension: MiuixNavigationBar.iconSize,
-                      child: Center(child: widget.icon),
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Center(child: widget.icon),
+                          if (widget.badge != null)
+                            Positioned(
+                              top: -2,
+                              right: -4,
+                              child: widget.badge!,
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.only(
-                    bottom: MiuixNavigationBar.bottomPadding,
+                if (widget.mode == MiuixNavigationBarDisplayMode.iconAndText ||
+                    (widget.mode ==
+                            MiuixNavigationBarDisplayMode
+                                .iconWithSelectedLabel &&
+                        widget.selected))
+                  Padding(
+                    padding: const EdgeInsets.only(
+                      bottom: MiuixNavigationBar.bottomPadding,
+                    ),
+                    child: Text(
+                      widget.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: tint,
+                        fontSize: MiuixNavigationBar.labelFontSize,
+                        fontWeight: widget.selected
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                      ).withMiuixWeight(theme.fontWeightAdjustment),
+                    ),
                   ),
-                  child: Text(
-                    widget.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: tint,
-                      fontSize: MiuixNavigationBar.labelFontSize,
-                      fontWeight: widget.selected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ).withMiuixWeight(theme.fontWeightAdjustment),
-                  ),
-                ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Super 行 / 角标
+// ---------------------------------------------------------------------------
+
+/// 设置页带右侧值与箭头的行。对应 Compose `SuperArrow`。
+class MiuixSuperArrow extends StatelessWidget {
+  const MiuixSuperArrow({
+    super.key,
+    required this.title,
+    this.summary,
+    this.value,
+    this.startAction,
+    this.onTap,
+    this.insideMargin = const EdgeInsets.all(16),
+    this.chevron,
+  });
+
+  final String title;
+  final String? summary;
+
+  /// 右侧当前值（如「浅色」「1.0×」）。
+  final String? value;
+  final Widget? startAction;
+  final VoidCallback? onTap;
+  final EdgeInsetsGeometry insideMargin;
+
+  /// 尾部指示图标；null 时用 `chevron_right`。
+  final Widget? chevron;
+
+  @override
+  Widget build(BuildContext context) {
+    final MiuixThemeData theme = MiuixTheme.of(context);
+    final MiuixColors c = theme.colors;
+    final Widget arrow =
+        chevron ??
+        Icon(
+          Icons.chevron_right,
+          size: 20,
+          color: c.onSurfaceVariantActions,
+        );
+    return MiuixBasicComponent(
+      title: title,
+      summary: summary,
+      startAction: startAction,
+      insideMargin: insideMargin,
+      endActions: [
+        if (value != null && value!.isNotEmpty)
+          Text(
+            value!,
+            style: theme.textStyles.body2
+                .copyWith(color: c.onSurfaceVariantSummary)
+                .withMiuixWeight(theme.fontWeightAdjustment),
+          ),
+        arrow,
+      ],
+      onClick: onTap,
+    );
+  }
+}
+
+/// 图标角标：红点或数字。
+class MiuixBadge extends StatelessWidget {
+  const MiuixBadge.dot({super.key, this.color}) : count = null;
+
+  const MiuixBadge.count(this.count, {super.key, this.color})
+    : assert(count != null);
+
+  final int? count;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final Color bg = color ?? const Color(0xFFE94634);
+    if (count == null) {
+      return Container(
+        width: 8,
+        height: 8,
+        decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+      );
+    }
+    final String text = count! > 99 ? '99+' : '$count';
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 10,
+          height: 1.2,
+          color: Colors.white,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -1533,6 +1844,157 @@ class MiuixTopAppBar extends StatelessWidget implements PreferredSizeWidget {
             ?bottom,
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// 可折叠大标题顶栏。对应 Compose `TopAppBar`（large title 收起）。
+///
+/// 展开态显示 [largeTitle]（title1 32sp），滚动后收成居中小标题（title3 + w500）。
+/// 高度在 [MiuixTopAppBarDefaults.smallTopAppBarCenterHeight] 与
+/// `small + largeTitle` 之间随 [collapse]（0=展开，1=收起）插值。
+class MiuixLargeTopAppBar extends StatelessWidget
+    implements PreferredSizeWidget {
+  const MiuixLargeTopAppBar({
+    super.key,
+    required this.title,
+    this.largeTitle,
+    this.navigationIcon,
+    this.actions = const <Widget>[],
+    this.collapse = 0,
+    this.backgroundColor,
+    this.titleColor,
+  });
+
+  final String title;
+  final String? largeTitle;
+  final Widget? navigationIcon;
+  final List<Widget> actions;
+
+  /// 0 展开 / 1 完全收起。
+  final double collapse;
+  final Color? backgroundColor;
+  final Color? titleColor;
+
+  /// 大标题区域高度（展开时额外占用）。
+  static const double largeTitleBlockHeight = 56;
+
+  @override
+  Size get preferredSize => Size.fromHeight(
+    MiuixTopAppBarDefaults.smallTopAppBarCenterHeight +
+        largeTitleBlockHeight * (1 - collapse.clamp(0.0, 1.0)),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final MiuixThemeData theme = MiuixTheme.of(context);
+    final MiuixColors c = theme.colors;
+    final double t = collapse.clamp(0.0, 1.0);
+    final String big = largeTitle ?? title;
+
+    final TextStyle smallStyle = theme.textStyles.title3
+        .copyWith(color: titleColor ?? c.onSurface, fontWeight: FontWeight.w500)
+        .withMiuixWeight(theme.fontWeightAdjustment);
+    final TextStyle largeStyle = theme.textStyles.title1
+        .copyWith(color: titleColor ?? c.onSurface)
+        .withMiuixWeight(theme.fontWeightAdjustment);
+
+    const double navSlot =
+        MiuixTopAppBarDefaults.navigationIconPadding +
+        MiuixTopAppBarDefaults.iconButtonSize;
+    const double actionSlot =
+        MiuixTopAppBarDefaults.actionIconPadding +
+        MiuixTopAppBarDefaults.iconButtonSize;
+
+    return Material(
+      color: backgroundColor ?? c.surface,
+      elevation: 0,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(height: MediaQuery.paddingOf(context).top),
+          SizedBox(
+            height: MiuixTopAppBarDefaults.smallTopAppBarCenterHeight,
+            child: Row(
+              children: [
+                SizedBox(
+                  width: navSlot,
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Padding(
+                      padding: const EdgeInsetsDirectional.only(
+                        start: MiuixTopAppBarDefaults.navigationIconPadding,
+                      ),
+                      child: navigationIcon ?? const SizedBox.shrink(),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: MiuixTopAppBarDefaults.titlePadding,
+                    ),
+                    child: Opacity(
+                      opacity: t,
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: smallStyle,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: actionSlot,
+                  child: Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: Padding(
+                      padding: const EdgeInsetsDirectional.only(
+                        end: MiuixTopAppBarDefaults.actionIconPadding,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: actions,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ClipRect(
+            child: Align(
+              heightFactor: 1 - t,
+              alignment: Alignment.topCenter,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  MiuixTopAppBarDefaults.titlePadding,
+                  0,
+                  MiuixTopAppBarDefaults.titlePadding,
+                  12,
+                ),
+                child: SizedBox(
+                  height: largeTitleBlockHeight - 12,
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Opacity(
+                      opacity: 1 - t,
+                      child: Text(
+                        big,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: largeStyle,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../adaptive_ui.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../../miuix/adaptive_top_app_bar.dart';
 import '../api/synjones_client.dart';
 import 'finance_cards_page.dart';
 import 'finance_pay_code_page.dart';
@@ -67,7 +67,7 @@ class _FinanceAppsPageState extends State<FinanceAppsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: LiquidGlassAppBar(title: const Text('一卡通功能')),
+      appBar: AdaptiveTopAppBar(title: const Text('一卡通功能')),
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

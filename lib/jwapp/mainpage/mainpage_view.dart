@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../adaptive_ui.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../../miuix/adaptive_top_app_bar.dart';
 import '../../theme_manager.dart';
 import '../home/home_view.dart';
 import '../schedule/schedule_view.dart';
@@ -69,7 +69,7 @@ class _MainPageState extends State<MainPage>
     final showTitle = _themeManager.showAppBarTitle;
     return Scaffold(
       appBar: showTitle
-          ? LiquidGlassAppBar(
+          ? AdaptiveTopAppBar(
               title: const Text('安大微教务'),
               actions: [
                 AdaptiveIconButton(

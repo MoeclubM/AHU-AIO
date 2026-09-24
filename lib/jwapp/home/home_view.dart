@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'home_service.dart';
 import '../../adaptive_ui.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../../miuix/adaptive_top_app_bar.dart';
 
 class HomePage extends StatefulWidget {
   final bool isVisible;
@@ -107,7 +107,7 @@ class _HomePageState extends State<HomePage>
         child: Scaffold(
           appBar: widget.embed
               ? null
-              : LiquidGlassAppBar(
+              : AdaptiveTopAppBar(
                   title: const Text('首页'),
                   bottom: const AdaptiveTabBar(
                     tabs: [

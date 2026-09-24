@@ -5,7 +5,7 @@ import '../models/grade_model.dart';
 import '../../globals.dart' as globals;
 import '../../adaptive_dropdown.dart';
 import '../../adaptive_ui.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../../miuix/adaptive_top_app_bar.dart';
 
 class GradesPage extends StatefulWidget {
   final bool embed;
@@ -101,7 +101,7 @@ class _GradesPageState extends State<GradesPage>
     return Scaffold(
       appBar: widget.embed
           ? null
-          : LiquidGlassAppBar(title: const Text('成绩查询')),
+          : AdaptiveTopAppBar(title: const Text('成绩查询')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null

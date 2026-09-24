@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../globals.dart' as globals;
 import '../../adaptive_ui.dart';
-import '../../miuix/liquid_glass_app_bar.dart';
+import '../../miuix/adaptive_top_app_bar.dart';
 import '../api/api_manager.dart';
 import '../api/api_models.dart';
 import '../api/course_selection.dart';
@@ -192,7 +192,7 @@ class _CourseSelectionPageState extends State<CourseSelectionPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: LiquidGlassAppBar(
+      appBar: AdaptiveTopAppBar(
         title: const Text('选课系统'),
         bottom: AdaptiveTabBar(
           controller: _tabController,
