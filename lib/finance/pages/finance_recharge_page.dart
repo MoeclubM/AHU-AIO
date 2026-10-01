@@ -7,6 +7,7 @@ import '../api/synjones_client.dart';
 import 'finance_recharge_detail_page.dart';
 import '../../adaptive_ui.dart';
 import '../../miuix/adaptive_top_app_bar.dart';
+import '../../jlb/pages/jlb_locker_page.dart';
 
 /// 充值缴费页面视图模式通知器（false: 网格大方块, true: 列表左图标右文字）
 final ValueNotifier<bool> financeRechargeIsListViewNotifier =
@@ -49,6 +50,11 @@ class _FinanceRechargePageState extends State<FinanceRechargePage>
   List<Map<String, dynamic>> _entries = [];
   bool _loading = true;
   String? _error;
+
+  static const Map<String, dynamic> _jinlbEntry = {
+    'isJinlb': true,
+    'appName': '近邻宝快递柜',
+  };
 
   @override
   bool get wantKeepAlive => true;
@@ -112,9 +118,13 @@ class _FinanceRechargePageState extends State<FinanceRechargePage>
         });
       }
 
+      entries.add(_jinlbEntry);
+
       entries.sort((a, b) {
         if (a['isCardRecharge'] == true) return -1;
         if (b['isCardRecharge'] == true) return 1;
+        if (a['isJinlb'] == true) return -1;
+        if (b['isJinlb'] == true) return 1;
         return _title(a).compareTo(_title(b));
       });
       if (!mounted) return;
@@ -230,6 +240,24 @@ class _FinanceRechargePageState extends State<FinanceRechargePage>
               onPressed: _loadEntries,
               child: const Text('重试'),
             ),
+            const SizedBox(height: 24),
+            AdaptiveCard(
+              borderRadius: 14,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const JlbLockerPage()),
+                );
+              },
+              child: const ListTile(
+                leading: CircleAvatar(
+                  child: Icon(Icons.all_inbox_rounded),
+                ),
+                title: Text('近邻宝快递柜'),
+                subtitle: Text('格口查询与一键开箱'),
+                trailing: Icon(Icons.chevron_right),
+              ),
+            ),
           ],
         ),
       ),
@@ -237,11 +265,14 @@ class _FinanceRechargePageState extends State<FinanceRechargePage>
   }
 
   Widget _buildEntry(Map<String, dynamic> entry) {
+    final isJinlb = entry['isJinlb'] == true;
     final isCardRecharge = entry['isCardRecharge'] == true;
     final title = _title(entry);
 
     IconData iconData = Icons.payment;
-    if (isCardRecharge) {
+    if (isJinlb) {
+      iconData = Icons.all_inbox_rounded;
+    } else if (isCardRecharge) {
       iconData = Icons.credit_card;
     } else if (title.contains('水')) {
       iconData = Icons.water_drop;
@@ -259,6 +290,13 @@ class _FinanceRechargePageState extends State<FinanceRechargePage>
     return AdaptiveCard(
       borderRadius: 16,
       onTap: () {
+        if (isJinlb) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const JlbLockerPage()),
+          );
+          return;
+        }
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -277,8 +315,14 @@ class _FinanceRechargePageState extends State<FinanceRechargePage>
           children: [
             CircleAvatar(
               radius: 26,
-              backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
-              child: Icon(iconData, color: colorScheme.primary, size: 28),
+              backgroundColor: isJinlb
+                  ? Colors.blue.withValues(alpha: 0.12)
+                  : colorScheme.primary.withValues(alpha: 0.1),
+              child: Icon(
+                iconData,
+                color: isJinlb ? Colors.blue.shade700 : colorScheme.primary,
+                size: 28,
+              ),
             ),
             const SizedBox(height: 12),
             Text(
@@ -295,11 +339,14 @@ class _FinanceRechargePageState extends State<FinanceRechargePage>
   }
 
   Widget _buildListEntry(Map<String, dynamic> entry) {
+    final isJinlb = entry['isJinlb'] == true;
     final isCardRecharge = entry['isCardRecharge'] == true;
     final title = _title(entry);
 
     IconData iconData = Icons.payment;
-    if (isCardRecharge) {
+    if (isJinlb) {
+      iconData = Icons.all_inbox_rounded;
+    } else if (isCardRecharge) {
       iconData = Icons.credit_card;
     } else if (title.contains('水')) {
       iconData = Icons.water_drop;
@@ -318,6 +365,13 @@ class _FinanceRechargePageState extends State<FinanceRechargePage>
       margin: const EdgeInsets.only(bottom: 10),
       borderRadius: 14,
       onTap: () {
+        if (isJinlb) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const JlbLockerPage()),
+          );
+          return;
+        }
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -335,8 +389,14 @@ class _FinanceRechargePageState extends State<FinanceRechargePage>
           children: [
             CircleAvatar(
               radius: 22,
-              backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
-              child: Icon(iconData, color: colorScheme.primary, size: 22),
+              backgroundColor: isJinlb
+                  ? Colors.blue.withValues(alpha: 0.12)
+                  : colorScheme.primary.withValues(alpha: 0.1),
+              child: Icon(
+                iconData,
+                color: isJinlb ? Colors.blue.shade700 : colorScheme.primary,
+                size: 22,
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
