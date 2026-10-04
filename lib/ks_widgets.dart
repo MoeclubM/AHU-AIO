@@ -1,7 +1,9 @@
-/// KernelSU Manager 风格组件（Flutter 移植）。
+/// KernelSU Manager 风格组件（**只作视觉/交互参考，全部自研实现**）。
 ///
-/// 视觉与交互对照 [KernelSU-Style-UI-Kit](https://github.com/chenaizhang/KernelSU-Style-UI-Kit)：
-/// 警告卡、状态大卡、Expressive 开关、可编辑箭头行。
+/// 对照 [KernelSU-Style-UI-Kit](https://github.com/chenaizhang/KernelSU-Style-UI-Kit)：
+/// 该套件与 Miuix 同源观感，但依赖 Compose + `miuix-kmp`，本项目不能直接引用。
+/// 这里在 Flutter / 自研 Miuix 上复刻其布局节奏与组件形态：
+/// 警告卡、状态大卡、Expressive 开关、可编辑箭头行、Tonal 卡、搜索栏、设置分组。
 library;
 
 import 'package:flutter/material.dart';
@@ -276,6 +278,147 @@ class _SuperEditArrowState extends State<SuperEditArrow> {
         ],
       ),
       onTap: _edit,
+    );
+  }
+}
+
+/// KernelSU 布局节奏：列表左右 12dp、组间距 12dp。
+abstract final class KsSpacing {
+  static const double pageHorizontal = 12;
+  static const double groupGap = 12;
+  static const double cardRadius = 16;
+}
+
+/// 设置分组：一组选项包在一张卡里，组间 12dp。
+///
+/// 对应 KernelSU 设置页 `LazyColumn` + `Card(padding(top=12))` 的分组方式。
+class SettingsGroup extends StatelessWidget {
+  const SettingsGroup({super.key, required this.children, this.padding});
+
+  final List<Widget> children;
+  final EdgeInsets? padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget card = Card(
+      margin: EdgeInsets.zero,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(KsSpacing.cardRadius),
+      ),
+      child: Column(mainAxisSize: MainAxisSize.min, children: children),
+    );
+    return Padding(
+      padding:
+          padding ??
+          const EdgeInsets.fromLTRB(
+            KsSpacing.pageHorizontal,
+            0,
+            KsSpacing.pageHorizontal,
+            KsSpacing.groupGap,
+          ),
+      child: card,
+    );
+  }
+}
+
+/// MD3 Tonal 卡：`surfaceContainerLow` 一类的抬升表面。
+///
+/// 对应 `TonalCard.kt`：`surfaceColorAtElevation(1.dp)` + large 圆角。
+class TonalCard extends StatelessWidget {
+  const TonalCard({
+    super.key,
+    required this.child,
+    this.onTap,
+    this.padding = const EdgeInsets.all(16),
+    this.borderRadius = KsSpacing.cardRadius,
+  });
+
+  final Widget child;
+  final VoidCallback? onTap;
+  final EdgeInsets padding;
+  final double borderRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    final Color bg = scheme.surfaceContainerLow;
+    final Widget content = Padding(padding: padding, child: child);
+    return Card(
+      margin: EdgeInsets.zero,
+      color: bg,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(borderRadius),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: onTap == null ? content : InkWell(onTap: onTap, child: content),
+    );
+  }
+}
+
+/// KernelSU 风格搜索栏：圆角胶囊输入框 + 支持一键清空。
+///
+/// 对应 `SuperSearchBar` / Material `SearchBar` 的简化 Flutter 形态，
+/// 适合放在列表顶部做本地过滤。
+class SuperSearchBar extends StatelessWidget {
+  const SuperSearchBar({
+    super.key,
+    required this.controller,
+    this.hintText = '搜索',
+    this.onChanged,
+    this.onSubmitted,
+    this.autofocus = false,
+  });
+
+  final TextEditingController controller;
+  final String hintText;
+  final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
+  final bool autofocus;
+
+  @override
+  Widget build(BuildContext context) {
+    final ColorScheme scheme = Theme.of(context).colorScheme;
+    return TextField(
+      controller: controller,
+      autofocus: autofocus,
+      textInputAction: TextInputAction.search,
+      onChanged: onChanged,
+      onSubmitted: onSubmitted,
+      decoration: InputDecoration(
+        hintText: hintText,
+        prefixIcon: const Icon(Icons.search),
+        suffixIcon: ValueListenableBuilder<TextEditingValue>(
+          valueListenable: controller,
+          builder: (context, value, _) {
+            if (value.text.isEmpty) return const SizedBox.shrink();
+            return IconButton(
+              icon: const Icon(Icons.close_rounded),
+              tooltip: '清空',
+              onPressed: () {
+                controller.clear();
+                onChanged?.call('');
+              },
+            );
+          },
+        ),
+        filled: true,
+        fillColor: scheme.surfaceContainerHigh,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(28),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(28),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(28),
+          borderSide: BorderSide(color: scheme.primary, width: 1.2),
+        ),
+      ),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../globals.dart' as globals;
 import '../../adaptive_ui.dart';
 import '../../adaptive_dropdown.dart';
+import '../../ks_widgets.dart';
 import '../../miuix/adaptive_top_app_bar.dart';
 import '../api/api_manager.dart';
 import '../api/api_models.dart';
@@ -26,6 +27,7 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
   // 筛选参数
   String _selectedStatus = '全部';
   String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
   DateTime? _startDate;
   DateTime? _endDate;
 
@@ -38,6 +40,7 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
 
   @override
   void dispose() {
+    _searchController.dispose();
     _tabController.dispose();
     super.dispose();
   }
@@ -174,19 +177,10 @@ class _ExamSchedulePageState extends State<ExamSchedulePage>
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // 搜索框
-          TextField(
-            decoration: InputDecoration(
-              hintText: '搜索课程名称、考试类型或教室...',
-              prefixIcon: const Icon(Icons.search),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
-            ),
+          // 搜索框（KernelSU SuperSearchBar 风格）
+          SuperSearchBar(
+            controller: _searchController,
+            hintText: '搜索课程名称、考试类型或教室...',
             onChanged: (value) {
               setState(() {
                 _searchQuery = value;
