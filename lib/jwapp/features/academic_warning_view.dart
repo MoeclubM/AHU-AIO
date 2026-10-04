@@ -99,9 +99,11 @@ class _AcademicWarningPageState extends State<AcademicWarningPage>
         children: [
           // KernelSU 风格状态大卡：学分完成情况一目了然。
           StatusCard(
-            ok: totalPlanCredits > 0 &&
+            ok:
+                totalPlanCredits > 0 &&
                 totalCompletedCredits >= totalPlanCredits,
-            title: totalPlanCredits > 0 &&
+            title:
+                totalPlanCredits > 0 &&
                     totalCompletedCredits >= totalPlanCredits
                 ? '培养方案已完成'
                 : '培养方案进行中',

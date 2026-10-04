@@ -21,10 +21,7 @@ class RoomApi {
 
   /// 获取教室类型列表
   static Future<List<dynamic>> getRoomTypes(String token) async {
-    final response = await sendRequest(
-      '$_base/room/place/roomTypes',
-      token,
-    );
+    final response = await sendRequest('$_base/room/place/roomTypes', token);
     return ApiResponseHandler.handleListResponse(response);
   }
 

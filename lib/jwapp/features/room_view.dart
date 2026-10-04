@@ -105,11 +105,14 @@ class _RoomPageState extends State<RoomPage>
 
   Future<void> _loadUnits() async {
     final list = await RoomApi.getCourseUnits(globals.idToken!);
-    final units = list
-        .map((e) => CourseUnit.fromJson(Map<String, dynamic>.from(e as Map)))
-        .where((u) => u.startTime > 0 && u.name.isNotEmpty)
-        .toList()
-      ..sort((a, b) => a.indexNo.compareTo(b.indexNo));
+    final units =
+        list
+            .map(
+              (e) => CourseUnit.fromJson(Map<String, dynamic>.from(e as Map)),
+            )
+            .where((u) => u.startTime > 0 && u.name.isNotEmpty)
+            .toList()
+          ..sort((a, b) => a.indexNo.compareTo(b.indexNo));
     if (!mounted) return;
     setState(() {
       _units = units;
@@ -355,7 +358,11 @@ class _RoomPageState extends State<RoomPage>
           const SizedBox(height: 12),
           Row(
             children: [
-              Icon(Icons.calendar_today, color: Colors.green.shade600, size: 20),
+              Icon(
+                Icons.calendar_today,
+                color: Colors.green.shade600,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               const Text('日期', style: TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(width: 8),
@@ -432,7 +439,9 @@ class _RoomPageState extends State<RoomPage>
                   minimumSize: const Size(80, 40),
                   onPressed: _isLoading ? null : _searchRooms,
                   icon: const Icon(Icons.search),
-                  child: Text(_buildingName == null ? '查询空闲教室' : '查询 $_buildingName'),
+                  child: Text(
+                    _buildingName == null ? '查询空闲教室' : '查询 $_buildingName',
+                  ),
                 ),
               ),
             ],
@@ -513,9 +522,7 @@ class _RoomPageState extends State<RoomPage>
             ),
             const SizedBox(height: 16),
             Text(
-              _allRooms.isEmpty
-                  ? '请选择建筑后点击查询'
-                  : '该建筑下没有匹配的教室',
+              _allRooms.isEmpty ? '请选择建筑后点击查询' : '该建筑下没有匹配的教室',
               style: const TextStyle(fontSize: 16, color: Colors.grey),
               textAlign: TextAlign.center,
             ),
