@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../api/getplan.dart';
 import '../../globals.dart' as globals;
 import '../../adaptive_ui.dart';
+import '../../ks_widgets.dart';
 import '../../miuix/adaptive_top_app_bar.dart';
 
 /// 培养方案完成情况页面（原版教务系统风格）
@@ -96,6 +97,21 @@ class _AcademicWarningPageState extends State<AcademicWarningPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // KernelSU 风格状态大卡：学分完成情况一目了然。
+          StatusCard(
+            ok:
+                totalPlanCredits > 0 &&
+                totalCompletedCredits >= totalPlanCredits,
+            title:
+                totalPlanCredits > 0 &&
+                    totalCompletedCredits >= totalPlanCredits
+                ? '培养方案已完成'
+                : '培养方案进行中',
+            summary:
+                '已修 $totalCompletedCredits / $totalPlanCredits 学分'
+                '${totalPlanCredits > 0 ? '（${(totalCompletedCredits / totalPlanCredits * 100).toStringAsFixed(0)}%）' : ''}',
+          ),
+          const SizedBox(height: 16),
           // 总体完成情况
           _buildOverallProgress(totalCompletedCredits, totalPlanCredits),
           const SizedBox(height: 24),
@@ -630,32 +646,29 @@ class _AcademicWarningPageState extends State<AcademicWarningPage>
 
   Widget _buildErrorWidget() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
-          const SizedBox(height: 16),
-          Text(
-            '加载失败',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.red.shade600,
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 64, color: Colors.red.shade400),
+            const SizedBox(height: 16),
+            const Text(
+              '加载失败',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _error!,
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-          ),
-          const SizedBox(height: 16),
-          AdaptivePrimaryButton(
-            minimumSize: const Size(120, 40),
-            onPressed: _loadPlanData,
-            child: const Text('重试'),
-          ),
-        ],
+            const SizedBox(height: 12),
+            // KernelSU WarningCard：错误信息 + 重试操作。
+            WarningCard(
+              message: _error ?? '未知错误',
+              action: AdaptivePrimaryButton(
+                minimumSize: const Size(88, 36),
+                onPressed: _loadPlanData,
+                child: const Text('重试'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

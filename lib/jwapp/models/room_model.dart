@@ -1,21 +1,21 @@
-/// 校区模型
+/// 空闲教室模型：字段与 `eams-micro-server` 实测响应对齐。
+library;
+
+/// 教室类型 / 校区 / 建筑（列表接口）
 class CampusModel {
   final String id;
   final String name;
   final String code;
 
-  const CampusModel({required this.id, required this.name, required this.code});
+  const CampusModel({required this.id, required this.name, this.code = ''});
 
-  factory CampusModel.fromJson(Map<String, dynamic> json) {
-    return CampusModel(
-      id: json['id']?.toString() ?? '',
-      name: json['name']?.toString() ?? '',
-      code: json['code']?.toString() ?? '',
-    );
-  }
+  factory CampusModel.fromJson(Map<String, dynamic> json) => CampusModel(
+    id: json['id']?.toString() ?? '',
+    name: json['nameZh']?.toString() ?? json['name']?.toString() ?? '',
+    code: json['code']?.toString() ?? '',
+  );
 }
 
-/// 建筑模型
 class BuildingModel {
   final String id;
   final String name;
@@ -24,211 +24,198 @@ class BuildingModel {
   const BuildingModel({
     required this.id,
     required this.name,
-    required this.campusId,
+    this.campusId = '',
   });
 
-  factory BuildingModel.fromJson(Map<String, dynamic> json) {
-    return BuildingModel(
-      id: json['id']?.toString() ?? '',
-      name: json['name']?.toString() ?? '',
-      campusId: json['campusId']?.toString() ?? '',
-    );
+  factory BuildingModel.fromJson(Map<String, dynamic> json) => BuildingModel(
+    id: json['id']?.toString() ?? '',
+    name: json['nameZh']?.toString() ?? json['name']?.toString() ?? '',
+    campusId: (json['campusAssoc'] ?? json['campusId'])?.toString() ?? '',
+  );
+}
+
+/// 官方课节（`room/system/course-units`）
+///
+/// startTime/endTime 为 HHMM 整数，例如 800 = 08:00，1450 = 14:50。
+class CourseUnit {
+  final int indexNo;
+  final String name;
+  final int startTime; // HHMM
+  final int endTime; // HHMM
+  final String dayPart;
+
+  const CourseUnit({
+    required this.indexNo,
+    required this.name,
+    required this.startTime,
+    required this.endTime,
+    this.dayPart = '',
+  });
+
+  factory CourseUnit.fromJson(Map<String, dynamic> json) => CourseUnit(
+    indexNo: json['indexNo'] as int? ?? 0,
+    name: json['nameZh']?.toString() ?? json['name']?.toString() ?? '',
+    startTime: json['startTime'] as int? ?? 0,
+    endTime: json['endTime'] as int? ?? 0,
+    dayPart: json['dayPart']?.toString() ?? '',
+  );
+
+  String get label => '第$name节';
+
+  String get timeRange {
+    final String s = _hhmm(startTime);
+    final String e = _hhmm(endTime);
+    return '($s-$e)';
+  }
+
+  String get display => '$label$timeRange';
+
+  /// 占用活动是否与本课节重叠（按 HHMM）。
+  bool overlaps(int startHHMM, int endHHMM) {
+    if (startHHMM <= 0 || endHHMM <= 0) return false;
+    // 兼容 endTime 缺失时按 1 小时估。
+    final int end = endHHMM > startHHMM ? endHHMM : startHHMM + 100;
+    return startHHMM < endTime && end > startTime;
+  }
+
+  static String _hhmm(int v) {
+    final int h = v ~/ 100;
+    final int m = v % 100;
+    return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
   }
 }
 
-/// 教室模型
+/// 教室占用片段
+class RoomOccupation {
+  final String activityName;
+  final String teacherName;
+  final int startTime; // HHMM
+  final int endTime; // HHMM
+
+  const RoomOccupation({
+    this.activityName = '',
+    this.teacherName = '',
+    this.startTime = 0,
+    this.endTime = 0,
+  });
+
+  factory RoomOccupation.fromJson(Map<String, dynamic> json) {
+    return RoomOccupation(
+      activityName:
+          json['activityName']?.toString() ??
+          json['courseName']?.toString() ??
+          '',
+      teacherName: json['teacherName']?.toString() ?? '',
+      startTime: _toIntHHMM(json['startTime'] ?? json['startTimeString']),
+      endTime: _toIntHHMM(json['endTime'] ?? json['endTimeString']),
+    );
+  }
+
+  static int _toIntHHMM(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) {
+      // 800 / 80000 等异常格式归一到 HHMM。
+      if (value >= 2400 && value < 240000) {
+        return (value / 100).round();
+      }
+      return value;
+    }
+    final String s = value.toString().trim();
+    if (s.isEmpty) return 0;
+    if (s.contains(':')) {
+      final List<String> parts = s.split(':');
+      final int h = int.tryParse(parts[0]) ?? 0;
+      final int m = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+      return h * 100 + m;
+    }
+    return int.tryParse(s) ?? 0;
+  }
+}
+
+/// 教室
 class RoomModel {
   final String id;
   final String name;
+  final String code;
   final String buildingId;
-  final String campusId;
-  final String roomType;
-  final int capacity;
+  final String campusName;
   final String floor;
-  final List<TimeSlot> timeSlots;
-  final String? location;
-  final List<String>? facilities;
+  final int capacity;
+  final bool virtualRoom;
+  final bool enabled;
+  final List<RoomOccupation> occupations;
 
   const RoomModel({
     required this.id,
     required this.name,
-    required this.buildingId,
-    required this.campusId,
-    required this.roomType,
-    required this.capacity,
-    required this.floor,
-    required this.timeSlots,
-    this.location,
-    this.facilities,
+    this.code = '',
+    this.buildingId = '',
+    this.campusName = '',
+    this.floor = '',
+    this.capacity = 0,
+    this.virtualRoom = false,
+    this.enabled = true,
+    this.occupations = const [],
   });
 
   factory RoomModel.fromJson(Map<String, dynamic> json) {
-    final List<TimeSlot> slots = [];
-    final occList = json['roomOccupationInfoVms'] as List?;
-    if (occList != null) {
-      for (var occ in occList) {
-        if (occ is Map<String, dynamic>) {
-          final startStr = occ['startTimeString']?.toString() ?? '';
-          final courseName = occ['activityName']?.toString() ?? '';
-          final teacherName = occ['teacherName']?.toString() ?? '';
-
-          String matchedSlot = '';
-          if (startStr.isNotEmpty) {
-            final parts = startStr.split(':');
-            if (parts.isNotEmpty) {
-              final hr = int.tryParse(parts[0]) ?? 0;
-              if (hr == 8) {
-                matchedSlot = '第1-2节(08:00-09:40)';
-              } else if (hr == 9 || hr == 10) {
-                matchedSlot = '第3-4节(10:00-11:40)';
-              } else if (hr == 14 || hr == 13) {
-                matchedSlot = '第5-6节(14:00-15:40)';
-              } else if (hr == 15 || hr == 16) {
-                matchedSlot = '第7-8节(16:00-17:40)';
-              } else if (hr >= 18 && hr <= 20) {
-                matchedSlot = '第9-10节(19:00-20:40)';
-              }
-            }
-          }
-
-          if (matchedSlot.isNotEmpty) {
-            slots.add(
-              TimeSlot(
-                timeSlot: matchedSlot,
-                isOccupied: true,
-                courseName: courseName,
-                teacherName: teacherName,
-              ),
-            );
-          }
+    final List<RoomOccupation> occupations = [];
+    final occ = json['roomOccupationInfoVms'];
+    if (occ is List) {
+      for (final dynamic item in occ) {
+        if (item is Map<String, dynamic>) {
+          occupations.add(RoomOccupation.fromJson(item));
+        } else if (item is Map) {
+          occupations.add(
+            RoomOccupation.fromJson(Map<String, dynamic>.from(item)),
+          );
         }
       }
-    }
-
-    List<String>? facilities;
-    if (json['facilities'] != null) {
-      facilities = (json['facilities'] as List)
-          .map((f) => f.toString())
-          .toList();
     }
 
     return RoomModel(
       id: json['id']?.toString() ?? '',
       name: json['nameZh']?.toString() ?? json['name']?.toString() ?? '',
+      code: json['code']?.toString() ?? '',
       buildingId: json['buildingId']?.toString() ?? '',
-      campusId: json['campusId']?.toString() ?? '',
-      roomType: json['roomType']?.toString() ?? '',
-      capacity: json['capacity'] ?? 0,
+      campusName:
+          json['campusNameZh']?.toString() ??
+          json['campusName']?.toString() ??
+          '',
       floor: json['floor']?.toString() ?? '',
-      timeSlots: slots,
-      location: json['location']?.toString(),
-      facilities: facilities,
+      // 实测字段为 seatsForLesson；旧接口 capacity 作兼容。
+      capacity: _toInt(json['seatsForLesson'] ?? json['capacity'] ?? 0),
+      virtualRoom: json['virtual'] == true || json['isVirtual'] == true,
+      enabled: json['enabled'] != false,
+      occupations: occupations,
     );
   }
 
-  /// 检查指定时间段是否空闲
-  bool isAvailableAt(String timeSlot) {
-    for (final slot in timeSlots) {
-      if (slot.timeSlot == timeSlot && slot.isOccupied) {
-        return false;
-      }
+  static int _toInt(dynamic v) {
+    if (v is int) return v;
+    return int.tryParse(v?.toString() ?? '') ?? 0;
+  }
+
+  /// 在指定课节是否被占用。
+  bool isOccupiedAt(CourseUnit unit) {
+    for (final occ in occupations) {
+      if (unit.overlaps(occ.startTime, occ.endTime)) return true;
     }
-    return true;
+    return false;
   }
 
-  /// 获取空闲时间段
-  List<String> getAvailableTimeSlots() {
-    final allSlots = [
-      '第1-2节(08:00-09:40)',
-      '第3-4节(10:00-11:40)',
-      '第5-6节(14:00-15:40)',
-      '第7-8节(16:00-17:40)',
-      '第9-10节(19:00-20:40)',
-    ];
-
-    final availableSlots = <String>[];
-    for (final slot in allSlots) {
-      if (isAvailableAt(slot)) {
-        availableSlots.add(slot);
-      }
-    }
-    return availableSlots;
+  /// 指定日期下空闲的官方课节。
+  List<CourseUnit> freeUnits(List<CourseUnit> units) {
+    return units.where((u) => !isOccupiedAt(u)).toList();
   }
-}
 
-/// 时间段模型
-class TimeSlot {
-  final String timeSlot;
-  final bool isOccupied;
-  final String? courseName;
-  final String? teacherName;
-
-  const TimeSlot({
-    required this.timeSlot,
-    required this.isOccupied,
-    this.courseName,
-    this.teacherName,
-  });
-
-  factory TimeSlot.fromJson(Map<String, dynamic> json) {
-    return TimeSlot(
-      timeSlot: json['timeSlot']?.toString() ?? '',
-      isOccupied: json['isOccupied'] ?? false,
-      courseName: json['courseName']?.toString(),
-      teacherName: json['teacherName']?.toString(),
-    );
+  /// 指定日期下被占用的官方课节。
+  List<CourseUnit> occupiedUnits(List<CourseUnit> units) {
+    return units.where(isOccupiedAt).toList();
   }
-}
 
-/// 教室查询过滤器
-class RoomFilter {
-  String? campusId;
-  String? buildingId;
-  String? roomType;
-  int? minCapacity;
-  int? maxCapacity;
-  String? date;
-  List<String>? timeSlots;
-  String? startTime;
-  String? endTime;
-  bool? hasProjector;
-  bool? hasComputer;
-  int? currentPage;
-  int? pageSize;
+  bool get hasOccupation => occupations.isNotEmpty;
 
-  RoomFilter({
-    this.campusId,
-    this.buildingId,
-    this.roomType,
-    this.minCapacity,
-    this.maxCapacity,
-    this.date,
-    this.timeSlots,
-    this.startTime,
-    this.endTime,
-    this.hasProjector,
-    this.hasComputer,
-    this.currentPage,
-    this.pageSize,
-  });
-
-  Map<String, dynamic> toJson() {
-    final Map<String, dynamic> data = {};
-    if (campusId != null) data['campusId'] = campusId;
-    if (buildingId != null) data['buildingId'] = buildingId;
-    if (roomType != null) data['roomType'] = roomType;
-    if (minCapacity != null) data['minCapacity'] = minCapacity;
-    if (maxCapacity != null) data['maxCapacity'] = maxCapacity;
-    if (date != null) data['date'] = date;
-    if (timeSlots != null && timeSlots!.isNotEmpty) {
-      data['timeSlots'] = timeSlots;
-    }
-    if (startTime != null) data['startTime'] = startTime;
-    if (endTime != null) data['endTime'] = endTime;
-    if (hasProjector != null) data['hasProjector'] = hasProjector;
-    if (hasComputer != null) data['hasComputer'] = hasComputer;
-    if (currentPage != null) data['currentPage'] = currentPage;
-    if (pageSize != null) data['pageSize'] = pageSize;
-    return data;
-  }
+  /// 当日是否“空闲”（无任何占用活动）。
+  bool get isFreeDay => occupations.isEmpty;
 }

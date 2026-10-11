@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../globals.dart' as globals;
 import '../../adaptive_ui.dart';
 import '../../adaptive_dropdown.dart';
+import '../../ks_widgets.dart';
 import '../../miuix/adaptive_top_app_bar.dart';
 import '../api/sendrequest.dart';
 
@@ -20,12 +21,19 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
   bool _isLoading = false;
   String? _error;
   String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
   String _selectedSemester = '2025-2026-1';
 
   @override
   void initState() {
     super.initState();
     _loadClassrooms();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadClassrooms() async {
@@ -147,32 +155,17 @@ class _ClassroomSchedulePageState extends State<ClassroomSchedulePage> {
             ),
           ),
 
-          // 搜索框
-          Container(
+          // 搜索框（KernelSU SuperSearchBar 风格）
+          Padding(
             padding: const EdgeInsets.all(16),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: '请输入教室名称搜索',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchQuery.isNotEmpty
-                    ? AdaptiveIconButton(
-                        onPressed: () {
-                          setState(() {
-                            _searchQuery = '';
-                            _filterClassrooms();
-                          });
-                        },
-                        icon: const Icon(Icons.clear),
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
+            child: SuperSearchBar(
+              controller: _searchController,
+              hintText: '请输入教室名称搜索',
               onChanged: (value) {
                 setState(() {
                   _searchQuery = value;
                 });
+                _filterClassrooms();
               },
               onSubmitted: (_) => _filterClassrooms(),
             ),

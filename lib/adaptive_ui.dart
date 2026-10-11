@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
+import 'ks_widgets.dart';
 import 'miuix/miuix_components.dart';
 import 'miuix/miuix_floating_bar.dart';
 import 'theme_manager.dart';
@@ -327,12 +328,17 @@ class AdaptiveSwitchTile extends StatelessWidget {
         onChanged: onChanged,
       );
     }
-    return SwitchListTile(
+    // KernelSU SwitchItem：ListTile + ExpressiveSwitch 作 trailing。
+    return ListTile(
       title: Text(title),
       subtitle: summary != null ? Text(summary!) : null,
-      secondary: leading,
-      value: value,
-      onChanged: enabled ? onChanged : null,
+      leading: leading,
+      trailing: ExpressiveSwitch(
+        value: value,
+        enabled: enabled,
+        onChanged: onChanged,
+      ),
+      onTap: enabled ? () => onChanged(!value) : null,
     );
   }
 }
