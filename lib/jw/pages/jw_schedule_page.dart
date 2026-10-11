@@ -24,6 +24,21 @@ class _JwSchedulePageState extends State<JwSchedulePage>
   late final PageController _pageController;
   bool _isAnimating = false;
   static const _weekdays = ['', '周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+  static const _slotStartTimes = [
+    '08:00',
+    '08:50',
+    '09:55',
+    '10:45',
+    '11:35',
+    '14:00',
+    '14:50',
+    '15:55',
+    '16:45',
+    '17:35',
+    '19:00',
+    '19:50',
+    '20:40',
+  ];
   static const int _maxWeeks = 25;
 
   @override
@@ -354,48 +369,50 @@ class _JwSchedulePageState extends State<JwSchedulePage>
     const headerH = 48.0;
     final tableH = totalGridH + headerH + 2.0;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final totalW = constraints.maxWidth;
-        const timeColW = 34.0;
-        final dayW = (totalW - timeColW) / 7.0;
+    return RepaintBoundary(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final totalW = constraints.maxWidth;
+          const timeColW = 34.0;
+          final dayW = (totalW - timeColW) / 7.0;
 
-        return SizedBox(
-          height: tableH,
-          child: PageView.builder(
-            controller: _pageController,
-            itemCount: _maxWeeks,
-            onPageChanged: (page) {
-              final newW = page + 1;
-              if (_service.selectedWeek != newW) {
-                _service.selectWeek(newW);
-              }
-            },
-            itemBuilder: (context, page) {
-              final week = page + 1;
-              final weekData =
-                  _service.scheduleData?.buildWeekSchedule(week) ?? {};
+          return SizedBox(
+            height: tableH,
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: _maxWeeks,
+              onPageChanged: (page) {
+                final newW = page + 1;
+                if (_service.selectedWeek != newW) {
+                  _service.selectWeek(newW);
+                }
+              },
+              itemBuilder: (context, page) {
+                final week = page + 1;
+                final weekData =
+                    _service.scheduleData?.buildWeekSchedule(week) ?? {};
 
-              return Column(
-                children: [
-                  _buildHeader(theme, dayW, timeColW, week),
-                  _buildTimeline(
-                    theme,
-                    isDark,
-                    weekData,
-                    dayW,
-                    timeColW,
-                    slotH,
-                    totalSlots,
-                    totalGridH,
-                    week,
-                  ),
-                ],
-              );
-            },
-          ),
-        );
-      },
+                return Column(
+                  children: [
+                    _buildHeader(theme, dayW, timeColW, week),
+                    _buildTimeline(
+                      theme,
+                      isDark,
+                      weekData,
+                      dayW,
+                      timeColW,
+                      slotH,
+                      totalSlots,
+                      totalGridH,
+                      week,
+                    ),
+                  ],
+                );
+              },
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -522,9 +539,11 @@ class _JwSchedulePageState extends State<JwSchedulePage>
             width: timeColW,
             height: totalH,
             decoration: BoxDecoration(
+              color: theme.cardColor.withOpacity(0.7),
               border: Border(
                 right: BorderSide(
-                  color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+                  color: theme.colorScheme.outlineVariant.withOpacity(0.45),
+                  width: 0.8,
                 ),
               ),
             ),
@@ -537,19 +556,37 @@ class _JwSchedulePageState extends State<JwSchedulePage>
                   decoration: BoxDecoration(
                     border: Border(
                       bottom: BorderSide(
-                        color: theme.colorScheme.outlineVariant.withOpacity(
-                          0.3,
-                        ),
-                        width: 0.5,
+                        color: slot == 5 || slot == 10
+                            ? theme.colorScheme.primary.withOpacity(0.55)
+                            : theme.colorScheme.outlineVariant.withOpacity(
+                                0.45,
+                              ),
+                        width: slot == 5 || slot == 10 ? 1.2 : 0.6,
                       ),
                     ),
                   ),
-                  child: Text(
-                    '$slot',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '$slot',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        _slotStartTimes[slotIdx],
+                        style: TextStyle(
+                          fontSize: 8,
+                          color: theme.colorScheme.onSurfaceVariant.withOpacity(
+                            0.8,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 );
               }),
@@ -569,13 +606,15 @@ class _JwSchedulePageState extends State<JwSchedulePage>
               decoration: BoxDecoration(
                 color: isToday
                     ? theme.colorScheme.primary.withOpacity(
-                        isDark ? 0.12 : 0.08,
+                        isDark ? 0.14 : 0.10,
                       )
                     : null,
                 border: Border(
                   right: BorderSide(
-                    color: theme.colorScheme.outlineVariant.withOpacity(0.35),
-                    width: 0.5,
+                    color: theme.colorScheme.outlineVariant.withOpacity(
+                      isToday ? 0.65 : 0.45,
+                    ),
+                    width: isToday ? 0.8 : 0.6,
                   ),
                 ),
               ),
@@ -583,6 +622,7 @@ class _JwSchedulePageState extends State<JwSchedulePage>
                 clipBehavior: Clip.none,
                 children: [
                   ...List.generate(totalSlots, (sIdx) {
+                    final slot = sIdx + 1;
                     return Positioned(
                       top: sIdx * slotH,
                       left: 0,
@@ -592,9 +632,13 @@ class _JwSchedulePageState extends State<JwSchedulePage>
                         decoration: BoxDecoration(
                           border: Border(
                             bottom: BorderSide(
-                              color: theme.colorScheme.outlineVariant
-                                  .withOpacity(0.2),
-                              width: 0.5,
+                              color: slot == 5 || slot == 10
+                                  ? theme.colorScheme.primary.withOpacity(
+                                      isToday ? 0.7 : 0.5,
+                                    )
+                                  : theme.colorScheme.outlineVariant
+                                        .withOpacity(isToday ? 0.5 : 0.4),
+                              width: slot == 5 || slot == 10 ? 1.2 : 0.6,
                             ),
                           ),
                         ),
@@ -606,14 +650,14 @@ class _JwSchedulePageState extends State<JwSchedulePage>
                     final end = entry.endUnit.clamp(start, totalSlots);
                     final span = (end - start + 1).clamp(1, totalSlots);
                     final top = (start - 1) * slotH + 1.5;
-                    final h = span * slotH - 3.0;
+                    final h = (span * slotH - 3.0).clamp(24.0, double.infinity);
 
                     return Positioned(
                       top: top,
                       left: 1.5,
                       right: 1.5,
                       height: h,
-                      child: _buildCourseCard(entry, theme, isDark),
+                      child: _buildCourseCard(entry, span, theme, isDark),
                     );
                   }),
                 ],
@@ -625,27 +669,38 @@ class _JwSchedulePageState extends State<JwSchedulePage>
     );
   }
 
-  Widget _buildCourseCard(JwScheduleEntry entry, ThemeData theme, bool isDark) {
-    final hash = entry.courseName.hashCode.abs();
-    final hue = (hash % 360).toDouble();
-    final bg = isDark
-        ? HSLColor.fromAHSL(0.35, hue, 0.65, 0.28).toColor()
-        : HSLColor.fromAHSL(0.22, hue, 0.70, 0.85).toColor();
-    final textColor = isDark
-        ? HSLColor.fromAHSL(1.0, hue, 0.75, 0.80).toColor()
-        : HSLColor.fromAHSL(1.0, hue, 0.75, 0.30).toColor();
+  Widget _buildCourseCard(
+    JwScheduleEntry entry,
+    int span,
+    ThemeData theme,
+    bool isDark,
+  ) {
+    final bg = _courseBackground(entry.courseName, isDark);
+    final textColor = _courseForeground(entry.courseName, isDark);
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () => _showDetailModal(entry),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 2.5, vertical: 3),
+          padding: const EdgeInsets.symmetric(horizontal: 2.5, vertical: 3.5),
           decoration: BoxDecoration(
             color: bg,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: textColor.withOpacity(0.25), width: 0.6),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: textColor.withOpacity(isDark ? 0.35 : 0.22),
+              width: 0.6,
+            ),
+            boxShadow: isMiuixUi()
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(isDark ? 0.25 : 0.04),
+                      blurRadius: 3,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -653,12 +708,12 @@ class _JwSchedulePageState extends State<JwSchedulePage>
               Text(
                 entry.courseName,
                 style: TextStyle(
-                  fontSize: 9.5,
+                  fontSize: 10,
                   fontWeight: FontWeight.bold,
                   color: textColor,
-                  height: 1.1,
+                  height: 1.12,
                 ),
-                maxLines: 3,
+                maxLines: span >= 3 ? 5 : (span >= 2 ? 3 : 2),
                 overflow: TextOverflow.ellipsis,
               ),
               if (entry.roomName.isNotEmpty) ...[
@@ -666,10 +721,25 @@ class _JwSchedulePageState extends State<JwSchedulePage>
                 Text(
                   '@ ${entry.roomName}',
                   style: TextStyle(
-                    fontSize: 8.0,
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.w500,
                     color: textColor.withOpacity(0.85),
+                    height: 1.08,
                   ),
-                  maxLines: 2,
+                  maxLines: span >= 2 ? 2 : 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+              if (span >= 2 && entry.teacherName.isNotEmpty) ...[
+                const SizedBox(height: 1.5),
+                Text(
+                  entry.teacherName,
+                  style: TextStyle(
+                    fontSize: 8.5,
+                    color: textColor.withOpacity(0.7),
+                    height: 1.08,
+                  ),
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
@@ -678,6 +748,64 @@ class _JwSchedulePageState extends State<JwSchedulePage>
         ),
       ),
     );
+  }
+
+  Color _courseBackground(String name, bool isDark) {
+    const lightColors = [
+      Color(0xFFE8F0FE),
+      Color(0xFFE6F4EA),
+      Color(0xFFFEF7E0),
+      Color(0xFFFCE8E6),
+      Color(0xFFF3E8FD),
+      Color(0xFFE0F2F1),
+      Color(0xFFFFF0F5),
+      Color(0xFFEFEBE9),
+      Color(0xFFE1F5FE),
+      Color(0xFFF9FBE7),
+    ];
+    const darkColors = [
+      Color(0xFF1E3A5F),
+      Color(0xFF1B4332),
+      Color(0xFF4A3E1B),
+      Color(0xFF4A2028),
+      Color(0xFF38234D),
+      Color(0xFF1B3D3B),
+      Color(0xFF4A2A38),
+      Color(0xFF36322F),
+      Color(0xFF1E3747),
+      Color(0xFF363D1F),
+    ];
+    final hash = name.hashCode.abs();
+    return (isDark ? darkColors : lightColors)[hash % lightColors.length];
+  }
+
+  Color _courseForeground(String name, bool isDark) {
+    const lightColors = [
+      Color(0xFF1A56DB),
+      Color(0xFF0D6832),
+      Color(0xFF946200),
+      Color(0xFFB42318),
+      Color(0xFF6B21A8),
+      Color(0xFF0E7090),
+      Color(0xFF9D174D),
+      Color(0xFF5D4037),
+      Color(0xFF0284C7),
+      Color(0xFF556B2F),
+    ];
+    const darkColors = [
+      Color(0xFF93C5FD),
+      Color(0xFF86EFAC),
+      Color(0xFFFDE047),
+      Color(0xFFFCA5A5),
+      Color(0xFFD8B4FE),
+      Color(0xFF67E8F9),
+      Color(0xFFF472B6),
+      Color(0xFFD7CCC8),
+      Color(0xFF7DD3FC),
+      Color(0xFFBEF264),
+    ];
+    final hash = name.hashCode.abs();
+    return (isDark ? darkColors : lightColors)[hash % lightColors.length];
   }
 
   /// 遵循 AGENTS.md 约束，使用 sheetAnimationStyle 控制 150ms 进场与 120ms 退场

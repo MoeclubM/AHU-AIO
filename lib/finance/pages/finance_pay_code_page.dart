@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../auth/cas_auth_cache.dart';
+import '../finance_balance_sync.dart';
 import '../api/synjones_client.dart';
 import '../api/synjones_offline_code.dart';
 import '../../adaptive_ui.dart';
@@ -156,6 +157,7 @@ class _FinancePayCodePageState extends State<FinancePayCodePage>
       if (payments.isEmpty) {
         throw StateError('当前账号没有可用付款方式');
       }
+      notifyFinanceBalanceRefreshed();
       Map<String, dynamic>? payment;
       for (final item in payments) {
         if (_samePayment(item, selectedPayment)) {

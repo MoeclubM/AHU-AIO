@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../globals.dart' as globals;
 
 import '../../auth/cas_auth_cache.dart';
+import '../finance_balance_sync.dart';
 import '../api/synjones_client.dart';
 import '../../auth/unified_login_page.dart';
 import '../pages/finance_cards_page.dart';
@@ -34,6 +35,17 @@ class _FinanceHomePageState extends State<FinanceHomePage>
   @override
   void initState() {
     super.initState();
+    financeBalanceRefreshRevision.addListener(_onBalanceRefreshed);
+    _loadData();
+  }
+
+  @override
+  void dispose() {
+    financeBalanceRefreshRevision.removeListener(_onBalanceRefreshed);
+    super.dispose();
+  }
+
+  void _onBalanceRefreshed() {
     _loadData();
   }
 
