@@ -13,6 +13,8 @@ import '../../jlb/pages/jlb_locker_page.dart';
 final ValueNotifier<bool> financeRechargeIsListViewNotifier =
     ValueNotifier<bool>(false);
 
+const bool _showJinlbEntry = false;
+
 class FinanceRechargePage extends StatefulWidget {
   final bool embed;
   const FinanceRechargePage({super.key, this.embed = false});
@@ -118,7 +120,7 @@ class _FinanceRechargePageState extends State<FinanceRechargePage>
         });
       }
 
-      entries.add(_jinlbEntry);
+      if (_showJinlbEntry) entries.add(_jinlbEntry);
 
       entries.sort((a, b) {
         if (a['isCardRecharge'] == true) return -1;
@@ -240,24 +242,26 @@ class _FinanceRechargePageState extends State<FinanceRechargePage>
               onPressed: _loadEntries,
               child: const Text('重试'),
             ),
-            const SizedBox(height: 24),
-            AdaptiveCard(
-              borderRadius: 14,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const JlbLockerPage()),
-                );
-              },
-              child: const ListTile(
-                leading: CircleAvatar(
-                  child: Icon(Icons.all_inbox_rounded),
+            if (_showJinlbEntry) ...[
+              const SizedBox(height: 24),
+              AdaptiveCard(
+                borderRadius: 14,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const JlbLockerPage()),
+                  );
+                },
+                child: const ListTile(
+                  leading: CircleAvatar(
+                    child: Icon(Icons.all_inbox_rounded),
+                  ),
+                  title: Text('近邻宝快递柜'),
+                  subtitle: Text('格口查询与一键开箱'),
+                  trailing: Icon(Icons.chevron_right),
                 ),
-                title: Text('近邻宝快递柜'),
-                subtitle: Text('格口查询与一键开箱'),
-                trailing: Icon(Icons.chevron_right),
               ),
-            ),
+            ],
           ],
         ),
       ),
