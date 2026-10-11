@@ -144,7 +144,8 @@ class _JlbLockerPageState extends State<JlbLockerPage>
       if (text.isEmpty || text == _lastCheckedClipboard) return;
 
       // 常见近邻宝 Session ID 长度通常为 32 或包含特定前缀/十六进制
-      final isPotentialSession = (text.length >= 24 &&
+      final isPotentialSession =
+          (text.length >= 24 &&
               text.length <= 64 &&
               !text.contains('http') &&
               !text.contains(' ') &&
@@ -155,7 +156,9 @@ class _JlbLockerPageState extends State<JlbLockerPage>
         _lastCheckedClipboard = text;
         String extracted = text;
         if (text.contains('sessionId')) {
-          final match = RegExp(r'sessionId[:=]\s*([a-zA-Z0-9_-]+)').firstMatch(text);
+          final match = RegExp(
+            r'sessionId[:=]\s*([a-zA-Z0-9_-]+)',
+          ).firstMatch(text);
           if (match != null) {
             extracted = match.group(1)!;
           }
@@ -165,7 +168,9 @@ class _JlbLockerPageState extends State<JlbLockerPage>
           final confirm = await showAdaptiveConfirmDialog(
             context: context,
             title: '检测到剪贴板凭据',
-            content: Text('检测到剪贴板中疑似近邻宝 Session 凭据：\n\n$extracted\n\n是否立即导入并验证？'),
+            content: Text(
+              '检测到剪贴板中疑似近邻宝 Session 凭据：\n\n$extracted\n\n是否立即导入并验证？',
+            ),
             confirmText: '立即导入',
             cancelText: '忽略',
           );
@@ -286,8 +291,17 @@ class _JlbLockerPageState extends State<JlbLockerPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('运单号: ${parcel.expCode}'),
-          Text('柜体编号: ${parcel.cabCode}', style: const TextStyle(fontWeight: FontWeight.bold)),
-          Text('格口编号: ${parcel.cellDesc}', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red)),
+          Text(
+            '柜体编号: ${parcel.cabCode}',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          Text(
+            '格口编号: ${parcel.cellDesc}',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.red,
+            ),
+          ),
           Text('开箱取件码: ${parcel.pickupCode}'),
           const SizedBox(height: 12),
           const Text(
@@ -317,11 +331,17 @@ class _JlbLockerPageState extends State<JlbLockerPage>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('运单号: ${parcel.expCode}'),
-          Text('柜体编号: ${parcel.cabCode}',
-              style: const TextStyle(fontWeight: FontWeight.bold)),
-          Text('格口编号: ${parcel.cellDesc}',
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, color: Colors.red)),
+          Text(
+            '柜体编号: ${parcel.cabCode}',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          Text(
+            '格口编号: ${parcel.cellDesc}',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.red,
+            ),
+          ),
           const SizedBox(height: 12),
           const Text(
             '【状态说明】该包裹状态已为【用户已取走】。\n若因柜门意外关上导致包裹遗留，可尝试向近邻宝发送【重新开箱】指令。\n\n是否立即发送？',
@@ -345,7 +365,8 @@ class _JlbLockerPageState extends State<JlbLockerPage>
           context: context,
           title: '指令发送成功',
           content: Text(
-              '${parcel.cabCode} · ${parcel.cellDesc}\n\n已成功下发重开指令，请在柜体前确认箱门是否弹开。'),
+            '${parcel.cabCode} · ${parcel.cellDesc}\n\n已成功下发重开指令，请在柜体前确认箱门是否弹开。',
+          ),
           confirmText: '好的',
           cancelText: '',
         );
@@ -374,7 +395,8 @@ class _JlbLockerPageState extends State<JlbLockerPage>
   }
 
   void _copyParcelInfo(JlbParcelInfo p) {
-    final text = '运单号: ${p.expCode}\n'
+    final text =
+        '运单号: ${p.expCode}\n'
         '快递柜编号: ${p.cabCode}\n'
         '格口编号: ${p.cellDesc}\n'
         '取件码: ${p.pickupCode}\n'
@@ -460,7 +482,9 @@ class _JlbLockerPageState extends State<JlbLockerPage>
                       Text(
                         _isSessionValid ? '近邻宝授权：已连接' : '近邻宝授权：未连接',
                         style: const TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.bold),
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text(
@@ -496,8 +520,10 @@ class _JlbLockerPageState extends State<JlbLockerPage>
                   minimumSize: const Size.fromHeight(44),
                 ),
                 icon: const Icon(Icons.qr_code_scanner_rounded, size: 20),
-                label: const Text('电脑屏幕扫码自动导入 (推荐)',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                label: const Text(
+                  '电脑屏幕扫码自动导入 (推荐)',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
                 onPressed: _openScannerPage,
               ),
               const SizedBox(height: 14),
@@ -512,7 +538,9 @@ class _JlbLockerPageState extends State<JlbLockerPage>
                     icon: const Icon(Icons.content_paste, size: 20),
                     tooltip: '粘贴剪贴板',
                     onPressed: () async {
-                      final data = await Clipboard.getData(Clipboard.kTextPlain);
+                      final data = await Clipboard.getData(
+                        Clipboard.kTextPlain,
+                      );
                       if (data?.text != null) {
                         _sessionController.text = data!.text!.trim();
                       }
@@ -534,7 +562,9 @@ class _JlbLockerPageState extends State<JlbLockerPage>
                   Expanded(
                     child: AdaptivePrimaryButton(
                       minimumSize: const Size.fromHeight(40),
-                      onPressed: _isValidatingSession ? null : () => _validateSession(),
+                      onPressed: _isValidatingSession
+                          ? null
+                          : () => _validateSession(),
                       child: _isValidatingSession
                           ? const SizedBox(
                               width: 16,
@@ -696,7 +726,10 @@ class _JlbLockerPageState extends State<JlbLockerPage>
               children: [
                 Text(
                   '当前待取包裹 (${_unpickedList.length})',
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 AdaptiveTextButton(
                   onPressed: () => setState(() => _showUnpickedList = false),
@@ -785,7 +818,10 @@ class _JlbLockerPageState extends State<JlbLockerPage>
                   ],
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: parcel.isUnpicked
                         ? Colors.green.shade50
@@ -826,9 +862,13 @@ class _JlbLockerPageState extends State<JlbLockerPage>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('快递柜编号/ID',
-                            style: TextStyle(
-                                fontSize: 12, color: Colors.blue.shade800)),
+                        Text(
+                          '快递柜编号/ID',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.blue.shade800,
+                          ),
+                        ),
                         const SizedBox(height: 4),
                         Text(
                           parcel.cabCode,
@@ -854,9 +894,13 @@ class _JlbLockerPageState extends State<JlbLockerPage>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('快递柜格子编号',
-                            style: TextStyle(
-                                fontSize: 12, color: Colors.red.shade800)),
+                        Text(
+                          '快递柜格子编号',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.red.shade800,
+                          ),
+                        ),
                         const SizedBox(height: 4),
                         Text(
                           parcel.cellDesc,
@@ -889,11 +933,15 @@ class _JlbLockerPageState extends State<JlbLockerPage>
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('开箱取件码',
-                          style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      const Text(
+                        '开箱取件码',
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                      ),
                       const SizedBox(height: 2),
                       Text(
-                        parcel.pickupCode.isNotEmpty ? parcel.pickupCode : '暂无取件码',
+                        parcel.pickupCode.isNotEmpty
+                            ? parcel.pickupCode
+                            : '暂无取件码',
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -906,8 +954,15 @@ class _JlbLockerPageState extends State<JlbLockerPage>
                     icon: const Icon(Icons.copy),
                     tooltip: '复制取件码',
                     onPressed: () {
-                      Clipboard.setData(ClipboardData(text: parcel.pickupCode.replaceAll(' ', '')));
-                      _showSnackBar('已复制取件码: ${parcel.pickupCode}', isSuccess: true);
+                      Clipboard.setData(
+                        ClipboardData(
+                          text: parcel.pickupCode.replaceAll(' ', ''),
+                        ),
+                      );
+                      _showSnackBar(
+                        '已复制取件码: ${parcel.pickupCode}',
+                        isSuccess: true,
+                      );
                     },
                   ),
                 ],
@@ -915,7 +970,10 @@ class _JlbLockerPageState extends State<JlbLockerPage>
             ),
 
             const SizedBox(height: 12),
-            _buildDetailRow('快递公司', '${parcel.expressName} (${parcel.expCode})'),
+            _buildDetailRow(
+              '快递公司',
+              '${parcel.expressName} (${parcel.expCode})',
+            ),
             _buildDetailRow('柜体地址', parcel.addr),
             if (parcel.createTime.isNotEmpty)
               _buildDetailRow('存入时间', parcel.createTime),
@@ -935,9 +993,13 @@ class _JlbLockerPageState extends State<JlbLockerPage>
                         minimumSize: const Size.fromHeight(44),
                       ),
                       icon: const Icon(Icons.lock_open, size: 20),
-                      label: const Text('一键打开柜门',
-                          style: TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.bold)),
+                      label: const Text(
+                        '一键打开柜门',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       onPressed: () => _handleOpenBox(parcel),
                     ),
                   ),
@@ -953,9 +1015,13 @@ class _JlbLockerPageState extends State<JlbLockerPage>
                         minimumSize: const Size.fromHeight(44),
                       ),
                       icon: const Icon(Icons.refresh_rounded, size: 20),
-                      label: const Text('已取走 (再次开箱)',
-                          style: TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.bold)),
+                      label: const Text(
+                        '已取走 (再次开箱)',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       onPressed: () => _handleReopenBox(parcel),
                     ),
                   ),
@@ -988,7 +1054,10 @@ class _JlbLockerPageState extends State<JlbLockerPage>
         children: [
           SizedBox(
             width: 70,
-            child: Text(label, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+            child: Text(
+              label,
+              style: const TextStyle(fontSize: 13, color: Colors.grey),
+            ),
           ),
           Expanded(
             child: Text(

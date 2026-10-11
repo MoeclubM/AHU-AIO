@@ -253,9 +253,7 @@ class _FinanceRechargePageState extends State<FinanceRechargePage>
                   );
                 },
                 child: const ListTile(
-                  leading: CircleAvatar(
-                    child: Icon(Icons.all_inbox_rounded),
-                  ),
+                  leading: CircleAvatar(child: Icon(Icons.all_inbox_rounded)),
                   title: Text('近邻宝快递柜'),
                   subtitle: Text('格口查询与一键开箱'),
                   trailing: Icon(Icons.chevron_right),

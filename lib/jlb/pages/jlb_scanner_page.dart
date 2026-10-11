@@ -114,7 +114,8 @@ class _JlbScannerPageState extends State<JlbScannerPage>
     if (clean.startsWith('jlb://')) {
       final uri = Uri.tryParse(clean);
       if (uri != null) {
-        final sid = uri.queryParameters['session'] ??
+        final sid =
+            uri.queryParameters['session'] ??
             uri.queryParameters['sessionId'] ??
             uri.queryParameters['session_id'] ??
             uri.queryParameters['sid'];
@@ -126,7 +127,8 @@ class _JlbScannerPageState extends State<JlbScannerPage>
     if (clean.startsWith('{') && clean.endsWith('}')) {
       try {
         final Map<String, dynamic> jsonMap = jsonDecode(clean);
-        final sid = jsonMap['session_id'] ??
+        final sid =
+            jsonMap['session_id'] ??
             jsonMap['sessionId'] ??
             jsonMap['sid'] ??
             jsonMap['session'];
@@ -138,7 +140,8 @@ class _JlbScannerPageState extends State<JlbScannerPage>
     if (clean.startsWith('http://') || clean.startsWith('https://')) {
       final uri = Uri.tryParse(clean);
       if (uri != null) {
-        final sid = uri.queryParameters['session'] ??
+        final sid =
+            uri.queryParameters['session'] ??
             uri.queryParameters['sessionId'] ??
             uri.queryParameters['session_id'] ??
             uri.queryParameters['sid'];
@@ -310,13 +313,18 @@ class _JlbScannerPageState extends State<JlbScannerPage>
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.error_outline,
-                          color: Colors.redAccent, size: 48),
+                      const Icon(
+                        Icons.error_outline,
+                        color: Colors.redAccent,
+                        size: 48,
+                      ),
                       const SizedBox(height: 12),
                       Text(
                         '相机启动异常: ${error.errorCode}',
-                        style:
-                            const TextStyle(color: Colors.white, fontSize: 15),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       const Text(
@@ -349,8 +357,10 @@ class _JlbScannerPageState extends State<JlbScannerPage>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.7),
                     borderRadius: BorderRadius.circular(20),
@@ -368,7 +378,9 @@ class _JlbScannerPageState extends State<JlbScannerPage>
                     foregroundColor: Colors.white,
                     side: const BorderSide(color: Colors.white54),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                   ),
                   icon: const Icon(Icons.content_paste_go, size: 18),
                   label: const Text('剪贴板快速导入凭证'),

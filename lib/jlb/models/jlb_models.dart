@@ -61,47 +61,39 @@ class JlbParcelInfo {
 
   factory JlbParcelInfo.fromMap(Map<String, dynamic> map) {
     final storageType = (map['storageType'] as num?)?.toInt() ?? 0;
-    final storageTypeName =
-        _storageTypeMap[storageType] ?? '类型($storageType)';
+    final storageTypeName = _storageTypeMap[storageType] ?? '类型($storageType)';
 
     final statusCode = (map['status'] as num?)?.toInt() ?? 0;
     final statusName = _statusMap[statusCode] ?? '状态($statusCode)';
 
-    final rawCab = (map['cabCode'] ??
-            map['cabinetCode'] ??
-            map['cabinet_code'] ??
-            '')
-        .toString()
-        .trim();
+    final rawCab =
+        (map['cabCode'] ?? map['cabinetCode'] ?? map['cabinet_code'] ?? '')
+            .toString()
+            .trim();
     final cabCode = rawCab.isEmpty ? '无柜号' : rawCab;
 
-    final rawCell = (map['cellCodeDesc'] ??
-            map['cellDesc'] ??
-            map['cellCode'] ??
-            '')
-        .toString()
-        .trim();
+    final rawCell =
+        (map['cellCodeDesc'] ?? map['cellDesc'] ?? map['cellCode'] ?? '')
+            .toString()
+            .trim();
     String cellDesc = rawCell.isEmpty ? '无格口号' : rawCell;
     if (cellDesc != '无格口号' && !cellDesc.endsWith('格口')) {
       cellDesc = '$cellDesc 格口';
     }
 
-    final rawPickup =
-        (map['pickupCode'] ?? map['openCode'] ?? '').toString().trim();
+    final rawPickup = (map['pickupCode'] ?? map['openCode'] ?? '')
+        .toString()
+        .trim();
     String pickupCode = rawPickup;
     if (rawPickup.length == 8 && (storageType == 3 || storageType == 4)) {
       pickupCode = '${rawPickup.substring(0, 4)} ${rawPickup.substring(4)}';
     }
 
-    final addr = (map['addr'] ??
-            map['address'] ??
-            map['stationName'] ??
-            '未知位置')
+    final addr = (map['addr'] ?? map['address'] ?? map['stationName'] ?? '未知位置')
         .toString()
         .trim();
 
-    final expressName =
-        (map['expressName'] ?? '快递包裹').toString().trim();
+    final expressName = (map['expressName'] ?? '快递包裹').toString().trim();
     final expCode = (map['expCode'] ?? '').toString().trim();
 
     String createTime = (map['createTime'] ?? '').toString().trim();
@@ -148,8 +140,11 @@ class JlbUserInfo {
     this.fullCode = '',
   });
 
-  factory JlbUserInfo.fromMap(Map<String, dynamic> map,
-      {String simpleCode = '', String fullCode = ''}) {
+  factory JlbUserInfo.fromMap(
+    Map<String, dynamic> map, {
+    String simpleCode = '',
+    String fullCode = '',
+  }) {
     return JlbUserInfo(
       phone: (map['phone'] ?? '').toString().trim(),
       userName: (map['userName'] ?? map['nickName'] ?? '近邻宝用户')

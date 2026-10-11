@@ -14,12 +14,14 @@ class JlbClient {
   String sessionId;
 
   JlbClient({this.sessionId = ''})
-      : _dio = Dio(BaseOptions(
+    : _dio = Dio(
+        BaseOptions(
           baseUrl: baseUrl,
           connectTimeout: const Duration(seconds: 10),
           receiveTimeout: const Duration(seconds: 10),
           sendTimeout: const Duration(seconds: 10),
-        ));
+        ),
+      );
 
   Map<String, String> _getHeaders() {
     return {
@@ -47,7 +49,7 @@ class JlbClient {
         final body = data['body'] is Map
             ? data['body'] as Map<String, dynamic>
             : <String, dynamic>{};
-        
+
         // 尝试拉取出库身份码
         String simpleCode = '';
         String fullCode = '';
@@ -56,7 +58,9 @@ class JlbClient {
             '/order/getIdentityCode',
             options: Options(headers: _getHeaders()),
           );
-          if (idResp.data is Map && idResp.data['code'] == 0 && idResp.data['body'] is Map) {
+          if (idResp.data is Map &&
+              idResp.data['code'] == 0 &&
+              idResp.data['body'] is Map) {
             final idBody = idResp.data['body'] as Map<String, dynamic>;
             simpleCode = (idBody['simpleCode'] ?? '').toString();
             fullCode = (idBody['fullCode'] ?? '').toString();
@@ -70,8 +74,9 @@ class JlbClient {
         );
         return (
           ok: true,
-          message: '登录有效: ${user.phone.isNotEmpty ? user.phone : user.userName}',
-          user: user
+          message:
+              '登录有效: ${user.phone.isNotEmpty ? user.phone : user.userName}',
+          user: user,
         );
       } else if (code == 6 || code == 20001) {
         return (ok: false, message: 'Session 已失效，请在微信重新获取', user: null);
@@ -79,7 +84,7 @@ class JlbClient {
         return (
           ok: false,
           message: data['msg']?.toString() ?? '验证失败 (code=$code)',
-          user: null
+          user: null,
         );
       }
     } catch (e) {
@@ -89,7 +94,8 @@ class JlbClient {
 
   /// 根据快递运单号核心查询包裹详情
   Future<({bool ok, String message, JlbParcelInfo? parcel})> queryByExpCode(
-      String expCode) async {
+    String expCode,
+  ) async {
     final cleanCode = expCode.trim();
     if (cleanCode.isEmpty) {
       return (ok: false, message: '请输入快递运单号', parcel: null);
@@ -126,7 +132,7 @@ class JlbClient {
           return (
             ok: true,
             message: '查询成功',
-            parcel: JlbParcelInfo.fromMap(newOrder)
+            parcel: JlbParcelInfo.fromMap(newOrder),
           );
         }
       } else if (code == 6 || code == 20001) {
@@ -144,7 +150,11 @@ class JlbClient {
           if (item.orderId.isNotEmpty) {
             final detailRes = await getOrderInfo(item.orderId);
             if (detailRes.ok && detailRes.parcel != null) {
-              return (ok: true, message: '查询成功 (待取列表匹配)', parcel: detailRes.parcel);
+              return (
+                ok: true,
+                message: '查询成功 (待取列表匹配)',
+                parcel: detailRes.parcel,
+              );
             }
           }
           return (ok: true, message: '查询成功 (待取列表匹配)', parcel: item);
@@ -155,13 +165,14 @@ class JlbClient {
     return (
       ok: false,
       message: '未查询到单号 [$cleanCode] 对应的快递柜包裹信息（可能包裹未到柜、已取走或不在该账号下）',
-      parcel: null
+      parcel: null,
     );
   }
 
   /// 根据订单ID查询详细格口与物流信息
   Future<({bool ok, String message, JlbParcelInfo? parcel})> getOrderInfo(
-      String orderId) async {
+    String orderId,
+  ) async {
     try {
       final resp = await _dio.get(
         '/order/orderInfo',
@@ -174,13 +185,13 @@ class JlbClient {
         return (
           ok: true,
           message: '获取包裹详情成功',
-          parcel: JlbParcelInfo.fromMap(body)
+          parcel: JlbParcelInfo.fromMap(body),
         );
       }
       return (
         ok: false,
         message: data['msg']?.toString() ?? '获取订单详情失败',
-        parcel: null
+        parcel: null,
       );
     } catch (e) {
       return (ok: false, message: '网络请求异常: $e', parcel: null);
@@ -189,7 +200,7 @@ class JlbClient {
 
   /// 获取用户当前所有待取包裹
   Future<({bool ok, String message, List<JlbParcelInfo> list})>
-      getUnpickupList({int pageIndex = 1, int pageSize = 50}) async {
+  getUnpickupList({int pageIndex = 1, int pageSize = 50}) async {
     try {
       final resp = await _dio.get(
         '/order/unPickupList',
@@ -206,12 +217,16 @@ class JlbClient {
             .toList();
         return (ok: true, message: '获取成功', list: list);
       } else if (data['code'] == 6 || data['code'] == 20001) {
-        return (ok: false, message: 'Session 已失效，请重新授权', list: <JlbParcelInfo>[]);
+        return (
+          ok: false,
+          message: 'Session 已失效，请重新授权',
+          list: <JlbParcelInfo>[],
+        );
       }
       return (
         ok: false,
         message: data['msg']?.toString() ?? '获取列表失败',
-        list: <JlbParcelInfo>[]
+        list: <JlbParcelInfo>[],
       );
     } catch (e) {
       return (ok: false, message: '网络请求异常: $e', list: <JlbParcelInfo>[]);
@@ -220,7 +235,8 @@ class JlbClient {
 
   /// 检查包裹超期费用 (单位: 分)
   Future<({bool ok, String message, int amountFen})> getCharge(
-      String orderId) async {
+    String orderId,
+  ) async {
     try {
       final resp = await _dio.get(
         '/order/getCharge',
@@ -229,14 +245,16 @@ class JlbClient {
       );
       final data = resp.data is Map ? resp.data as Map<String, dynamic> : {};
       if (data['code'] == 0) {
-        final body = data['body'] is Map ? data['body'] as Map<String, dynamic> : {};
+        final body = data['body'] is Map
+            ? data['body'] as Map<String, dynamic>
+            : {};
         final amount = (body['amount'] as num?)?.toInt() ?? 0;
         return (ok: true, message: '查询费用成功', amountFen: amount);
       }
       return (
         ok: false,
         message: data['msg']?.toString() ?? '费用检查失败',
-        amountFen: 0
+        amountFen: 0,
       );
     } catch (e) {
       return (ok: false, message: '网络请求异常: $e', amountFen: 0);
@@ -245,7 +263,9 @@ class JlbClient {
 
   /// 发送一键开箱指令
   Future<({bool ok, String message})> cabPickupQuick(
-      String orderId, [String stationId = '']) async {
+    String orderId, [
+    String stationId = '',
+  ]) async {
     try {
       final params = <String, dynamic>{'orderId': orderId};
       if (stationId.isNotEmpty) {
@@ -266,7 +286,10 @@ class JlbClient {
           code == 40003) {
         return (ok: false, message: '柜体网络断开或离线，无法开箱');
       }
-      return (ok: false, message: data['msg']?.toString() ?? '开箱失败 (code=$code)');
+      return (
+        ok: false,
+        message: data['msg']?.toString() ?? '开箱失败 (code=$code)',
+      );
     } catch (e) {
       return (ok: false, message: '网络请求异常: $e');
     }
@@ -274,7 +297,8 @@ class JlbClient {
 
   /// 检查箱门是否已经打开
   Future<({bool isOpened, String message})> cabPickupCheck(
-      String orderId) async {
+    String orderId,
+  ) async {
     try {
       final resp = await _dio.get(
         '/order/cabPickupCheck',
@@ -285,10 +309,7 @@ class JlbClient {
       if (data['code'] == 0 && data['body'] is Map) {
         final body = data['body'] as Map<String, dynamic>;
         final isPickup = body['is_pickup'] == true;
-        return (
-          isOpened: isPickup,
-          message: isPickup ? '箱门已打开' : '箱门开启中...'
-        );
+        return (isOpened: isPickup, message: isPickup ? '箱门已打开' : '箱门开启中...');
       }
       return (isOpened: false, message: data['msg']?.toString() ?? '状态检查失败');
     } catch (e) {

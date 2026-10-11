@@ -70,10 +70,7 @@ void main() {
     });
 
     test('JlbUserInfo 模型解析', () {
-      final rawUserData = {
-        'phone': '13812345678',
-        'userName': '张同学',
-      };
+      final rawUserData = {'phone': '13812345678', 'userName': '张同学'};
 
       final user = JlbUserInfo.fromMap(
         rawUserData,
@@ -100,15 +97,17 @@ void main() {
         if (clean.startsWith('jlb://')) {
           final uri = Uri.tryParse(clean);
           if (uri != null) {
-            final sid = uri.queryParameters['session'] ??
+            final sid =
+                uri.queryParameters['session'] ??
                 uri.queryParameters['sessionId'] ??
                 uri.queryParameters['sid'];
             if (sid != null && sid.isNotEmpty) return sid.trim();
           }
         }
         if (clean.contains('sessionId') || clean.contains('session_id')) {
-          final match = RegExp(r'(?:sessionId|session_id)[:=]\s*([a-zA-Z0-9_-]+)')
-              .firstMatch(clean);
+          final match = RegExp(
+            r'(?:sessionId|session_id)[:=]\s*([a-zA-Z0-9_-]+)',
+          ).firstMatch(clean);
           if (match != null) {
             return match.group(1);
           }
