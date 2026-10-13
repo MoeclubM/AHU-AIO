@@ -6,6 +6,7 @@ import '../api/getclass.dart';
 import '../utils/time_utils.dart';
 import '../../globals.dart' as globals;
 import 'semester_config.dart';
+import '../../schedule_cache_bootstrap.dart';
 
 class ScheduleEntry {
   ScheduleEntry({
@@ -62,11 +63,18 @@ class ScheduleService extends ChangeNotifier {
       }
       final prefs = await SharedPreferences.getInstance();
       final cacheKey = 'jwapp_schedule_cache_$actualSemesterId';
+      final id = int.tryParse(actualSemesterId);
+      final bootstrapped = id == null
+          ? null
+          : ScheduleCacheBootstrap.jwappSchedules[id];
       final cachedStr = prefs.getString(cacheKey);
-      if (cachedStr != null) {
-        _classes = jsonDecode(cachedStr) as List<dynamic>;
+      if (bootstrapped != null || cachedStr != null) {
+        _classes = bootstrapped ?? jsonDecode(cachedStr!) as List<dynamic>;
         _isCached = true;
         notifyListeners();
+      } else {
+        _classes = null;
+        _isCached = false;
       }
     } catch (_) {}
   }
@@ -93,6 +101,10 @@ class ScheduleService extends ChangeNotifier {
       if (freshClasses != null) {
         _classes = freshClasses;
         _isCached = false;
+        final id = int.tryParse(actualSemesterId);
+        if (id != null) {
+          ScheduleCacheBootstrap.jwappSchedules[id] = freshClasses;
+        }
         final prefs = await SharedPreferences.getInstance();
         final cacheKey = 'jwapp_schedule_cache_$actualSemesterId';
         await prefs.setString(cacheKey, jsonEncode(freshClasses));

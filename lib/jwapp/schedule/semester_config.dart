@@ -14,6 +14,34 @@ class SemesterConfig {
   static const String _currentSemesterDiskKey =
       'jwapp_current_semester_disk_cache';
   static const String _allSemestersDiskKey = 'jwapp_all_semesters_disk_cache';
+  static CurrentSemesterInfo? get cachedCurrentSemester => _currentSemester;
+  static List<SemesterInfo>? get cachedSemesters => _allSemesters;
+
+  /// Loads persisted semester metadata without waiting for a network request.
+  static Future<void> loadDiskCache() async {
+    _currentSemester ??= await _readCurrentSemesterFromDisk();
+    _allSemesters ??= await _readAllSemestersFromDisk();
+  }
+
+  static Future<void> refresh() async {
+    final results = await Future.wait([
+      _fetchCurrentSemester(),
+      _fetchAllSemesters(),
+    ]);
+    final current = results[0] as CurrentSemesterInfo?;
+    final semesters = results[1] as List<SemesterInfo>?;
+    if (current != null) {
+      _currentSemester = current;
+      await _persist(_currentSemesterDiskKey, jsonEncode(current.toJson()));
+    }
+    if (semesters != null && semesters.isNotEmpty) {
+      _allSemesters = semesters;
+      await _persist(
+        _allSemestersDiskKey,
+        jsonEncode(semesters.map((semester) => semester.toJson()).toList()),
+      );
+    }
+  }
 
   /// 获取当前学期信息
   static Future<CurrentSemesterInfo?> getCurrentSemesterInfo() async {
@@ -21,12 +49,7 @@ class SemesterConfig {
       return _currentSemester;
     }
 
-    CurrentSemesterInfo? fetched;
-    try {
-      fetched = await getCurrentSemester(globals.idToken ?? '');
-    } catch (e) {
-      fetched = null;
-    }
+    final fetched = await _fetchCurrentSemester();
 
     if (fetched != null) {
       _currentSemester = fetched;
@@ -56,12 +79,7 @@ class SemesterConfig {
       return _allSemesters;
     }
 
-    List<SemesterInfo>? fetched;
-    try {
-      fetched = await getAllSemestersApi(globals.idToken ?? '');
-    } catch (e) {
-      fetched = null;
-    }
+    final fetched = await _fetchAllSemesters();
 
     if (fetched != null && fetched.isNotEmpty) {
       _allSemesters = fetched;
@@ -74,6 +92,22 @@ class SemesterConfig {
 
     // 网络失败时回退磁盘缓存
     return _allSemesters = await _readAllSemestersFromDisk();
+  }
+
+  static Future<CurrentSemesterInfo?> _fetchCurrentSemester() async {
+    try {
+      return await getCurrentSemester(globals.idToken ?? '');
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<List<SemesterInfo>?> _fetchAllSemesters() async {
+    try {
+      return await getAllSemestersApi(globals.idToken ?? '');
+    } catch (_) {
+      return null;
+    }
   }
 
   /// 根据ID获取学期信息

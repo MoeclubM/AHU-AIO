@@ -24,6 +24,9 @@ class JwMainTabs extends StatefulWidget {
 class _JwMainTabsState extends State<JwMainTabs>
     with AutomaticKeepAliveClientMixin {
   final _themeManager = ThemeManager();
+  final GlobalKey<JwSchedulePageState> _schedulePageKey =
+      GlobalKey<JwSchedulePageState>();
+  int _currentSubPage = 0;
 
   @override
   bool get wantKeepAlive => true;
@@ -32,12 +35,39 @@ class _JwMainTabsState extends State<JwMainTabs>
   void initState() {
     super.initState();
     _themeManager.addListener(_onThemeChanged);
+    _currentSubPage = widget.pageController.hasClients
+        ? widget.pageController.page?.round() ?? 0
+        : 0;
+    widget.pageController.addListener(_onSubPageChanged);
   }
 
   @override
   void dispose() {
     _themeManager.removeListener(_onThemeChanged);
+    widget.pageController.removeListener(_onSubPageChanged);
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant JwMainTabs oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.isActive && widget.isActive && _currentSubPage == 1) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _schedulePageKey.currentState?.refresh();
+      });
+    }
+  }
+
+  void _onSubPageChanged() {
+    if (!widget.pageController.hasClients) return;
+    final page = widget.pageController.page?.round() ?? _currentSubPage;
+    if (page == _currentSubPage) return;
+    _currentSubPage = page;
+    if (page == 1) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _schedulePageKey.currentState?.refresh();
+      });
+    }
   }
 
   void _onThemeChanged() {
@@ -76,9 +106,9 @@ class _JwMainTabsState extends State<JwMainTabs>
             parent: BouncingScrollPhysics(),
           ),
           controller: widget.pageController,
-          children: const [
+          children: [
             JwHomePage(embed: true),
-            JwSchedulePage(embed: true),
+            JwSchedulePage(key: _schedulePageKey, embed: true),
             JwGradesPage(embed: true),
             JwProgramPage(embed: true),
           ],

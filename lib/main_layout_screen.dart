@@ -15,6 +15,7 @@ import 'theme_manager.dart';
 import 'update/github_update_service.dart';
 import 'update/update_dialog.dart';
 import 'update/top_update_banner.dart';
+import 'schedule_cache_bootstrap.dart';
 
 /// 主底栏标签（Miuix 悬浮栏不显示文字，仅用于无障碍朗读）。
 const List<MiuixFloatingBarItemData> _mainTabs = [
@@ -356,6 +357,7 @@ class _MainLayoutScreenState extends State<MainLayoutScreen>
     });
     await _synjonesClient.init();
     final prefs = await SharedPreferences.getInstance();
+    await ScheduleCacheBootstrap.preload();
     final cachedIdToken = prefs.getString('idToken');
     if (cachedIdToken != null) {
       globals.idToken = cachedIdToken;

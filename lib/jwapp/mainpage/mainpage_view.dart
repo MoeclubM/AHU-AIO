@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../adaptive_ui.dart';
 import '../../miuix/adaptive_top_app_bar.dart';
 import '../../theme_manager.dart';
 import '../home/home_view.dart';
 import '../schedule/schedule_view.dart';
+import '../schedule/schedule_logic.dart';
 import '../features/grades_view.dart';
 import '../features/room_view.dart';
 import '../features/notice_view.dart';
@@ -48,6 +50,16 @@ class _MainPageState extends State<MainPage>
     super.dispose();
   }
 
+  @override
+  void didUpdateWidget(covariant MainPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.isActive && widget.isActive && _currentPage == 1) {
+      if (Get.isRegistered<ScheduleLogic>()) {
+        Get.find<ScheduleLogic>().refreshData();
+      }
+    }
+  }
+
   void _onThemeChanged() {
     if (mounted) setState(() {});
   }
@@ -56,9 +68,15 @@ class _MainPageState extends State<MainPage>
     if (widget.pageController.hasClients) {
       final newPage = widget.pageController.page?.round() ?? 0;
       if (newPage != _currentPage) {
+        final wasOnSchedule = _currentPage == 1;
         setState(() {
           _currentPage = newPage;
         });
+        if (newPage == 1 &&
+            !wasOnSchedule &&
+            Get.isRegistered<ScheduleLogic>()) {
+          Get.find<ScheduleLogic>().refreshData();
+        }
       }
     }
   }
