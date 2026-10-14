@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/jw_models.dart';
 import '../services/jw_schedule_service.dart';
+import '../../widgets/schedule_week_selector.dart';
 import '../../adaptive_ui.dart';
 import '../../adaptive_dropdown.dart';
 import '../../miuix/adaptive_top_app_bar.dart';
@@ -139,8 +140,15 @@ class JwSchedulePageState extends State<JwSchedulePage>
             physics: const AlwaysScrollableScrollPhysics(),
             child: Column(
               children: [
-                _buildTopSelectors(theme, isDark),
-                _buildWeekCapsules(theme),
+                _buildTopSelectors(theme),
+                ScheduleWeekSelector(
+                  weekCount: _maxWeeks,
+                  selectedWeek: _service.selectedWeek,
+                  currentWeek: _service.isCurrentSemesterSelected
+                      ? _service.currentWeek
+                      : null,
+                  onSelected: _animateToWeek,
+                ),
                 if (_service.isLoading) const LinearProgressIndicator(),
                 if (_service.isOfflineCache)
                   _buildCacheBanner(
@@ -238,11 +246,9 @@ class JwSchedulePageState extends State<JwSchedulePage>
   }
 
   /// 顶部学期与周次下拉选择区
-  Widget _buildTopSelectors(ThemeData theme, bool isDark) {
+  Widget _buildTopSelectors(ThemeData theme) {
     final semesters = _service.allSemesters;
     final selSem = _service.selectedSemester;
-    final curWeek = _service.selectedWeek;
-
     final selectedSemValue = semesters.any((s) => s.id == selSem?.id)
         ? selSem
         : (semesters.isNotEmpty ? semesters.first : null);
@@ -250,114 +256,33 @@ class JwSchedulePageState extends State<JwSchedulePage>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       color: theme.cardColor,
-      child: Row(
-        children: [
-          // 学期下拉
-          Expanded(
-            flex: 6,
-            child: Container(
-              height: 40,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withOpacity(
-                  0.5,
-                ),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: theme.colorScheme.outlineVariant.withOpacity(0.4),
-                  width: 0.6,
-                ),
-              ),
-              child: AdaptiveDropdown<JwSemesterInfo>(
-                value: selectedSemValue,
-                isExpanded: true,
-                items: semesters.map((s) {
-                  return AdaptiveDropdownItem<JwSemesterInfo>(
-                    value: s,
-                    label: s.nameZh,
-                  );
-                }).toList(),
-                onChanged: (s) {
-                  if (s != null) _service.selectSemester(s);
-                },
-              ),
+      child: SizedBox(
+        width: double.infinity,
+        child: Container(
+          height: 40,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+              width: 0.6,
             ),
           ),
-          const SizedBox(width: 10),
-          // 周次下拉
-          Expanded(
-            flex: 4,
-            child: Container(
-              height: 40,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest.withOpacity(
-                  0.5,
-                ),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: theme.colorScheme.outlineVariant.withOpacity(0.4),
-                  width: 0.6,
-                ),
-              ),
-              child: AdaptiveDropdown<int>(
-                value: curWeek.clamp(1, _maxWeeks),
-                isExpanded: true,
-                items: List.generate(_maxWeeks, (i) {
-                  final w = i + 1;
-                  final isNow =
-                      _service.isCurrentSemesterSelected &&
-                      w == _service.currentWeek;
-                  return AdaptiveDropdownItem<int>(
-                    value: w,
-                    label: isNow ? '第$w周(本周)' : '第$w周',
-                  );
-                }),
-                onChanged: (w) {
-                  if (w != null) _animateToWeek(w);
-                },
-              ),
-            ),
+          child: AdaptiveDropdown<JwSemesterInfo>(
+            value: selectedSemValue,
+            isExpanded: true,
+            items: semesters.map((semester) {
+              return AdaptiveDropdownItem<JwSemesterInfo>(
+                value: semester,
+                label: semester.nameZh,
+              );
+            }).toList(),
+            onChanged: (semester) {
+              if (semester != null) _service.selectSemester(semester);
+            },
           ),
-        ],
-      ),
-    );
-  }
-
-  /// 水平滑动周次胶囊条
-  Widget _buildWeekCapsules(ThemeData theme) {
-    return SizedBox(
-      height: 36,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        itemCount: _maxWeeks,
-        itemBuilder: (context, i) {
-          final w = i + 1;
-          final isSel = w == _service.selectedWeek;
-          final isCur =
-              _service.isCurrentSemesterSelected && w == _service.currentWeek;
-
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2.5),
-            child: ChoiceChip(
-              label: Text('第$w周'),
-              selected: isSel,
-              onSelected: (_) => _animateToWeek(w),
-              labelStyle: TextStyle(
-                fontSize: 11,
-                fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
-                color: isSel ? theme.colorScheme.onPrimary : null,
-              ),
-              selectedColor: theme.colorScheme.primary,
-              backgroundColor: isCur
-                  ? theme.colorScheme.primary.withOpacity(0.12)
-                  : null,
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              visualDensity: VisualDensity.compact,
-            ),
-          );
-        },
+        ),
       ),
     );
   }

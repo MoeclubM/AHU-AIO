@@ -10,6 +10,7 @@ import '../api/getallsemesters.dart';
 import '../utils/time_utils.dart';
 import 'schedule_logic.dart';
 import 'schedule_service.dart';
+import '../../widgets/schedule_week_selector.dart';
 
 class SchedulePage extends StatefulWidget {
   final bool embed;
@@ -186,7 +187,6 @@ class _SchedulePageState extends State<SchedulePage>
   Widget _buildSelectionArea(bool isLoading) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
 
     final semesters = _logic.allSemesters.toList();
     final selectedSemester = _logic.selectedSemester.value;
@@ -195,7 +195,6 @@ class _SchedulePageState extends State<SchedulePage>
       (semester) => semester.id == selectedSemester?.id,
     );
 
-    final currentWeek = _logic.selectedWeek.value;
     final realCurrent = _logic.realCurrentWeek;
     final maxWeeks = _logic.availableWeeks.isNotEmpty
         ? math.max(_logic.availableWeeks.last, 20)
@@ -213,16 +212,15 @@ class _SchedulePageState extends State<SchedulePage>
           ),
         ),
       ),
-      child: Row(
+      child: Column(
         children: [
-          // 1. 学期选择下拉框 (稍微缩短长度，占左侧约 60%)
-          Expanded(
-            flex: 6,
+          SizedBox(
+            width: double.infinity,
             child: Container(
               height: 38,
               padding: const EdgeInsets.symmetric(horizontal: 10),
               decoration: BoxDecoration(
-                color: isDark
+                color: theme.brightness == Brightness.dark
                     ? colorScheme.surfaceContainerHighest.withOpacity(0.5)
                     : colorScheme.surfaceContainerLow,
                 borderRadius: BorderRadius.circular(10),
@@ -258,60 +256,12 @@ class _SchedulePageState extends State<SchedulePage>
               ),
             ),
           ),
-          const SizedBox(width: 10),
-          // 2. 周数选择下拉框 (显示当前周并支持快捷切换)
-          Expanded(
-            flex: 4,
-            child: Container(
-              height: 38,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? colorScheme.surfaceContainerHighest.withOpacity(0.5)
-                    : colorScheme.surfaceContainerLow,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(
-                  color: colorScheme.outlineVariant.withOpacity(0.35),
-                  width: 0.6,
-                ),
-              ),
-              child: AdaptiveDropdown<int>(
-                value: (currentWeek >= 1 && currentWeek <= maxWeeks)
-                    ? currentWeek
-                    : 1,
-                isExpanded: true,
-                chevronColor: colorScheme.primary,
-                textStyle: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: colorScheme.onSurface,
-                ),
-                onChanged: isLoading
-                    ? null
-                    : (newWeek) {
-                        if (newWeek != null && newWeek != currentWeek) {
-                          _animateToWeek(newWeek);
-                        }
-                      },
-                items: List<AdaptiveDropdownItem<int>>.generate(maxWeeks, (
-                  index,
-                ) {
-                  final week = index + 1;
-                  final isReal = week == realCurrent;
-                  return AdaptiveDropdownItem<int>(
-                    value: week,
-                    label: isReal ? '第 $week 周(本周)' : '第 $week 周',
-                    labelStyle: TextStyle(
-                      fontSize: 13,
-                      fontWeight: isReal ? FontWeight.bold : FontWeight.w500,
-                      color: isReal
-                          ? colorScheme.primary
-                          : colorScheme.onSurface,
-                    ),
-                  );
-                }),
-              ),
-            ),
+          const SizedBox(height: 8),
+          ScheduleWeekSelector(
+            weekCount: maxWeeks,
+            selectedWeek: _logic.selectedWeek.value,
+            currentWeek: realCurrent,
+            onSelected: _animateToWeek,
           ),
         ],
       ),

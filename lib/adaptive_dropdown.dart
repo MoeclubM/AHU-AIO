@@ -138,20 +138,23 @@ class _AdaptiveDropdownState<T> extends State<AdaptiveDropdown<T>> {
             ),
     );
 
+    final Widget label = Text(
+      hasValue ? selected.label : (widget.hint ?? '请选择'),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: (widget.textStyle ?? theme.textTheme.bodyLarge)?.copyWith(
+        color: hasValue ? fg : scheme.onSurfaceVariant,
+      ),
+    );
+
     final Widget content = Row(
       mainAxisSize: widget.isExpanded ? MainAxisSize.max : MainAxisSize.min,
       children: <Widget>[
-        Flexible(
-          child: Text(
-            hasValue ? selected.label : (widget.hint ?? '请选择'),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: (widget.textStyle ?? theme.textTheme.bodyLarge)?.copyWith(
-              color: hasValue ? fg : scheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-        if (widget.isExpanded) const Spacer(),
+        if (widget.isExpanded)
+          Expanded(child: label)
+        else
+          Flexible(child: label),
+        if (widget.isExpanded) const SizedBox(width: 8),
         chevron,
       ],
     );
@@ -167,7 +170,7 @@ class _AdaptiveDropdownState<T> extends State<AdaptiveDropdown<T>> {
     }
 
     // Material 3 模式：采用标准 MenuAnchor
-    return MenuAnchor(
+    final Widget menuAnchor = MenuAnchor(
       menuChildren: <Widget>[
         for (final AdaptiveDropdownItem<T> item in widget.items)
           MenuItemButton(
@@ -188,6 +191,9 @@ class _AdaptiveDropdownState<T> extends State<AdaptiveDropdown<T>> {
             );
           },
     );
+    return widget.isExpanded
+        ? SizedBox(width: double.infinity, child: menuAnchor)
+        : menuAnchor;
   }
 }
 
