@@ -25,6 +25,7 @@ class ScheduleLogic extends GetxController {
   var currentSemesterInfo = Rxn<CurrentSemesterInfo>();
   var selectedWeek = 1.obs;
   var availableWeeks = <int>[].obs;
+  bool _isInitializing = false;
 
   @override
   void onInit() {
@@ -40,8 +41,115 @@ class ScheduleLogic extends GetxController {
 
   // 初始化数据
   Future<void> initializeData() async {
-    await loadSemesterData();
-    await loadScheduleData();
+    _isInitializing = true;
+    try {
+      await SemesterConfig.loadDiskCache();
+      _applyCachedSemesterData();
+      await loadScheduleData();
+      final loadedSemesterId = selectedSemester.value?.id;
+      await _refreshSemesterData();
+      if (selectedSemester.value?.id != loadedSemesterId) {
+        await loadScheduleData();
+      }
+    } finally {
+      _isInitializing = false;
+    }
+  }
+
+  void _applyCachedSemesterData() {
+    allSemesters.value = SemesterConfig.cachedSemesters ?? [];
+    var current = SemesterConfig.cachedCurrentSemester;
+    final today = DateTime.now();
+    final cachedCurrentIsActive =
+        current != null &&
+        _isDateInsideSemester(today, current.startDate, current.endDate);
+    if (!cachedCurrentIsActive && allSemesters.isNotEmpty) {
+      final active = allSemesters.firstWhereOrNull((semester) {
+        return _isDateInsideSemester(
+          today,
+          semester.startDate,
+          semester.endDate,
+        );
+      });
+      final latestStarted = allSemesters.where((semester) {
+        final start = DateTime.tryParse(semester.startDate);
+        return start != null && !_dateOnly(start).isAfter(_dateOnly(today));
+      }).toList()..sort((a, b) => b.id.compareTo(a.id));
+      final semester =
+          active ?? (latestStarted.isEmpty ? null : latestStarted.first);
+      if (semester != null) {
+        current = CurrentSemesterInfo(
+          id: semester.id,
+          code: semester.code,
+          nameZh: semester.nameZh,
+          nameEn: semester.nameEn,
+          schoolYear: semester.schoolYear,
+          startDate: semester.startDate,
+          endDate: semester.endDate,
+          season: semester.season,
+          weekIndices: const [],
+        );
+      }
+    }
+
+    if (current == null) return;
+    currentSemesterInfo.value = current;
+    selectedSemester.value =
+        allSemesters.firstWhereOrNull(
+          (semester) => semester.id == current!.id,
+        ) ??
+        SemesterInfo(
+          id: current.id,
+          code: current.code,
+          nameZh: current.nameZh,
+          nameEn: current.nameEn,
+          schoolYear: current.schoolYear,
+          startDate: current.startDate,
+          endDate: current.endDate,
+          season: current.season,
+        );
+    availableWeeks.value = _weeksFor(current);
+    selectedWeek.value = _getCurrentWeek(current);
+  }
+
+  Future<void> _refreshSemesterData() async {
+    final oldCurrentId = currentSemesterInfo.value?.id;
+    await SemesterConfig.refresh();
+    allSemesters.value = SemesterConfig.cachedSemesters ?? allSemesters;
+    final current = SemesterConfig.cachedCurrentSemester;
+    if (current == null) return;
+    currentSemesterInfo.value = current;
+    if (oldCurrentId != current.id ||
+        selectedSemester.value?.id == oldCurrentId) {
+      selectedSemester.value =
+          allSemesters.firstWhereOrNull(
+            (semester) => semester.id == current.id,
+          ) ??
+          SemesterInfo(
+            id: current.id,
+            code: current.code,
+            nameZh: current.nameZh,
+            nameEn: current.nameEn,
+            schoolYear: current.schoolYear,
+            startDate: current.startDate,
+            endDate: current.endDate,
+            season: current.season,
+          );
+      availableWeeks.value = _weeksFor(current);
+      selectedWeek.value = _getCurrentWeek(current);
+    }
+  }
+
+  DateTime _dateOnly(DateTime date) =>
+      DateTime(date.year, date.month, date.day);
+
+  bool _isDateInsideSemester(DateTime date, String startRaw, String endRaw) {
+    final start = DateTime.tryParse(startRaw);
+    final end = DateTime.tryParse(endRaw);
+    return start != null &&
+        end != null &&
+        !_dateOnly(date).isBefore(_dateOnly(start)) &&
+        !_dateOnly(date).isAfter(_dateOnly(end));
   }
 
   // 加载学期数据
@@ -68,20 +176,15 @@ class ScheduleLogic extends GetxController {
           }
 
           // 设置可用周数
-          availableWeeks.value = currentSemester.weekIndices;
-          if (availableWeeks.isNotEmpty) {
-            // 设置为当前周，而不是第一周
-            selectedWeek.value = _getCurrentWeek(currentSemester);
-          }
+          availableWeeks.value = _weeksFor(currentSemester);
+          selectedWeek.value = _getCurrentWeek(currentSemester);
         } else {
           // 如果已经有选中的学期，更新该学期的周数信息
           if (currentSemesterInfo.value != null &&
               selectedSemester.value!.id == currentSemesterInfo.value!.id) {
             // 当前学期，使用真实的周数信息
-            availableWeeks.value = currentSemesterInfo.value!.weekIndices;
-            if (availableWeeks.isNotEmpty) {
-              selectedWeek.value = _getCurrentWeek(currentSemesterInfo.value!);
-            }
+            availableWeeks.value = _weeksFor(currentSemesterInfo.value!);
+            selectedWeek.value = _getCurrentWeek(currentSemesterInfo.value!);
           } else {
             // 其他学期，使用默认的周数（1-20周）
             availableWeeks.value = List.generate(20, (index) => index + 1);
@@ -224,21 +327,28 @@ class ScheduleLogic extends GetxController {
 
   // 刷新数据
   Future<void> refreshData() async {
-    // 重新加载学期数据和课程数据
-    await loadSemesterData();
+    if (_isInitializing || isLoading.value) return;
+    await _refreshSemesterData();
     await loadScheduleData();
   }
 
   /// 计算当前周数
   int _getCurrentWeek(CurrentSemesterInfo semesterInfo) {
     final now = DateTime.now();
-    final startDate = DateTime.parse(semesterInfo.startDate);
+    final startDate = DateTime.tryParse(semesterInfo.startDate);
+    if (startDate == null) return 1;
 
-    // 计算从学期开始到现在的天数
-    final daysDifference = now.difference(startDate).inDays;
+    final firstMonday = DateTime(
+      startDate.year,
+      startDate.month,
+      startDate.day,
+    ).subtract(Duration(days: startDate.weekday - DateTime.monday));
+    final today = DateTime(now.year, now.month, now.day);
+    final currentWeek = today.difference(firstMonday).inDays ~/ 7 + 1;
 
-    // 计算当前是第几周（从1开始）
-    final currentWeek = (daysDifference / 7).floor() + 1;
+    if (semesterInfo.weekIndices.isEmpty) {
+      return currentWeek.clamp(1, 25).toInt();
+    }
 
     // 确保周数在有效范围内
     if (semesterInfo.weekIndices.contains(currentWeek)) {
@@ -257,6 +367,11 @@ class ScheduleLogic extends GetxController {
       }
     }
   }
+
+  List<int> _weeksFor(CurrentSemesterInfo semesterInfo) =>
+      semesterInfo.weekIndices.isNotEmpty
+      ? semesterInfo.weekIndices
+      : List.generate(25, (index) => index + 1);
 
   DateTime? get semesterStartDate => _resolveSemesterStartDate();
 

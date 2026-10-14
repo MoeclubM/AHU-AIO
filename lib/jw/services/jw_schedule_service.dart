@@ -3,12 +3,14 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api/jw_api.dart';
 import '../models/jw_models.dart';
+import '../../schedule_cache_bootstrap.dart';
 
 /// 安大新教务系统课表状态与数据管理服务（对接 jw.ahu.edu.cn）。
 class JwScheduleService extends ChangeNotifier {
   final JwApi _api = JwApi();
 
   bool isLoading = false;
+  bool isInitializing = false;
   bool isCached = false;
   bool isOfflineCache = false;
   String? errorMessage;
@@ -17,9 +19,13 @@ class JwScheduleService extends ChangeNotifier {
   JwSemesterInfo? selectedSemester;
   int currentWeek = 1;
   int selectedWeek = 1;
+  int? currentSemesterId;
   bool isInSemester = true;
 
   JwScheduleData? scheduleData;
+
+  bool get isCurrentSemesterSelected =>
+      currentSemesterId != null && selectedSemester?.id == currentSemesterId;
 
   /// 获取当前选中周次下的周一到周日（1~7）排课映射
   Map<int, List<JwScheduleEntry>> get currentWeekSchedule {
@@ -80,10 +86,15 @@ class JwScheduleService extends ChangeNotifier {
 
   /// 初始化并加载学期、教学周和排课数据（优先命中缓存，随后异步静默拉取最新）
   Future<void> initAndLoad() async {
-    await _loadCache();
-    await fetchSemestersAndTeachWeek();
-    if (selectedSemester != null) {
-      await fetchScheduleData(selectedSemester!.id);
+    isInitializing = true;
+    try {
+      await _loadCache();
+      await fetchSemestersAndTeachWeek();
+      if (selectedSemester != null) {
+        await fetchScheduleData(selectedSemester!.id);
+      }
+    } finally {
+      isInitializing = false;
     }
   }
 
@@ -93,7 +104,9 @@ class JwScheduleService extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
 
       final cachedSem = prefs.getString('jw_sys_semesters_cache');
-      if (cachedSem != null) {
+      if (ScheduleCacheBootstrap.jwSemesters != null) {
+        allSemesters = List.from(ScheduleCacheBootstrap.jwSemesters!);
+      } else if (cachedSem != null) {
         final list = jsonDecode(cachedSem) as List;
         final seen = <int>{};
         allSemesters = list
@@ -105,27 +118,50 @@ class JwScheduleService extends ChangeNotifier {
         allSemesters = List.from(fallbackSemesters);
       }
 
-      final savedSemId = prefs.getInt('jw_sys_selected_sem_id');
-      if (savedSemId != null && allSemesters.isNotEmpty) {
+      currentSemesterId =
+          _findSemesterForToday(allSemesters)?.id ??
+          prefs.getInt('jw_sys_current_sem_id') ??
+          ScheduleCacheBootstrap.jwCurrentSemesterId;
+      final savedSemId =
+          prefs.getInt('jw_sys_selected_sem_id') ??
+          ScheduleCacheBootstrap.jwSelectedSemesterId;
+      if (currentSemesterId != null && allSemesters.isNotEmpty) {
+        selectedSemester =
+            _semesterById(currentSemesterId) ?? allSemesters.first;
+      } else if (savedSemId != null && allSemesters.isNotEmpty) {
         selectedSemester = allSemesters.firstWhere(
           (s) => s.id == savedSemId,
-          orElse: () => allSemesters.first,
+          orElse: () => _semesterById(currentSemesterId) ?? allSemesters.first,
         );
       } else if (allSemesters.isNotEmpty) {
         selectedSemester = allSemesters.first;
       }
 
-      final savedWeek = prefs.getInt('jw_sys_selected_week');
+      final savedWeek =
+          prefs.getInt('jw_sys_selected_week') ??
+          ScheduleCacheBootstrap.jwSelectedWeek;
       if (savedWeek != null && savedWeek > 0 && savedWeek <= 25) {
         selectedWeek = savedWeek;
       }
 
+      final currentSemester = _semesterById(currentSemesterId);
+      if (currentSemester != null) {
+        currentWeek = _weekForDate(currentSemester, DateTime.now());
+        isInSemester = _dateIsInsideSemester(currentSemester, DateTime.now());
+        if (selectedSemester?.id == currentSemester.id) {
+          selectedWeek = currentWeek;
+        }
+      }
+
       if (selectedSemester != null) {
+        final cachedModel =
+            ScheduleCacheBootstrap.jwSchedules[selectedSemester!.id];
         final cachedData = prefs.getString(
           'jw_sys_schedule_cache_${selectedSemester!.id}',
         );
-        if (cachedData != null) {
-          scheduleData = JwScheduleData.fromJson(jsonDecode(cachedData));
+        if (cachedModel != null || cachedData != null) {
+          scheduleData =
+              cachedModel ?? JwScheduleData.fromJson(jsonDecode(cachedData!));
           isCached = true;
           notifyListeners();
         }
@@ -136,17 +172,11 @@ class JwScheduleService extends ChangeNotifier {
   /// 获取当前教学周与在线学期配置
   Future<void> fetchSemestersAndTeachWeek() async {
     try {
+      final previousCurrentSemesterId = currentSemesterId;
+      Map<String, dynamic>? weekRaw;
       // 1. 请求当前教学周
       try {
-        final weekRaw = await _api.getCurrentTeachWeek();
-        final w = int.tryParse('${weekRaw['weekIndex']}');
-        if (w != null && w > 0) {
-          currentWeek = w;
-          if (selectedWeek == 1 || selectedWeek == currentWeek) {
-            selectedWeek = currentWeek;
-          }
-        }
-        isInSemester = weekRaw['isInSemester'] == true;
+        weekRaw = await _api.getCurrentTeachWeek();
       } catch (_) {}
 
       // 2. 尝试获取学期列表
@@ -165,9 +195,32 @@ class JwScheduleService extends ChangeNotifier {
         allSemesters = List.from(fallbackSemesters);
       }
 
+      currentSemesterId = _resolveCurrentSemesterId(
+        weekRaw?['currentSemester']?.toString(),
+        allSemesters,
+      );
+      final currentSemester = _semesterById(currentSemesterId);
+      final onlineInSemester = weekRaw?['isInSemester'] == true;
+      isInSemester =
+          onlineInSemester ||
+          (weekRaw == null &&
+              currentSemester != null &&
+              _dateIsInsideSemester(currentSemester, DateTime.now()));
+      final onlineWeek = int.tryParse('${weekRaw?['weekIndex']}');
+      currentWeek = onlineInSemester && onlineWeek != null && onlineWeek > 0
+          ? onlineWeek.clamp(1, 25).toInt()
+          : currentSemester == null
+          ? 1
+          : _weekForDate(currentSemester, DateTime.now());
+
       if (selectedSemester == null ||
+          selectedSemester?.id == previousCurrentSemesterId ||
           !allSemesters.any((s) => s.id == selectedSemester!.id)) {
-        selectedSemester = allSemesters.first;
+        selectedSemester =
+            _semesterById(currentSemesterId) ?? allSemesters.first;
+      }
+      if (selectedSemester?.id == currentSemesterId) {
+        selectedWeek = currentWeek;
       }
 
       final prefs = await SharedPreferences.getInstance();
@@ -175,6 +228,9 @@ class JwScheduleService extends ChangeNotifier {
         'jw_sys_semesters_cache',
         jsonEncode(allSemesters.map((s) => s.toJson()).toList()),
       );
+      if (currentSemesterId != null) {
+        await prefs.setInt('jw_sys_current_sem_id', currentSemesterId!);
+      }
       notifyListeners();
     } catch (e) {
       errorMessage = e.toString();
@@ -200,6 +256,7 @@ class JwScheduleService extends ChangeNotifier {
         'jw_sys_schedule_cache_$semesterId',
         jsonEncode(raw),
       );
+      ScheduleCacheBootstrap.jwSchedules[semesterId] = scheduleData!;
     } catch (e) {
       final prefs = await SharedPreferences.getInstance();
       final cached = prefs.getString('jw_sys_schedule_cache_$semesterId');
@@ -227,6 +284,7 @@ class JwScheduleService extends ChangeNotifier {
   Future<void> selectSemester(JwSemesterInfo sem) async {
     if (selectedSemester?.id == sem.id) return;
     selectedSemester = sem;
+    selectedWeek = sem.id == currentSemesterId ? currentWeek : 1;
     notifyListeners();
 
     final prefs = await SharedPreferences.getInstance();
@@ -245,6 +303,100 @@ class JwScheduleService extends ChangeNotifier {
 
     await fetchScheduleData(sem.id);
   }
+
+  Future<void> refreshData() async {
+    if (isInitializing || isLoading) return;
+    await fetchSemestersAndTeachWeek();
+    if (selectedSemester != null) {
+      await fetchScheduleData(selectedSemester!.id);
+    }
+  }
+
+  Future<void> activate() async {
+    if (isInitializing || isLoading) return;
+    final current = _semesterById(currentSemesterId);
+    if (current != null && selectedSemester?.id != current.id) {
+      await selectSemester(current);
+      return;
+    }
+    if (current != null) {
+      currentWeek = _weekForDate(current, DateTime.now());
+      selectedWeek = currentWeek;
+      isInSemester = _dateIsInsideSemester(current, DateTime.now());
+      notifyListeners();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('jw_sys_selected_week', selectedWeek);
+    }
+    await refreshData();
+  }
+
+  JwSemesterInfo? _semesterById(int? id) {
+    if (id == null) return null;
+    for (final semester in allSemesters) {
+      if (semester.id == id) return semester;
+    }
+    return null;
+  }
+
+  int? _resolveCurrentSemesterId(
+    String? apiName,
+    List<JwSemesterInfo> semesters,
+  ) {
+    if (apiName != null && apiName.isNotEmpty) {
+      for (final semester in semesters) {
+        if (semester.nameZh == apiName || semester.code == apiName) {
+          return semester.id;
+        }
+      }
+    }
+    return _findSemesterForToday(semesters)?.id ?? currentSemesterId;
+  }
+
+  JwSemesterInfo? _findSemesterForToday(List<JwSemesterInfo> semesters) {
+    final today = DateTime.now();
+    final active = semesters.where((semester) {
+      final start = DateTime.tryParse(semester.startDate ?? '');
+      final end = DateTime.tryParse(semester.endDate ?? '');
+      return start != null &&
+          end != null &&
+          !_dateOnly(today).isBefore(_dateOnly(start)) &&
+          !_dateOnly(today).isAfter(_dateOnly(end));
+    }).toList();
+    if (active.isNotEmpty) return active.first;
+
+    final started =
+        semesters.where((semester) {
+          final start = DateTime.tryParse(semester.startDate ?? '');
+          return start != null && !_dateOnly(start).isAfter(_dateOnly(today));
+        }).toList()..sort(
+          (a, b) => DateTime.parse(
+            b.startDate!,
+          ).compareTo(DateTime.parse(a.startDate!)),
+        );
+    return started.isEmpty ? null : started.first;
+  }
+
+  int _weekForDate(JwSemesterInfo semester, DateTime date) {
+    final start = DateTime.tryParse(semester.startDate ?? '');
+    if (start == null) return 1;
+    final firstMonday = _dateOnly(
+      start,
+    ).subtract(Duration(days: start.weekday - DateTime.monday));
+    final week = _dateOnly(date).difference(firstMonday).inDays ~/ 7 + 1;
+    return week.clamp(1, 25).toInt();
+  }
+
+  bool _dateIsInsideSemester(JwSemesterInfo semester, DateTime date) {
+    final start = DateTime.tryParse(semester.startDate ?? '');
+    final end = DateTime.tryParse(semester.endDate ?? '');
+    return start != null &&
+        end != null &&
+        !_dateOnly(date).isBefore(_dateOnly(start)) &&
+        !_dateOnly(date).isAfter(_dateOnly(end));
+  }
+
+  DateTime _dateOnly(DateTime date) =>
+      DateTime(date.year, date.month, date.day);
 
   /// 切换周次
   Future<void> selectWeek(int week) async {

@@ -468,8 +468,12 @@ class _SchedulePageState extends State<SchedulePage>
 
     DateTime? mondayDate;
     if (startDate != null) {
-      final daysOffset = (selectedWeek - 1) * 7;
-      mondayDate = startDate.add(Duration(days: daysOffset));
+      final firstMonday = DateTime(
+        startDate.year,
+        startDate.month,
+        startDate.day,
+      ).subtract(Duration(days: startDate.weekday - DateTime.monday));
+      mondayDate = firstMonday.add(Duration(days: (selectedWeek - 1) * 7));
     }
 
     final int month = mondayDate?.month ?? DateTime.now().month;

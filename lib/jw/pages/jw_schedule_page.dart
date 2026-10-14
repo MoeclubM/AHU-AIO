@@ -15,10 +15,10 @@ class JwSchedulePage extends StatefulWidget {
   const JwSchedulePage({super.key, this.embed = false});
 
   @override
-  State<JwSchedulePage> createState() => _JwSchedulePageState();
+  State<JwSchedulePage> createState() => JwSchedulePageState();
 }
 
-class _JwSchedulePageState extends State<JwSchedulePage>
+class JwSchedulePageState extends State<JwSchedulePage>
     with AutomaticKeepAliveClientMixin {
   late final JwScheduleService _service;
   late final PageController _pageController;
@@ -80,6 +80,8 @@ class _JwSchedulePageState extends State<JwSchedulePage>
     setState(() {});
   }
 
+  Future<void> refresh() => _service.activate();
+
   /// 自动计算契合视口高度的单节高度
   double _getSlotHeight(BuildContext context) {
     final screenH = MediaQuery.sizeOf(context).height;
@@ -132,11 +134,7 @@ class _JwSchedulePageState extends State<JwSchedulePage>
         top: !widget.embed,
         bottom: false,
         child: RefreshIndicator(
-          onRefresh: () async {
-            if (_service.selectedSemester != null) {
-              await _service.fetchScheduleData(_service.selectedSemester!.id);
-            }
-          },
+          onRefresh: _service.refreshData,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             child: Column(
@@ -307,7 +305,9 @@ class _JwSchedulePageState extends State<JwSchedulePage>
                 isExpanded: true,
                 items: List.generate(_maxWeeks, (i) {
                   final w = i + 1;
-                  final isNow = w == _service.currentWeek;
+                  final isNow =
+                      _service.isCurrentSemesterSelected &&
+                      w == _service.currentWeek;
                   return AdaptiveDropdownItem<int>(
                     value: w,
                     label: isNow ? '第$w周(本周)' : '第$w周',
@@ -335,7 +335,8 @@ class _JwSchedulePageState extends State<JwSchedulePage>
         itemBuilder: (context, i) {
           final w = i + 1;
           final isSel = w == _service.selectedWeek;
-          final isCur = w == _service.currentWeek;
+          final isCur =
+              _service.isCurrentSemesterSelected && w == _service.currentWeek;
 
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 2.5),
@@ -423,7 +424,12 @@ class _JwSchedulePageState extends State<JwSchedulePage>
     if (sem?.startDate != null) {
       try {
         final start = DateTime.parse(sem!.startDate!);
-        monday = start.add(Duration(days: (week - 1) * 7));
+        final firstMonday = DateTime(
+          start.year,
+          start.month,
+          start.day,
+        ).subtract(Duration(days: start.weekday - DateTime.monday));
+        monday = firstMonday.add(Duration(days: (week - 1) * 7));
       } catch (_) {}
     }
     final month = monday?.month ?? DateTime.now().month;
@@ -460,6 +466,7 @@ class _JwSchedulePageState extends State<JwSchedulePage>
             final dayDate = monday?.add(Duration(days: i));
             final isToday =
                 DateTime.now().weekday == weekday &&
+                _service.isCurrentSemesterSelected &&
                 week == _service.currentWeek;
 
             return Container(
