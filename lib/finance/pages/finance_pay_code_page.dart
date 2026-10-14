@@ -357,6 +357,14 @@ class _FinancePayCodePageState extends State<FinancePayCodePage>
             child: Column(
               children: [
                 _buildQrBox(colorScheme),
+                if (_oneCode != null && _error != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    '刷新失败：$_error',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: colorScheme.error, fontSize: 12),
+                  ),
+                ],
                 const SizedBox(height: 14),
                 Text(
                   _timeText(),
@@ -415,14 +423,7 @@ class _FinancePayCodePageState extends State<FinancePayCodePage>
   }
 
   Widget _buildQrBox(ColorScheme colorScheme) {
-    if (_refreshing) {
-      return const SizedBox(
-        width: 260,
-        height: 260,
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-    if (_error != null) {
+    if (_oneCode == null && _error != null) {
       return SizedBox(
         width: 260,
         height: 260,
@@ -448,7 +449,13 @@ class _FinancePayCodePageState extends State<FinancePayCodePage>
         ),
       );
     }
-    if (_oneCode == null) return const SizedBox(width: 260, height: 260);
+    if (_oneCode == null) {
+      return const SizedBox(
+        width: 260,
+        height: 260,
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
     final bool miuix = isMiuixUi();
     return Container(
       width: 260,
